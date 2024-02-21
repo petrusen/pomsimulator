@@ -1,0 +1,32 @@
+Changelog
+=========
+
+
+Release 1.0.0
+-------------
+
+First python implementation of POMSimulator for isopolyoxometalates
+
+./pomsimulator/modules:
+- text_module.py : functions for parsing the ADF outputs, and reading/writing chemical files such as .mol and .xyz
+- graph_module.py : function for creating molecular graphs, isomorphic matrix, and chemical reaction network
+- msce_module.py : function for setting the speciation models, activity functions, and chemical equilibrium related features
+- Database.py : file that contains the useful dictionaries and experimental data 
+
+./Simulation:
+- simulation_test.py : simulation file to check that POMSimulator was well installed
+- simulation_tungstates.py : main simulation file that contains all the workflow of POMSimulator for isopolyoxotungstates
+
+./Utilities:
+- compute_isomorphism.py : calculates the isomorphic matrix from the molecular graphs derived from Bader QTAIM calculations
+- generate_mol_file.py : converts the Bader QTAIM bond connectivity to .mol files
+- monometal_phase.py : calculates the speciation phase data array for isopolyoxometalates
+- monometal_speciation.py : calculations the speciation data array for isopolyoxometalates
+- plot_phase_diagram.py :  plots the speciation phase data array
+- plot_reac_map.py : plots the chemical reaction network
+- plot_speciation_diagram.py : plots the speciation data array
+- scale_constants.py : scales the theoretical formation constants respect to the experimental constants (in Database.py)
+
+./Input: folder that contains the ADF output file subfolders
+
+./Output: folder that contains the chemical reaction network, formation constants and simulation related files

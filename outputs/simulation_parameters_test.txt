@@ -1,0 +1,40 @@
+=============================================================================================
+·······································POMSimulator··········································
+=============================================================================================
+Information about the software's license, documentation and citation can be found at:   
+https://gitlab.com/enricpp/pomsimulator_release                                         
+
+Authors: Enric Petrus, Mireia Segado-Centellas, Carles Bo                                
+Institute of Chemical Research of Catalonia (ICIQ) & Universitat Rovira i Virgili (URV) 
+Developer team: Enric Petrus, Jordi Buils, Diego Garay-Ruiz                                  
+Contact Mail: enricpz@icloud.com                                                             
+=============================================================================================
+
+================
+System Settings:
+================
+ADF Folder: ../inputs/W_Set_PBE_test/
+MOL Folder: ../inputs/W_Set_PBE_molfiles/
+Formation Constants File: ../outputs/formation_constants_test.txt
+Chemical Reaction Network File: ../outputs/reaction_network_test.txt
+Simulation Parameters File: ../outputs/simulation_parameters_test.txt
+CPU cores: 2
+Starting Time: 2024-02-15 11:07:01.852739
+
+==========================
+Chemical Reaction Network:
+==========================
+Use Isomorphisms: True
+Reaction Energy Threshold (kcal/mol): 80
+Proton Difference Threshold: 2
+Reference Reactions: ['P', 'H2Ow1', 'H2Ow2', 'Cw1', 'Cw2', 'Cw3', 'Cw4', 'A', 'HO', 'H3O']
+
+==================
+Speciation Models:
+==================
+Ionic Strength (mol/L): 0.25
+Initial Concentration (mol/L): 0.005
+Range of pH: (0, 35)
+Grid of pH: 70
+Range of Simulated Models: (0, 168)
+Formation Constants Referred to: W01O04-0H
