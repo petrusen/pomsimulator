@@ -28,7 +28,7 @@ POMSimulator can be installed via git and pip (see below).
 
 ```console
 git clone <pomsimulator-repo>
-cd pomsimulator_release
+cd pomsimulator
 pip install -e .
 ```
 
