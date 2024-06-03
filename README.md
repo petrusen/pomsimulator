@@ -53,7 +53,7 @@ also find a written manual in `.docs/manual.md`
 
 ## How to Cite
 
-When publishing results generated with POMSimulator, we kindly request you to cite the original paper:
+When publishing results generated with POMSimulator, we kindly request you to cite the original paper, and if possible the corresponding release as archived on [Zenodo](https://zenodo.org/records/10689769):
 
 > Petrus, E.; Segado, M.; Bo, C. *Chem. Sci.*, **2020**, 11, 8448-8456 [doi.org/10.1039/D0SC03530K](https://doi.org/10.1039/D0SC03530K)
 
@@ -62,7 +62,7 @@ List of peer-reviewed articles featuring POMSimulator:
 * Petrus, E.; Segado, M.; Bo, C. *Inorg. Chem.* **2022**, 61, 35, 13708-13718 [doi.org/10.1021/acs.inorgchem.2c00925](https://pubs.acs.org/doi/abs/10.1021/acs.inorgchem.2c00925)
 * Petrus, E.; Garay-Ruiz, D.; Reiher, M.; Bo, C. *J. Am. Chem. Soc*, **2023**, 145, 34, 18920-18930 [doi.org/10.1021/jacs.3c05514](https://pubs.acs.org/doi/full/10.1021/jacs.3c05514)
 * Garay-Ruiz, D.; Petrus, E.; Bo, C. *Revista de la Societat Catalana de Quimica* **2023**, 22, 23-38 [doi.org/10.2436/20.2003.01.142](https://revistes.iec.cat/index.php/RSCQ/article/view/150830/148565) 
-
+* Petrus, E.; Buils, J.; Garay-Ruiz, D.; Segado-Centellas, M.; Bo, C. *J. Comput. Chem.* **2024**, 1-9 [doi.org/10.1002/jcc.27389](https://doi.org/10.1002/jcc.27389) 
 
 ## License and Copyright Information
 
