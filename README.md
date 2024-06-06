@@ -1,3 +1,7 @@
+[![DOI](https://img.shields.io/badge/DOI-10.1039/D0SC03530K-orange)](https://doi.org/10.1039/D0SC03530K)
+[![Latest Version](https://img.shields.io/github/v/release/petrusen/pomsimulator)](https://github.com/petrusen/pomsimulator/releases/latest)
+[![License](https://img.shields.io/badge/license-AGPL3.0-darkgreen)](https://github.com/petrusen/pomsimulator/blob/main/LICENSE.txt)
+
 ![](docs/.img/pomsimulator_logo.png)
 
 # POMSimulator
