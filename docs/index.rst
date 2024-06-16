@@ -9,11 +9,16 @@ User Guide to POMSimulator
 
 This user guide provides an overview of the functionalities of the method, as well as some practical examples.
 
-.. image:: ./img/pomsimulator_logo.png
+.. image:: pomsimulator/docs/.img/pomsimulator_logo.png
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+   :maxdepth: 3
+   :caption: Quickstart
+
+   setup
+   examples
+   intro
+   modules
 
 Indices and tables
 ==================
