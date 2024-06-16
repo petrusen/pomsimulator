@@ -1,17 +1,30 @@
 Installation procedure
 ======================
 
-The system administrator must perform following actions prior deploying the ioChem-BD platform.
-
-Create iochembd system user
----------------------------
-
-First we will create a user account called *iochembd*, it will hold ioChem-BD files and will be responsible for running the web service that provides access to the software.
+POMSimulator can be installed via git and pip (see below).
 
 .. code:: bash
 
-     root# useradd -m iochembd
+     $ git clone <pomsimulator-repo>
+     $ cd pomsimulator
+     $ pip install -e .
 
-We can use any other non privileged system user or username to install or run this software, we called it *iochembd* as an example.
+.. attention:: Installing POMSimulator directly on your /home/user may result in incompatibilities with other Python dependent packages. Thus, we highly recommend to create a separate Python environment.
 
-.. attention:: The following commands will be run as the *iochembd* user, unless otherwise mentioned.
+.. code:: bash
+
+     $ python3 -m venv pomsim_env
+     $ cd pomsim_env
+     $ source ./bin/activate
+     (pomsim_env)$  git clone <pomsimulator-repo>
+     (pomsim_env)$  cd pomsimulator
+     (pomsim_env)$  pip install -e .   #it will automatically install the required dependencies
+
+To check whether the installation was successful, we recommend running a short simulation (i.e., consisting of monomers, dimers and trimers) already prepared in the package:
+
+.. code:: bash
+
+     (pomsim_env)$  python3 pomsimulator/simulations/simulation_test.py
+
+
+.. note:: Installation of POMSimulator via PyPi is underway

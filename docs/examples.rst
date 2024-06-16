@@ -1,17 +1,8 @@
 Examples
 =============
 
-Installation/Usage:
-*******************
-As the package has not been published on PyPi yet, it CANNOT be install using pip.
+``in construction``
 
-For now, the suggested method is to put the file `simpleble.py` in the same directory as your source files and call ``from simpleble import SimpleBleClient, SimpleBleDevice``.
-
-``bluepy`` must also be installed and imported as shown in the example below.
-For instructions about how to install, as well as the full documentation of, ``bluepy`` please refer `here <https://github.com/IanHarvey/bluepy/>`_
-
-Search for device, connect and read characteristic
-**************************************************
 .. code-block:: python
 
     """This example demonstrates a simple BLE client that scans for devices,

@@ -47,15 +47,15 @@ dgaray@iciq.es
    :maxdepth: 3
    :caption: User Guide
 
-   setup
-   examples
    intro
-   modules
+   examples
+   guidelines
 
+.. toctree::
+   :maxdepth: 3
+   :caption: Apppendix
 
-Indices and tables
-==================
+   news
+   publications
+   license
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
