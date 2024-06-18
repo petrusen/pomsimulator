@@ -6,7 +6,7 @@
 SPHINXOPTS    ?=
 #SPHINXBUILD   ?= /opt/homebrew/opt/sphinx-doc/bin/sphinx-build
 SPHINXBUILD   ?= /Users/epetrus/PycharmProjects/docs_pomsim/bin/sphinx-build
-SOURCEDIR     = .
+SOURCEDIR     = source
 BUILDDIR      = build
 
 # Put it first so that "make" without argument is like "make help".
