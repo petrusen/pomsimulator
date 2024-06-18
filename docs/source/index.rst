@@ -34,7 +34,7 @@ detailed description of the method, we recommend reading the following two open-
 Don’t hesitate contacting us if you need further information at enricpz@icloud.com, jbuils@iciq.es,
 dgaray@iciq.es
 
-.. image:: .img/pomsimulator_logo.png
+.. image:: ../.img/pomsimulator_logo.png
 
 .. toctree::
    :maxdepth: 3
