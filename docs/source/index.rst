@@ -56,7 +56,6 @@ dgaray@iciq.es
    :maxdepth: 3
    :caption: Appendix
 
-   news
    publications
    license
 
