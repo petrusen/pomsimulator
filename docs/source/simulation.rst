@@ -1,12 +1,14 @@
 Simulation
 ================
 
-``in construction``
-
 To start using POMSimulator, it is necessary to design a set of molecules, which then ought to be optimized with a quantum
-mechanical software.
+mechanical software. The choice of the molecular set has a decisive effect on the final speciation and mechanistic results.
+Thus, we highly recommend gathering sufficient expertise in the chemical system understudy (e.g., experimental data from mass spectometry,
+nuclear magnetic ressonance, infrared, etc) to determine which metal-oxo clusters should be considered. For instance, if a critical molecule for
+a given system is not included in the molecular set, then the outcome is likely to be compromised. Another alternative would be
+to rely on automated reaction exploration frameworks to build the molecular set and reaction network, even though this option has not been applied so far.
 
-.. note:: POMSimulator has only been employed with the Amsterdam Density Functional. Even so, we are confident that other packages such as ORCA, Gaussian or MOLCAS can also be coupled to the method, since only relative energies are considered for the simulation.
+.. note:: POMSimulator has only been employed with the Amsterdam Density Functional. Even so, we are confident that other packages such as ORCA, Gaussian or MOLCAS can also be coupled to the method, since only reaction energies -hence relative energies- are considered for the simulation.
 
 The files should be named in the following format, **MxxOyy-zH**, indicating the number of atomic elements. Here, M is the metal atom (and *xx*, its stoichiometry), O is oxygen (and *yy* its stoichiometry) and H, the hydrogen (*z*). Under this
 convention, file names can be seamlessly transformed to stoichiometric coefficients, which are employed in multiple

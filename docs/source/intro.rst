@@ -1,8 +1,6 @@
 Introduction
 ============
 
-``in construction``
-
 In this section, we explain how the package is organized to aid potential users. It is worth highlighting that we have
 designed the code in a modular way. In this manner, users can easily employ separate parts of the workflow without
 needing to rewrite the source code.

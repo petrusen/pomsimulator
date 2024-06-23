@@ -1,8 +1,6 @@
 Linear Scaling
 ====================
 
-``in construction``
-
 Next step is focused on processing the calculated data. We move from the `simulations/` folder, to the
 `utilities/` folder. From all speciation models we need to know which one is **the most accurate model**.
 To decide it, we need experimental data to compare with the data calculated. In the `modules/DataBase.py`,

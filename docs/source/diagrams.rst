@@ -1,8 +1,6 @@
 Results
 ====================
 
-``in construction``
-
 
 After POMSimulator has run its simulation in **section 1**, and then treated this information, we can now visualize the results.
 For this purpose we have three different programs, located in the `utilities/` directory.
