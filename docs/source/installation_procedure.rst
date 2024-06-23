@@ -9,7 +9,7 @@ POMSimulator can be installed via git and pip (see below).
      $ cd pomsimulator
      $ pip install -e .
 
-.. attention:: Installing POMSimulator directly on your /home/user may result in incompatibilities with other Python dependent packages. Thus, we highly recommend to create a separate Python environment.
+.. attention:: Installing POMSimulator directly on your /home/user may result in incompatibilities with other Python dependent packages. Thus, we highly recommend creating a separate Python environment.
 
 .. code:: bash
 

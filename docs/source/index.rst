@@ -20,7 +20,7 @@ POMSimulator documentation
 Welcome
 ------------
 
-This user guide provides an overview of the functionalities of the method, as well as some practical examples. For a more
+This user guide provides an overview of the general workflow and functionalities of the method. For a more
 detailed description of the method, we recommend reading the following two open-access articles:
 
    | Petrus, E., Segado, M. Bo, C.
@@ -31,7 +31,7 @@ detailed description of the method, we recommend reading the following two open-
    | POMSimulator: An open-source tool for predicting the aqueous speciation and self–assembly mechanisms of polyoxometalates
    | *J. Comput. Chem.*, **2024**, https://doi.org/10.1002/jcc.27389
 
-Don’t hesitate contacting us if you need further information at enricpz@icloud.com, jbuils@iciq.es,
+Don’t hesitate contacting us for further information at enricpz@icloud.com, jbuils@iciq.es,
 dgaray@iciq.es
 
 .. image:: ../.img/pomsimulator_logo.png

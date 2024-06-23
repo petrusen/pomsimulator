@@ -1,16 +1,23 @@
 Simulation
 ================
 
+Design molecular set
+--------------------
+
 To start using POMSimulator, it is necessary to design a set of molecules, which then ought to be optimized with a quantum
 mechanical software. The choice of the molecular set has a decisive effect on the final speciation and mechanistic results.
-Thus, we highly recommend gathering sufficient expertise in the chemical system understudy (e.g., experimental data from mass spectometry,
-nuclear magnetic ressonance, infrared, etc) to determine which metal-oxo clusters should be considered. For instance, if a critical molecule for
+Thus, we highly recommend gathering sufficient expertise in the chemical system understudy (e.g., experimental data from mass spectrometry,
+nuclear magnetic resonance, infrared, etc) to determine which metal-oxo clusters should be considered. For instance, if a critical molecule for
 a given system is not included in the molecular set, then the outcome is likely to be compromised. Another alternative would be
 to rely on automated reaction exploration frameworks to build the molecular set and reaction network, even though this option has not been applied so far.
 
-.. note:: POMSimulator has only been employed with the Amsterdam Density Functional. Even so, we are confident that other packages such as ORCA, Gaussian or MOLCAS can also be coupled to the method, since only reaction energies -hence relative energies- are considered for the simulation.
+.. note::
+   POMSimulator has only been employed with the quantum chemistry calculations performed by Amsterdam Density Functional (ADF), thus
+   we recommend using this software. Alternatively, other packages such as ORCA, Gaussian and MOLCAS could also be potentially
+   coupled to our method since only reaction energies -hence relative energies- are considered for the simulation.
 
-The files should be named in the following format, **MxxOyy-zH**, indicating the number of atomic elements. Here, M is the metal atom (and *xx*, its stoichiometry), O is oxygen (and *yy* its stoichiometry) and H, the hydrogen (*z*). Under this
+The files should be named in the following format, **MxxOyy-zH**, indicating the number of atomic elements. Here, M is the metal atom
+(and *xx*, its stoichiometry), O is oxygen (and *yy* its stoichiometry) and H, the hydrogen (*z*). Under this
 convention, file names can be seamlessly transformed to stoichiometric coefficients, which are employed in multiple
 steps of POMSimulator's workflow. The second step entails placing the molecular set inside the
 POMSimulator directory. The set of molecules should be placed in the `inputs` directory.
@@ -22,20 +29,24 @@ POMSimulator directory. The set of molecules should be placed in the `inputs` di
 
 |
 
+Chemical reactions
+-------------------
+
 POMSimulator represents chemical data as molecular graphs, where nodes correspond to atoms, and edges to chemical bonds.
 ADF offers the possibility of applying the Quantum Theory of Atoms in Molecules (QTAIM) to deduce chemical connectivity from
 a topological analysis of the electronic density. While this connectivity works well for organic compounds, it can be miscellaneous
-for metal complexes. For this reason, we create a .mol file for each molecule from an ADF .out file, and we highly recommend to
+for metal complexes. For this reason, we create a ``.mol`` file for each molecule from an ADF ``.out`` file, and we highly recommend to
 manually check the connectivity of all the molecules. After that, the isomorphism property for the molecular set can be computed.
-As a result, an isomorphism matrix will be saved as an .csv file which will be then used in the simulation file. It is worth noting
-that it is possible to *skip* the isomorphism check, only considering stoichiometry-based criteria to generate the reaction network.
-Nevertheless, enforcing isomorphism both reduces the size and complexity of the system and enhances the chemical soundness of the method.
+As a result, an isomorphism matrix will be saved as an ``.csv`` file which will be then used in the simulation file. It is worth noting
+that it is possible to *skip* the isomorphism check (thus speeding up the process) by only considering stoichiometry-based criteria to
+generate the reaction network. Nevertheless, enforcing isomorphism both reduces the size and complexity of the system and enhances the
+chemical soundness of the method.
 
 .. warning::
 
-   Defining the chemical bond connectivity of the molecular set is critical, as it will determine the number of chemical reactions in the final network.
-   The connectivity is read from the set of .mol files, so that the user can chose how to define the bond connectivity.
-   For example, by manually using a graphical user interface such as Avogadro, using QTAIM calculations, or atom distance thresholds.
+   Defining the chemical bond connectivity of the molecular set is critical, as it will determine the number of chemical reactions in the final network,
+   and ultimately the number of speciation models. We encourage checking the ``.mol`` files before running the simulation.
+
 
 If the isomorphism check is requested, the user should run inside the directory `utilities/`:
 
@@ -45,7 +56,7 @@ and the directory to store the generated .mol files.
 2. ``compute_isomorphism.py``: In this case, only the .mol directory must be used as an input
 parameter. The result of this program is the isomorphism matrix, that will be saved as an .csv file named ``np_IM.csv``
 
-After these two programs have been employed, the user can now run the simulations. We have prepared a sample file in the `Simulations/` directory
+After these two programs have been employed, the user can run the simulations. We have prepared a sample file in the `/simulations` directory
 under the name of `simulation_tungstates.py`. In this file, some parameters can be modified according to the user's needs.
 
 - ``ADF_folder``: Modify this according to the name of your **molecular set directory**.
@@ -123,11 +134,13 @@ Then, the user needs to select which chemical reactions should be included in th
 .. note::
 
    The release 1.0 does not consider redox reactions, even though polyoxometalates are frequently employed in the field of catalysis
-   and energy materials. We may consider adding this functionality in future versions of the package.
+   and energy materials. We shall consider adding this functionality in future versions of the package.
+
+Multi-species chemical equilibria
+----------------------------------
 
 The number of speciation models grows factorially as function of the number of reactions and chemical species.
-To mitigate this growth, some chemical constrains can be applied. The most basics ones can be modified from the parameters section.
-These are:
+To mitigate this growth, some chemical constrains can be applied, as described below:
 
 - ``energy_threshold``: Only reactions with energies below this number (in kcal/mol) will be considered.
 - ``proton_numb``: Species can be found in different protonation states, but only species with similar protonation states can be found in the same pH ranges.
@@ -140,9 +153,8 @@ These are:
 
 .. attention::
 
-   These simulation parameters are key to constrain the factorial growth of the number of models. We have tested that for a 28-core CPU, it is
-   possible to calculate up to 1e+6 speciation models in a reasonable time frame. We are currently working in a new approach in which the user will be able to work in systems with >10⁶ and calculate subsamples, randomly selected,
-   to study the whole spectrum of speciation models.
+   These simulation parameters are key to constrain the factorial growth of the number of models. We are currently working in a new approach
+   in which an stochastic sampling of the speciation space will be carried out.
 
 Once the parameters fit the user's needs, the simulation is ready to run. The simulation will write the output file, containing all the formation constants
 for all the speciation models. This file will be named according to the ``Output_File`` parameter mentioned above. Also, a file
