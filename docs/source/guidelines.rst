@@ -1,4 +1,0 @@
-Guidelines
-=============
-
-``in construction``

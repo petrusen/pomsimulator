@@ -48,12 +48,13 @@ dgaray@iciq.es
    :caption: User Guide
 
    intro
-   examples
-   guidelines
+   simulation
+   scaling
+   diagrams
 
 .. toctree::
    :maxdepth: 3
-   :caption: Apppendix
+   :caption: Appendix
 
    news
    publications
