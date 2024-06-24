@@ -31,7 +31,7 @@ detailed description of the method, we recommend reading the following two open-
    | POMSimulator: An open-source tool for predicting the aqueous speciation and self–assembly mechanisms of polyoxometalates
    | *J. Comput. Chem.*, **2024**, https://doi.org/10.1002/jcc.27389
 
-Don’t hesitate contacting us for further information at enricpz@icloud.com, jbuils@iciq.es,
+In case you should encounter problems or bugs, please write a short message to one of the following addresses: enricpz@icloud.com, jbuils@iciq.es,
 dgaray@iciq.es
 
 .. image:: ../.img/pomsimulator_logo.png
