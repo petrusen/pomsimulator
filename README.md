@@ -1,6 +1,7 @@
 [![DOI](https://img.shields.io/badge/DOI-10.1039/D0SC03530K-orange)](https://doi.org/10.1039/D0SC03530K)
 [![Latest Version](https://img.shields.io/github/v/release/petrusen/pomsimulator)](https://github.com/petrusen/pomsimulator/releases/latest)
 [![License](https://img.shields.io/badge/license-AGPL3.0-darkgreen)](https://github.com/petrusen/pomsimulator/blob/main/LICENSE.txt)
+[![Documentation Status](https://readthedocs.org/projects/pomsimulator/badge/?version=latest)](https://pomsimulator.readthedocs.io/en/latest/?badge=latest)
 
 ![](docs/.img/pomsimulator_logo.png)
 
@@ -39,7 +40,8 @@ pip install -e .
 
 To ensure that the installation has been successful, we recommend to run the test `python simulation_test.py` from inside the Simulations folder. 
 
-## Quickstart 
+## Quickstart  
+
 
 The main simulation file of POMSimulator is stored in `./Simulations`. The code reads the quantum mechanical outputs in `./Inputs` and generates two
 output files in the folder `./Outputs`. These two files correspond to the chemical reaction network, and the list predicted of formation constants. Hitherto, the code parses the input data from the calculations of the SCM ADF 2019 package. Nonetheless, the input data can also be introduced separately. 
@@ -52,8 +54,11 @@ Before plotting the speciation and/or phase diagrams, it is necessary to linearl
 
 ![](docs/.img/pom_workflow.png)
 
-The user can find more information about the basis of the method in the PhD thesis of the author. The document is available in the [TDX-repository](https://www.tesisenred.net/handle/10803/687274). The user can 
-also find a written manual in `.docs/manual.md`
+
+The user can find more information about the method in: 
+1) The [PhD thesis](https://www.tesisenred.net/handle/10803/687274) of the author
+2) The markdown manual in `docs/manual.md`
+3) The documentation hosted at [readthedocs.org](https://pomsimulator.readthedocs.io/en/latest/?badge=latest)
 
 
 ## How to Cite
@@ -77,3 +82,4 @@ POMSimulator is distributed under the GNU AFFERO GENERAL PUBLIC LICENSE. For mor
 
 In case you should encounter problems or bugs, please write a short message to one of the following addresses:
 [enricpz@icloud.com](enricpz@icloud.com), [jbuils@iciq.es](jbuils@iciq.es), [dgaray@iciq.es](dgaray@iciq.es).
+
