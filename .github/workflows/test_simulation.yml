@@ -34,7 +34,11 @@ jobs:
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
     - name: Install package in editable mode
-      run: pip install -e .
+      run: | 
+        cd pomsimulator
+        pip install -e .
 
     - name: Run simulation test
-      run: python3 simulations/simulation_test.py
+      run: |
+        cd simulations
+        python3 simulation_test.py
