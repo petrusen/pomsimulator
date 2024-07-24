@@ -23,7 +23,7 @@ def main():
     formation_constants_file =  "../outputs/formation_constants_test.txt"
     CRN_file = "../outputs/reaction_network_test.txt"
     simulation_file = "../outputs/simulation_parameters_test.txt"
-    cores = 1  #cpu_count()  #number of cores for the simulation (caution!)
+    cores = 2  #cpu_count()  #number of cores for the simulation (caution!)
     batch_size = 5
 
 

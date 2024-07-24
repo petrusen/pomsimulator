@@ -39,4 +39,4 @@ jobs:
     - name: Run simulation test
       run: |
         cd simulations
-        python3 simulation_test.py
+        taskset -c 0,1 python3 simulation_test.py
