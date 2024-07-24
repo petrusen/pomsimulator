@@ -23,7 +23,7 @@ def main():
     formation_constants_file =  "../outputs/formation_constants_test.txt"
     CRN_file = "../outputs/reaction_network_test.txt"
     simulation_file = "../outputs/simulation_parameters_test.txt"
-    cores = 2  #cpu_count()  #number of cores for the simulation (caution!)
+    cores = 1  #cpu_count()  #number of cores for the simulation (caution!)
     batch_size = 5
 
 
@@ -44,7 +44,7 @@ def main():
 
     ### Variables for the speciation
     I, C0 = 0.25, 0.005
-    min_pH, max_pH, grid = 0, 35, 70
+    min_pH, max_pH, grid = 0, 35, 35
 
     ref_compound = 'W01O04-0H'
 
