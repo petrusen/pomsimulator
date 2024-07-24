@@ -4,7 +4,7 @@ setup(name='pomsimulator',
       author="Enric Petrus, Jordi Buils. Diego Garay-Ruiz",
       author_email="enricpz@icloud.com, jbuils@iciq.es, dgaray@iciq.es",
       description="Simulate the aqueous speciation of polyoxometalates (POMs) from quantum mechanical results",
-      py_modules=['pomsimulator/modules'],
+      packages=find_packages(),
       install_requires=['numpy>=1.17.3','matplotlib>=3.1.2','networkx>=2.4','scipy>=1.6.1','pandas>=1.5',
                         'scikit-learn>=1.3.2','seaborn']
       )
