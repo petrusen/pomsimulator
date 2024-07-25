@@ -4,7 +4,7 @@ with open("README.rst", "r", encoding="utf-8") as fh:
         long_description = fh.read()
 
 setup(name='pomsimulator',
-      version='1.0.1',
+      version='1.0.1a1',
       author="Enric Petrus, Jordi Buils. Diego Garay-Ruiz",
       author_email="enricpz@icloud.com, jbuils@iciq.es, dgaray@iciq.es",
       description="Simulate the aqueous speciation of polyoxometalates (POMs) from quantum mechanical results",
