@@ -8,14 +8,14 @@
 
 name: Upload Python Package
 
-on:
-  push:
-    branches:
-    - test-workflow
+#on:
+#  push:
+#    branches:
+#    - test-workflow
 
-                                      #on:
-                                      #release:
-                                      #types: [published]
+on:
+  release:
+    types: [published]
 
 permissions:
   contents: read
