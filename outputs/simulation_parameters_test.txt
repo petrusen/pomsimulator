@@ -13,13 +13,13 @@ Contact Mail: enricpz@icloud.com
 ================
 System Settings:
 ================
-ADF Folder: ../inputs/W_Set_PBE_test/
-MOL Folder: ../inputs/W_Set_PBE_molfiles/
-Formation Constants File: ../outputs/formation_constants_test.txt
-Chemical Reaction Network File: ../outputs/reaction_network_test.txt
-Simulation Parameters File: ../outputs/simulation_parameters_test.txt
+ADF Folder: /home/petrusen/deleteme/pomsimulator/pomsimulator/../inputs/W_Set_PBE_test/
+MOL Folder: /home/petrusen/deleteme/pomsimulator/pomsimulator../inputs/W_Set_PBE_molfiles/
+Formation Constants File: /home/petrusen/deleteme/pomsimulator/pomsimulator/../outputs/formation_constants_test.txt
+Chemical Reaction Network File: /home/petrusen/deleteme/pomsimulator/pomsimulator/../outputs/reaction_network_test.txt
+Simulation Parameters File: /home/petrusen/deleteme/pomsimulator/pomsimulator/../outputs/simulation_parameters_test.txt
 CPU cores: 2
-Starting Time: 2024-02-15 11:07:01.852739
+Starting Time: 2024-07-27 01:01:21.518168
 
 ==========================
 Chemical Reaction Network:
@@ -35,6 +35,6 @@ Speciation Models:
 Ionic Strength (mol/L): 0.25
 Initial Concentration (mol/L): 0.005
 Range of pH: (0, 35)
-Grid of pH: 70
+Grid of pH: 35
 Range of Simulated Models: (0, 168)
 Formation Constants Referred to: W01O04-0H

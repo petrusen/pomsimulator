@@ -1,10 +1,18 @@
 # Standard library imports
 from os import listdir
-from os.path import isfile, join
+from os.path import isfile, join, abspath, dirname
+import sys
 import numpy as np
 from multiprocessing import Pool, cpu_count
 from itertools import repeat, product, compress
 import time
+
+# Determine the project root directory
+project_root = abspath(dirname(__file__))
+
+# Append the project root directory to sys.path
+if project_root not in sys.path:
+        sys.path.append(project_root)
 
 # Local imports
 from pomsimulator.modules.text_module import *
@@ -17,12 +25,12 @@ def main():
 
     # 0) Define input variables #### ###################################################################################
 
-    ADF_folder =  "../inputs/W_Set_PBE_test/"
-    mol_folder =  "../inputs/W_Set_PBE_molfiles/"
-    isomorphism_matrix =  "../utilities/np_IM_test.csv"
-    formation_constants_file =  "../outputs/formation_constants_test.txt"
-    CRN_file = "../outputs/reaction_network_test.txt"
-    simulation_file = "../outputs/simulation_parameters_test.txt"
+    ADF_folder =  project_root + "/../inputs/W_Set_PBE_test/"
+    mol_folder =  project_root + "../inputs/W_Set_PBE_molfiles/"
+    isomorphism_matrix =  project_root + "/../utilities/np_IM_test.csv"
+    formation_constants_file =  project_root + "/../outputs/formation_constants_test.txt"
+    CRN_file = project_root + "/../outputs/reaction_network_test.txt"
+    simulation_file = project_root + "/../outputs/simulation_parameters_test.txt"
     cores = 2  #cpu_count()  #number of cores for the simulation (caution!)
     batch_size = 5
 
