@@ -12,7 +12,7 @@ with open(path.join(here, "requirements.txt")) as requirements_file:
 
 
 setup(name='pomsimulator',
-      version='1.0.1a3',
+      version='1.0.1a4',
       author="Enric Petrus, Jordi Buils. Diego Garay-Ruiz",
       author_email="enricpz@icloud.com, jbuils@iciq.es, dgaray@iciq.es",
       description="Simulate the aqueous speciation of polyoxometalates (POMs) from quantum mechanical results",
