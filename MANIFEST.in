@@ -6,3 +6,4 @@ include requirements.txt
 # If including data files in the package, add them like:
 include inputs/W_Set_PBE_test/*out
 include inputs/W_Set_PBE_molfiles/*mol
+include utilities/np_IM_test.csv
