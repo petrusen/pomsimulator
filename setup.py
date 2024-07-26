@@ -1,7 +1,15 @@
 from setuptools import setup,find_packages
+from os import path
+
+here = path.abspath(path.dirname(__file__))
 
 with open("README.rst", "r", encoding="utf-8") as fh:
         long_description = fh.read()
+
+with open(path.join(here, "requirements.txt")) as requirements_file:
+        # Parse requirements.txt, ignoring any commented-out lines.
+        requirements = [line for line in requirements_file.read().splitlines() if not line.startswith("#")]
+
 
 setup(name='pomsimulator',
       version='1.0.1a3',
@@ -9,7 +17,7 @@ setup(name='pomsimulator',
       author_email="enricpz@icloud.com, jbuils@iciq.es, dgaray@iciq.es",
       description="Simulate the aqueous speciation of polyoxometalates (POMs) from quantum mechanical results",
       packages=find_packages(),
-      install_requires=['numpy>=1.17.3','matplotlib>=3.1.2','networkx>=2.4','scipy>=1.6.1','pandas>=1.5', 'scikit-learn>=1.3.2','seaborn', 'setuptools', 'wheel', 'twine'],
+      install_requires=requirements,
       long_description=long_description,
       long_description_content_type="text/x-rst",  # Specify the content type as reStructuredText
       url="https://github.com/petrusen/pomsimulator",
