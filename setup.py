@@ -12,7 +12,7 @@ with open(path.join(here, "requirements.txt")) as requirements_file:
 
 
 setup(name='pomsimulator',
-      version='1.0.1a6',
+      version='1.0.1a7',
       author="Enric Petrus, Jordi Buils. Diego Garay-Ruiz",
       author_email="enricpz@icloud.com, jbuils@iciq.es, dgaray@iciq.es",
       description="Simulate the aqueous speciation of polyoxometalates (POMs) from quantum mechanical results",
@@ -25,4 +25,9 @@ setup(name='pomsimulator',
                     "License :: OSI Approved :: MIT License",
                     "Operating System :: OS Independent"],
       python_requires='>=3.8',
+      include_package_data=True,
+      package_data={ "inputs": [  # When adding files here, remember to update MANIFEST.in as well,
+                                  # or else they will not be included in the distribution on PyPI!
+                                  # 'path/to/data_file',
+                                  "W_Set_PBE_test/*out", "W_Set_PBE_molfiles/*mol"]
       )

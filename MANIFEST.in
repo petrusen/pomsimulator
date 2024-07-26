@@ -2,3 +2,7 @@ include LICENSE.txt
 include README.rst
 include CHANGELOG.rst
 include requirements.txt
+
+# If including data files in the package, add them like:
+include inputs/W_Set_PBE_test/*out
+include inputs/W_Set_PBE_molfiles/*mol
