@@ -29,5 +29,5 @@ setup(name='pomsimulator',
       package_data={ "inputs": [  # When adding files here, remember to update MANIFEST.in as well,
                                   # or else they will not be included in the distribution on PyPI!
                                   # 'path/to/data_file',
-                                  "W_Set_PBE_test/*out", "W_Set_PBE_molfiles/*mol"]
+                                  "W_Set_PBE_test/*out", "W_Set_PBE_molfiles/*mol"]}
       )
