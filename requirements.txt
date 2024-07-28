@@ -5,7 +5,3 @@ scipy
 pandas
 scikit-learn
 seaborn
-setuptools
-wheel
-twine
-
