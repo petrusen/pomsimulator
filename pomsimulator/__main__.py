@@ -25,12 +25,12 @@ def main():
 
     # 0) Define input variables #### ###################################################################################
 
-    ADF_folder =  project_root + "/../inputs/W_Set_PBE_test/"
-    mol_folder =  project_root + "../inputs/W_Set_PBE_molfiles/"
-    isomorphism_matrix =  project_root + "/../utilities/np_IM_test.csv"
-    formation_constants_file =  project_root + "/../outputs/formation_constants_test.txt"
-    CRN_file = project_root + "/../outputs/reaction_network_test.txt"
-    simulation_file = project_root + "/../outputs/simulation_parameters_test.txt"
+    ADF_folder =  project_root + "/inputs/W_Set_PBE_test/"
+    mol_folder =  project_root + "/inputs/W_Set_PBE_molfiles/"
+    isomorphism_matrix =  project_root + "/utilities/np_IM_test.csv"
+    formation_constants_file =  project_root + "/outputs/formation_constants_test.txt"
+    CRN_file = project_root + "/outputs/reaction_network_test.txt"
+    simulation_file = project_root + "/outputs/simulation_parameters_test.txt"
     cores = 2  #cpu_count()  #number of cores for the simulation (caution!)
     batch_size = 5
 
