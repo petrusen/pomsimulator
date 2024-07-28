@@ -4,7 +4,7 @@ include CHANGELOG.rst
 include requirements.txt
 
 # If including data files in the package, add them like:
-include pomsimulator/pomsimulator/inputs/W_Set_PBE_test/*out
-include pomsimulator/pomsimulator/inputs/W_Set_PBE_molfiles/*mol
-include pomsimulator/pomsimulator/utilities/np_IM_test.csv
+include pomsimulator/inputs/W_Set_PBE_test/*out
+include pomsimulator/inputs/W_Set_PBE_molfiles/*mol
+include pomsimulator/utilities/np_IM_test.csv
 
