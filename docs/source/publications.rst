@@ -2,7 +2,7 @@ Publications
 ======================
 
 1. Petrus, E.; Segado, M.; Bo, C. Nucleation mechanisms and speciation of metal oxide clusters *Chem. Sci.*, **2020**, 11, 8448-8456
-`doi.org/10.1039/D0SC03530K <https://doi.org/10.1039/D0SC03530K>`_
+`doi.org/10.1039/D0SC03530K <https://doi.org/10.1039/D0SC03530K>`_ ``open access``
 
 2. Petrus, E.; Bo, C. Unlocking Phase Diagrams for Molybdenum and Tungsten Nanoclusters and Prediction of their Formation Constants *J. Phys. Chem. A.* **2021**, 125, 23, 5212-5219
 `doi.org/10.1021/acs.jpca.1c03292 <https://doi.org/10.1021/acs.jpca.1c03292>`_
@@ -14,7 +14,10 @@ Publications
 `doi.org/10.1021/jacs.3c05514 <https://pubs.acs.org/doi/full/10.1021/jacs.3c05514>`_
 
 5. Garay-Ruiz, D.; Petrus, E.; Bo, C. New graph-based computational methods for dealing with chemical reactivity and catalysis *Revista de la Societat Catalana de Quimica* **2023**, 22, 23-38
-`doi.org/10.2436/20.2003.01.142 <https://revistes.iec.cat/index.php/RSCQ/article/view/150830/148565>`_
+`doi.org/10.2436/20.2003.01.142 <https://revistes.iec.cat/index.php/RSCQ/article/view/150830/148565>`_ ``open access``
 
 6. Petrus, E.; Buils, J.; Garay-Ruiz, D.; Segado-Centellas, M.; Bo, C. POMSimulator: An open-source tool for predicting the aqueous speciation and self–assembly mechanisms of polyoxometalates *J. Comput. Chem.* **2024**, 1-9
-`doi.org/10.1002/jcc.27389 <https://doi.org/10.1002/jcc.27389>`_
+`doi.org/10.1002/jcc.27389 <https://doi.org/10.1002/jcc.27389>`_ ``open access``
+
+7. Buils, J.; Garay-Ruiz, D.; Segado-Centellas, M.; Petrus, E.; Bo, C. Computational insights into aqueous speciation of metal-oxide nanoclusters: an in-depth study of the Keggin phosphomolybdate *Chem. Sci.* **2024**,
+`doi.org/10.1039/d4sc03282a <https://doi.org/10.1039/d4sc03282a>`_ ``open access``
