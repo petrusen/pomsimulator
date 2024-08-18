@@ -34,8 +34,6 @@ detailed description of the method, we recommend reading the following two open-
 In case you should encounter problems or bugs, please write a short message to one of the following addresses: enricpz@icloud.com, jbuils@iciq.es,
 dgaray@iciq.es
 
-.. image:: ../.img/pomsimulator_logo.png
-
 .. toctree::
    :maxdepth: 3
    :caption: Installation
