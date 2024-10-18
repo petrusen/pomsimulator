@@ -17,36 +17,36 @@ def main():
 
     #### DEFINE VARIABLES ####
 
-    ADF_folder = "../inputs/W_Set_PBE/"
+    ADF_folder = "../inputs/PMo_testing/"
     mol_folder = "../inputs/W_Set_PBE_molfiles/"
     isomorphism_matrix = "../utilities/np_IM.csv"
-    formation_constants_file = "../outputs/logkf_W.txt"
-    CRN_file = "../outputs/W_CRN.txt"
-    simulation_file = "../outputs/simulation_parameters.txt"
+    formation_constants_file = "../outputs/logkf_PMo.txt"
+    CRN_file = "../outputs/PMo_CRN.txt"
+    simulation_file = "../outputs/simulation_parameters_PMo.txt"
     cores = 20
-    batch_size = 550
+    batch_size = 200
 
 
 
     ######################    CHEMICAL PARAMETERS    ############################
-    use_isomorphisms = True
-    energy_threshold = 30  # Maximum value for reaction energies
-    proton_numb = 0     # Maximum difference in proton number of to species to react
+    use_isomorphisms = False
+    energy_threshold = 15  # Maximum value for reaction energies
+    proton_numb = 1     # Maximum difference in proton number of to species to react
     reference = ["P", "H2Ow1", 'H2Ow2', 'Cw1', 'Cw2', 'Cw3', 'Cw4', "A", 'HO', 'H3O']  # Reaction types of the network
-
+    POM = "P_Mo"
     ##############################################################################
     ######################    INTERNAL PARAMETERS   ##############################
 
     """ These parameters are not meant to be routinely modified """
 
-    conditions_dict = {"proton_numb":proton_numb,"restrain_addition":2,"restrain_condensation":2,
-                       "include_dimerization":True,"force_stoich":[11],"adjust_protons_hydration":True}
+    conditions_dict = {"proton_numb":proton_numb,"restrain_addition":12,"restrain_condensation":12,
+                       "include_dimerization":True,"force_stoich":[],"adjust_protons_hydration":True}
 
     ### Variables for the speciation
     I, C0 = 0.25, 0.005
     min_pH, max_pH, grid = 0, 35, 70
-
-    ref_compound = 'W01O04-0H'
+    temp = 298.15
+    ref_compounds = ['P01Mo00O04-0H','P00Mo01O04-0H']
 
     # 1) Get ADF outputs ############################################################################################
 
@@ -70,8 +70,11 @@ def main():
             G1_list.append(Gi)
             G1_labels.append(label)
 
-    print("Length:", len(G1_labels), G1_labels.index('W01O04-0H'), G1_labels)
-    Z, valence, element = Determine_IPA(adf_dict['Z'])
+    # print("Length:", len(G1_labels), G1_labels.index('W01O04-0H'), G1_labels)
+    elements = POM.split("_")
+    Z = [Z_dict[elem] for elem in elements]
+    valence = [valence_dict[elem] for elem in elements]
+
     charges = Molecule_Charge(G1_list, Z, valence)
     stoich = Molecule_Stoichiometry(G1_list, Z)
     compounds_set, unique_labels = Create_Stoich(G1_labels)
@@ -87,7 +90,7 @@ def main():
         diagonal = np.tri(num_molec, num_molec, 0)
 
 
-    reac_idx, reac_energy, reac_type = Isomorphism_to_ChemicalReactions(G1_list, diagonal, water, reference, "W",
+    reac_idx, reac_energy, reac_type = Isomorphism_to_ChemicalReactions(G1_list, diagonal, water, reference, POM,
                                                                         energy_threshold, conditions_dict)
 
     Write_Reactions(CRN_file, G1_labels, reac_idx, reac_type, reac_energy, stringreac_dict, molecularity_dict)
@@ -100,12 +103,13 @@ def main():
     idx_ctt = list(reac_idx[0])
     type_ctt = list(reac_type[0])
 
+    ref_idxs = [G1_labels.index(ref) for ref in ref_compounds]
     kwargs = dict(idx_ctt=idx_ctt, e_ctt=e_ctt, type_ctt=type_ctt, z_ctt=charges, v_ctt=stoich,
-                  ref_idx=G1_labels.index(ref_compound), pH_grid=np.linspace(min_pH, max_pH, grid),
-                  init_guess=np.zeros(num_molec), I=I, C=C0, threshold=0.1)
+                  ref_idxs=ref_idxs, pH_grid=np.linspace(min_pH, max_pH, grid),
+                  init_guess=np.zeros(num_molec), I=I, C_X=C0, C_M=C0, threshold=0.1, temp=temp)
 
     R_idx, R_ene, R_type = sort_by_type(reac_idx, reac_energy, reac_type, compounds_set, unique_labels, G1_labels,
-                                        ref_compound)
+                                        exclude=ref_compounds)
 
     print("4.1) NUMBER OF REACTIONS:", [len(list(map(len, reac_idx[i]))) for i in range(len(reac_idx))])
 
@@ -128,7 +132,7 @@ def main():
     ### Printing output
     kwargs_input = dict()
     obj_list = [ADF_folder, mol_folder, formation_constants_file, CRN_file, simulation_file, cores, use_isomorphisms,
-                energy_threshold, proton_numb, reference, I, C0, (min_pH, max_pH), grid, (low, up), ref_compound,G1_labels]
+                energy_threshold, proton_numb, reference, I, C0, (min_pH, max_pH), grid, (low, up), ref_compounds, G1_labels]
     for s, o in zip(simulation_parameters_strings, obj_list):
         kwargs_input[s] = o
     write_simulationparameters(kwargs_input)
@@ -166,14 +170,14 @@ def main():
         args_iter = current_var
 
         with Pool(cores) as ThreadPool:  # HPC
-            data = data + starmap_with_kwargs(ThreadPool, Speciation_from_Equilibrium,
+            data = data + starmap_with_kwargs(ThreadPool, Speciation_from_Equilibrium_bimetal,
                                               args_iter, kwargs_iter)
         t1 = time.time()
         progress = idx * 100 / n_batches
         named_tuple = time.localtime()  # get struct_time
         time_string = time.strftime("%m/%d/%Y, %H:%M:%S", named_tuple)
         print(time_string,
-              "[" + "".join(['#' if i < progress else " " for i in range(0, 100, 2)]) + "]" + " progress=%6.3f" % progress,
+              "[" + "".join(['#' if i < progress else " " for i in range(0, 100, 2)]) + "]" + " progress=%.3f" % progress,
               "time of batch = %.2f s" % (t1 - t0))
 
     # 5) Writing Output #############################################################################################

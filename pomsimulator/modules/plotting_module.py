@@ -166,9 +166,28 @@ def Reaction_Map_2D_monometal(G1_list, all_reac_idx, all_reac_e, all_reac_type, 
     fig.suptitle(ploting_details_dict['plot_title'],fontsize=16,y=0.9)
 
     return fig,ax
-
 def plot_speciation(conc_arr, labels, pH, c0, plot_list=None,ax=None,err_arr=None, col_dict=None,formula_dict=None,
-                    raw_concentrations=False):
+                    raw_concentrations=False,m_idx=0):
+    '''Plotting function for speciation diagrams in IPA and HPA systems, supporting the plotting of percentages of different
+    species (X and M for XM bimetallic species), raw concentration plots, and error bands
+    Args:
+        conc_arr: NumPy array of size Nspc x NpH, containing concentration values. With statistical procedures, is often the mean of the
+        Nspc x NpH x Nmodel array resulting from speciation calculation.
+        labels: list of strings, labels of the species in the diagram.
+        pH: array of floats, pH range to compute speciation.
+        c0: float, total concentration of the target metal or heteroatom.
+        plot_list: list of strings, labels of the species to be plotted. If None, all labels are plotted.
+        ax: Matplotlib.Axis object where the diagram will be drawn. If None, a new figure and axis are instantiated.
+        err_arr: array of size Nspc x NpH containing the values used to plot error bands, considering a symmetric +- error. Usually,
+        the standard deviation of the Nspc x NpH x Nmodel array is used.
+        col_dict: dictionary mapping labels to color specifications. If None, tab10 will be used.
+        formula_dict: dictionary mapping labels to formatted formula specifications (e.g. generated with Lab_to_Formula). If None,
+        raw labels are used for the legend.
+        raw_concentrations: boolean. If True, concentrations (in mol/L) will be plotted, without computing percentages for the target element.
+        m_idx: integer. Marks the element for which percentages are computed: in XxMmOn bimetallic species, 0 -> X, 1 -> M.
+    Returns:
+        ax: Matplotlib.Axis object with the corresponding plot
+    '''
     alpha = 0.10
     linewidth = 2.5
     v_ctt2 = [Lab_to_stoich(lab) for lab in labels]
@@ -188,7 +207,7 @@ def plot_speciation(conc_arr, labels, pH, c0, plot_list=None,ax=None,err_arr=Non
             continue
         if formula_dict:
             Lab = formula_dict[Lab]
-        multiplier = v_ctt2[i][0] / c0 * 100
+        multiplier = v_ctt2[i][m_idx] / c0 * 100
         if raw_concentrations:
             multiplier = 1
         percent_concent = conc_arr[i, :] * multiplier
@@ -198,8 +217,9 @@ def plot_speciation(conc_arr, labels, pH, c0, plot_list=None,ax=None,err_arr=Non
             style = "--"
 
         ax.plot(pH, percent_concent, style, linewidth=linewidth, label=Lab, color=colors[j])
-        if err_arr != None:
-            percent_error = err_arr[i, :] * v_ctt2[i][0] / c0
+
+        if err_arr is not None:
+            percent_error = err_arr[i, :] * multiplier
             ax.fill_between(pH, percent_concent + percent_error, percent_concent - percent_error,
                             alpha=alpha, color=colors[j])
         j += 1
@@ -208,6 +228,8 @@ def plot_speciation(conc_arr, labels, pH, c0, plot_list=None,ax=None,err_arr=Non
     ax.set_xlabel("pH")
 
     return ax
+
+
 
 def plot_cluster_means(SuperArr,ExpArr,groups,target_shape,speciation_labels,pH,c0,col_dict=None,add_bands=False,
                        plot_list=None,exp_pH = None):

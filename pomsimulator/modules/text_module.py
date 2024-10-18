@@ -401,7 +401,10 @@ def write_simulationparameters(kwargs):
                  ,"Range of Simulated Models", "Formation Constants Referred to"]
         for s in l_spe:
             outfile.write(s+": "+str(kwargs[s])+"\n")
-
+        outfile.write("\n==================\n")
+        outfile.write("System Labels:\n")
+        outfile.write("==================\n")
+        outfile.write(str(kwargs["Labels"])+"\n")
 
 def write_speciationparameters(kwargs):
     """

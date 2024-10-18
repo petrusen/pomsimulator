@@ -112,7 +112,7 @@ def plot_best_mods(lgkf_df,sorted_params_df,Kexp,plot_shape=(2,2)):
     plt.tight_layout()
     return fig,ax
 
-def LinearScaling(path, Labels, d_Cruy, scaling_mode="best_rmse", output_scaling="regression_output.csv"):
+def LinearScaling(path, Labels, d_Cruy, scaling_mode="best_rmse", output_scaling="regression_output.csv",Metal=None):
 
 
     '''Wrapper function to apply linear scaling to a set of lgkf values in a
@@ -129,7 +129,7 @@ def LinearScaling(path, Labels, d_Cruy, scaling_mode="best_rmse", output_scaling
     Returns:    
         None: generates image and output files.
             - regression_output.csv. CSV file with the parameters of all individual regressions.
-            - scaling_params.pomsim. File containing the slope and intercept to be used in speciation.
+            - scaling_params_PMo.pomsim. File containing the slope and intercept to be used in speciation.
     '''
     lgkf_df = Read_csv(path,Labels)
     _lgkf_df,int_labels2,Kexp = Internal_Lab_Gen(lgkf_df,d_Cruy)
@@ -196,7 +196,11 @@ def LinearScaling(path, Labels, d_Cruy, scaling_mode="best_rmse", output_scaling
         ax.annotate('r$^2$ = %.4f' % (r ** 2), (_lgkf_df.min().min(), 140))
 
     # Write to file
-    with open("../outputs/scaling_params.pomsim","w") as fout:
+    if Metal == None:
+        outfile = "../outputs/scaling_params.pomsim"
+    else:
+        outfile = "../outputs/scaling_params_%s.pomsim" % Metal
+    with open(outfile, "w") as fout:
         header = "%10s %6s %6s %12s\n" % ("Mode","m","b","best")
         vals = "%10s %6.4f %6.4f %12d \n" % (scaling_mode,m,b0,best_model_idx)
         fout.write(header + vals)
@@ -212,7 +216,7 @@ def main():
     scaling_params_file = "../outputs/regression_output.csv"
 
     Print_logo()
-    fig,ax = LinearScaling(lgkf_file, Labels, ExpDict, scaling_mode="best_rmse",output_scaling=scaling_params_file)
+    fig,ax = LinearScaling(lgkf_file, Labels, ExpDict, scaling_mode="best_rmse",output_scaling=scaling_params_file,Metal=metal)
     plt.savefig("../outputs/scaling_plot_best_model.png",dpi=300)
     plt.show()
 

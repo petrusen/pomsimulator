@@ -41,8 +41,20 @@ def mask_models(SuperArr,speciation_labels,threshold=1.1,C=0.1,idx=0):
     mask = (SuperArr < v_threshold.reshape(-1, 1, 1)).all(axis=1).all(axis=0)
     return mask, v_ctt
 
-def get_mask(SuperArr,threshold):
-    mask = (SuperArr < threshold).all(axis=1).all(axis=0)
+def get_mask(SuperArr,Labels,threshold,c,m_idx=0):
+    '''Masks a Nspc x NpH x Nmodels array to remove models with non-physical concentrations (percentages larger than 100% and negative concentrations)
+    Args:
+        SuperArr: array of floats, size Nspc x NpH x Nmodels resulting from speciation calculation.
+        Labels: list of strings, labels of the species in the diagram.
+        threshold: float, limit unity fraction of the concentration that is accepted (usually, 1 or 1.1 if a certain leeway is desired)
+        c: float, total concentration of the target metal or heteroatom.
+        m_idx: integer. Marks the element for which percentages are computed: in XxMmOn bimetallic species, 0 -> X, 1 -> M.
+    '''
+    v_ctt = np.array([Lab_to_stoich(lab)[m_idx] for lab in Labels])
+    v_threshold = threshold*c/v_ctt
+    mask = (SuperArr < v_threshold.reshape(-1,1,1)).all(axis=1).all(axis=0)
+    mask2 = (SuperArr > -0.1).all(axis=1).all(axis=0)
+    mask *= mask2
     return mask
 ### Featurization-related functions
 def get_pka(arr):

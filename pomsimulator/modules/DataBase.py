@@ -27,6 +27,16 @@ Labels_W  = ['W01O04-0H', 'W01O04-1H', 'W01O04-2H',
             'W10O32-0H', 'W10O32-1H', 'W10O32-2H',
             'W12O40-0H', 'W12O40-1H', 'W12O40-2H']
 
+Labels_PMo = ['P00Mo01O04-0H', 'P00Mo01O04-1H', 'P00Mo01O04-2H',
+              'P00Mo02O07-0H', 'P00Mo02O07-1H', 'P00Mo02O07-2H',
+              'P00Mo02O08-1H', 'P00Mo02O08-2H',
+              'P00Mo03O09-0H', 'P00Mo03O09-1H', 'P00Mo03O09-2H',
+              'P00Mo03O10-0H', 'P00Mo03O10-1H', 'P00Mo03O10-2H',
+              'P00Mo03O11-1H', 'P00Mo03O11-2H',
+              'P00Mo06O21-1H', 'P00Mo06O21-2H',
+              'P01Mo00O04-0H', 'P01Mo00O04-1H', 'P01Mo00O04-2H', 'P01Mo00O04-3H',
+              'P01Mo03O13-0H', 'P01Mo03O13-1H', 'P01Mo03O13-2H', 'P01Mo03O13-3H']
+
 # Labels corresponding to species present in experimental studies
 Labels_W_good = ['W01O04-0H','W06O22-2H', 'W07O24-1H', 'W12O40-2H', 'W10O32-0H']
 
@@ -57,7 +67,7 @@ Z_dict_inv = {1: 'H', 2: 'He', 3: 'Li', 4: 'Be', 5: 'B', 6: 'C', 7: 'N', 8: 'O',
               111: 'Rg ', 112: 'Cn ', 113: 'Nh', 114: 'Fl', 115: 'Mc', 116: 'Lv', 117: 'Ts', 118: 'Og'}
 
 # Oxidation states for common atoms present in polyoxometalates
-valence_dict = {'W': 6, 'O': -2, 'H':1}
+valence_dict = {'W': 6, 'O': -2, 'H':1, 'Mo':6, 'P':5}
 
 # Dictionary for mapping reaction type to its proper written from
 stringreac_dict = {'P' : 'Acid Base: {R1} + H+ --> {P}    G={G}\n',
@@ -93,13 +103,13 @@ molecularity_dict = {'Cw10': 2, 'Cw2': 2, 'Cw3': 2, 'Cw1': 2, 'Cw4': 2, 'A': 2, 
 simulation_parameters_strings = ['ADF Folder', 'MOL Folder', "Formation Constants File", "Chemical Reaction Network File",
             "Simulation Parameters File", "Cores", "Use Isomorphisms", "Reaction Energy Threshold (kcal/mol)",
             "Proton Difference Threshold", "Reference Reactions", "Ionic Strength (mol/L)",
-            "Initial Concentration (mol/L)",  "Range of pH", "Grid of pH", "Range of Simulated Models", "Formation Constants Referred to"]
+            "Initial Concentration (mol/L)",  "Range of pH", "Grid of pH", "Range of Simulated Models", "Formation Constants Referred to","Labels"]
 speciation_parameters_strings = [ "Speciation Parameters File","Formation Constants File","Scaling Slope","Scaling Intercept","Scaling Type", "Cores",
             "Initial Concentration (mol/L)",  "Range of pH", "Step of pH", "Number of Calculated Models","Labels", "Formation Constants Referred to",
                                   "Path to Speciation Output"]
 
 # Metals that can be treated
-allowed_IPA_systems = ["W"]
+allowed_systems = ["W","P_Mo"]
 
 # Limit bonds read from Bader QTAIM connectivity
 allowed_bonds_list = [("O","W"),("O","H")]

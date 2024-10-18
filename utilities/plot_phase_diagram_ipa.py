@@ -9,7 +9,7 @@ from pomsimulator.modules.text_module import *
 from pomsimulator.modules.stats_module import *
 
 
-def phase_diagram_gen(phase_array_dict,pH,v_ctt):
+def phase_diagram_gen(npz_paths,v_ctt):
     """
         Gathers all concentration arrays, and selects the most predominant species at each pH value.
     Args:
@@ -22,21 +22,25 @@ def phase_diagram_gen(phase_array_dict,pH,v_ctt):
         Bidimensional array containing the indices of the species with most % at each pair of C,pH.
     """
     print("entering phase diagram generation")
-    C_list = phase_array_dict["conc_array"]
-    phase_diagram = np.zeros((len(C_list), len(pH)), dtype=int)
-    v_ctt_arr = np.array([item[0] for item in v_ctt]).reshape(-1,1)
-    for i, C in enumerate(C_list):
-        init_time = time.time()
-        speciation_array = phase_array_dict["array_%d" % i]
-        half = time.time()
+    v_ctt_arr = np.array([item[0] for item in v_ctt]).reshape(-1, 1)
+    C_list = list()
+    for ii,path in enumerate(npz_paths):
+
+        phase_array_dict = np.load(path)
+        C = phase_array_dict["C"]
+        C_list.append(C)
+        pH = phase_array_dict["pH"]
+        speciation_array = phase_array_dict["SupArray"]
+        if ii == 0:
+            phase_diagram = np.zeros((len(npz_paths), len(pH)), dtype=int)
+
         mask = get_mask(speciation_array,1.1*C)
-        end = time.time()
         speciation_array = speciation_array[:,:,mask]
         Means = np.mean(speciation_array, axis=2)
         Means = Means*v_ctt_arr
         phase_ratio = np.argmax(Means, axis=0)
-        phase_diagram[i, :] = phase_ratio
-    return phase_diagram
+        phase_diagram[ii, :] = phase_ratio
+    return phase_diagram,C_list,pH
 
 
 def main():
@@ -59,11 +63,11 @@ def main():
     speciation_labels = Labels_W_good
     col_dict = None
     v_ctt = [Lab_to_stoich(lab) for lab in speciation_labels]
+    npz_info_file = "W_npz_info.dat"
     # Load the array with all speciations
-    phase_array = np.load("../outputs/phase_array.npz")
-    pH = phase_array["pH"]
-    C_list = phase_array["conc_array"]
-    phase_diagram = phase_diagram_gen(phase_array,pH,v_ctt)
+    with open(npz_info_file,"r") as infile:
+        npz_paths = [line.strip() for line in infile.readlines()]
+    phase_diagram,C_list,pH = phase_diagram_gen(npz_paths,v_ctt)
 
     logC_list = np.log10(C_list)
     ####################  PLOTTING ######################
