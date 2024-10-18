@@ -2,12 +2,103 @@ import numpy as np
 import os
 from multiprocessing import Pool, cpu_count
 import time
-from itertools import repeat
-
+from itertools import repeat,compress,islice,product
+import random
 # Local imports
-from pomsimulator.modules.text_module import Print_logo,Read_csv,Lab_to_stoich,write_speciationparameters
-from pomsimulator.modules.msce_module import Speciation_from_Formation_singlemetal,Speciation_from_Formation_bimetal,starmap_with_kwargs
+from pomsimulator.modules.text_module import Print_logo,Read_csv,Lab_to_stoich,write_speciationparameters,Bader_Parser
+from pomsimulator.modules.msce_module import *
 from pomsimulator.modules.DataBase import *
+from pomsimulator.modules.graph_module import *
+
+#Simulation functions
+
+def generate_graphs(adf_files, ref_compound, POM_system):
+    G1_list, water, G1_labels = list(), dict(), list()
+    for idx, f in enumerate(adf_files):
+        adf_dict = Bader_Parser(f)
+        label = adf_dict['label']
+        if label in ['H3O', 'H2O', 'H5O2', 'H4O2']:
+            water[label] = adf_dict['Gibbs']
+        else:
+            Gi = Molecule_to_Graph(idx, **adf_dict)
+            G1_list.append(Gi)
+            G1_labels.append(label)
+    if isinstance(ref_compound,list):
+        ref_idx = [G1_labels.index(ref) for ref in ref_compound]
+    else:
+        ref_idx = G1_labels.index(ref_compound)
+    print("Length:", len(G1_labels), ref_idx, G1_labels)
+    elements = POM_system.split("_")
+    Z = [Z_dict[elem] for elem in elements]
+    valence = [valence_dict[elem] for elem in elements]
+    charges = Molecule_Charge(G1_list, Z, valence)
+    stoich = Molecule_Stoichiometry(G1_list, Z)
+    compounds_set, unique_labels = Create_Stoich(G1_labels)
+    num_molec = len(G1_list)
+    graphs_info = {"z_ctt": charges, "v_ctt": stoich, "water": water, "ref_idx": ref_idx, "num_molec": num_molec,
+                   "compounds_set": compounds_set, "unique_labels": unique_labels}
+    return G1_list, G1_labels, graphs_info
+
+def compute_lgkf_loop(R_idx, R_ene, R_type, mod_idx_vals, number_models,kwargs,
+                      batch_size=1, cores=1):
+    if isinstance(kwargs["ref_idx"],list):
+        speciation_func = Speciation_from_Equilibrium_bimetal
+    else:
+        speciation_func = Speciation_from_Equilibrium
+    data = list()
+    # Set up speciation models
+    models_to_explore = set(mod_idx_vals)
+    n_batches = int(len(mod_idx_vals) / batch_size)
+    print("Number of batches = %d" % n_batches)
+    _idx_var, _e_var, _type_var = product(*R_idx), product(*R_ene), product(*R_type)
+    bool_sample = (idx in models_to_explore for idx in range(number_models))
+    models_to_calculate = compress(zip(_idx_var, _e_var, _type_var), bool_sample)
+    var = list()
+    acc = 0
+    for obj in models_to_calculate:
+        var_args = (obj[0], obj[1], obj[2])
+        var.append(var_args)
+        acc += 1
+
+    kwargs_iter = repeat(kwargs)
+
+    print("Enter formation constant calculation")
+
+    for idx in range(n_batches + 1):
+        t0 = time.time()
+
+        low_lim = batch_size * idx
+        up_lim = batch_size * (idx + 1)
+        if idx == n_batches:
+            current_var = var[low_lim:]
+        else:
+            current_var = var[low_lim:up_lim]
+        args_iter = current_var
+
+        with Pool(cores) as ThreadPool:  # HPC
+            data = data + starmap_with_kwargs(ThreadPool, speciation_func,
+                                              args_iter, kwargs_iter)
+        t1 = time.time()
+        progress = idx * 100 / n_batches
+        named_tuple = time.localtime()  # get struct_time
+        time_string = time.strftime("%m/%d/%Y, %H:%M:%S", named_tuple)
+        print(time_string,
+              "[" + "".join(
+                  ['#' if i < progress else " " for i in range(0, 100, 2)]) + "]" + " progress=%6.3f" % progress,
+              "time of batch = %.2f s" % (t1 - t0))
+    return data
+
+def models_sampling(sampling_type,number_models,sample_perc=10):
+    if sampling_type == "random":
+
+        mod_to_calc = int(number_models*sample_perc/100)
+        print("Calculated speciation models number %d"%mod_to_calc)
+        mod_idx_vals = random.sample(range(0, int(number_models)), mod_to_calc)  # Apply randomizer
+        mod_idx_vals.sort()
+    else:
+        mod_idx_vals = list(range(0, number_models))
+    return mod_idx_vals
+#Speciation function
 
 def speciation_diagram(idxs,lgkf_df,speciation_labels,pH,C_ref,ref_stoich):
     '''Wrapper function employed to solve all speciation models across a DataFrame.

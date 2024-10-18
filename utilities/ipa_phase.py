@@ -34,7 +34,7 @@ def main():
 
 
     # Input/output files
-    path = "../outputs/logkf_W.txt"
+    path = "../outputs/logkf_W_test.txt"
     output_fold = "W_phase_arrays"
     output_path = "../outputs/" + output_fold
     npz_info_file = "W_npz_info.dat"

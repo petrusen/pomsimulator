@@ -1,4 +1,3 @@
-
 # Standard library imports
 from os import listdir
 from os.path import isfile, join
@@ -17,31 +16,31 @@ def main():
     Print_logo()
     ######################### User parameters ##############################################
     # Input/output files
-    ADF_folder = "../inputs/PMo_testing/"
-    mol_folder = "../inputs/PMo_testing_molfiles/"
-    isomorphism_matrix = "../utilities/PMo_np_IM.csv"
-    formation_constants_file = "../outputs/logkf_PMo_test.txt"
-    CRN_file = "../outputs/PMo_CRN.txt"
-    simulation_file = "../outputs/simulation_parameters_PMo.txt"
+    ADF_folder = "../inputs/W_Set_PBE/"
+    mol_folder = "../inputs/W_Set_PBE_molfiles/"
+    isomorphism_matrix = "../utilities/np_IM.csv"
+    formation_constants_file = "../outputs/logkf_W_test.txt"
+    CRN_file = "../outputs/W_CRN.txt"
+    simulation_file = "../outputs/simulation_parameters.txt"
 
     # Operation parameters
     cores = 20
-    batch_size = 100
+    batch_size = 250
 
     # Chemical parameters
-    use_isomorphisms = False
-    energy_threshold = 15  # Maximum value for reaction energies
-    proton_numb = 1     # Maximum difference in proton number of to species to react
+    use_isomorphisms = True
+    energy_threshold = 33  # Maximum value for reaction energies
+    proton_numb = 0     # Maximum difference in proton number of to species to react
     reference = ["P", "H2Ow1", 'H2Ow2', 'Cw1', 'Cw2', 'Cw3', 'Cw4', "A", 'HO', 'H3O']  # Reaction types of the network
     I, C0 = 0.25, 0.005
     temp = 298.15
     min_pH, max_pH, grid = 0, 35, 70
-    ref_compounds = ['P01Mo00O04-0H','P00Mo01O04-0H']
-    POM_system = "P_Mo"
+    ref_compound = 'W01O04-0H'
+    POM_system = "W"
     # Internal parameters: These parameters are not meant to be routinely modified
 
-    conditions_dict = {"proton_numb":proton_numb,"restrain_addition":12,"restrain_condensation":12,
-                       "include_dimerization":True,"force_stoich":[],"adjust_protons_hydration":True}
+    conditions_dict = {"proton_numb":proton_numb,"restrain_addition":2,"restrain_condensation":2,
+                       "include_dimerization":True,"force_stoich":[11],"adjust_protons_hydration":True}
 
     # 1) Get ADF outputs ############################################################################################
 
@@ -52,7 +51,7 @@ def main():
 
     print("2) Graph creation: node=atom edge=bond")
 
-    G1_list, G1_labels, graphs_info = generate_graphs(adf_files, ref_compounds,POM_system)
+    G1_list, G1_labels, graphs_info = generate_graphs(adf_files, ref_compound,POM_system)
 
     # 3) Isomorphism matrix generation ##############################################################################
 
@@ -67,7 +66,7 @@ def main():
                                                                         energy_threshold, conditions_dict)
     print("3.1) NUMBER OF REACTIONS:", [len(list(map(len, reac_idx[i]))) for i in range(len(reac_idx))])
     R_idx, R_ene, R_type = sort_by_type(reac_idx, reac_energy, reac_type, graphs_info["compounds_set"], graphs_info["unique_labels"],
-                                        G1_labels, exclude=ref_compounds)
+                                        G1_labels, ref_compound)
 
     Write_Reactions(CRN_file, G1_labels, reac_idx, reac_type, reac_energy, stringreac_dict, molecularity_dict)
 
@@ -79,9 +78,8 @@ def main():
     idx_ctt = list(reac_idx[0])
     type_ctt = list(reac_type[0])
 
-    lgkf_params = dict(idx_ctt=idx_ctt, e_ctt=e_ctt, type_ctt=type_ctt,
-                       pH_grid=np.linspace(min_pH, max_pH, grid),
-                  init_guess=np.zeros(graphs_info["num_molec"]), I=I, C_X=C0,C_M=C0, threshold=0.1,temp=temp)
+    lgkf_params = dict(idx_ctt=idx_ctt, e_ctt=e_ctt, type_ctt=type_ctt, pH_grid=np.linspace(min_pH, max_pH, grid),
+                  init_guess=np.zeros(graphs_info["num_molec"]), I=I, C=C0, threshold=0.1, temp=temp)
     lgkf_params.update({k:graphs_info[k] for k in ["z_ctt","v_ctt","ref_idx"]})
 
     begin = time.time()
@@ -93,7 +91,7 @@ def main():
     ### Printing output
     kwargs_input = dict()
     obj_list = [ADF_folder, mol_folder, formation_constants_file, CRN_file, simulation_file, cores, use_isomorphisms,
-                energy_threshold, proton_numb, reference, I, C0, (min_pH, max_pH), grid, number_models, ref_compounds,G1_labels]
+                energy_threshold, proton_numb, reference, I, C0, (min_pH, max_pH), grid, number_models, ref_compound,G1_labels]
     for s, o in zip(simulation_parameters_strings, obj_list):
         kwargs_input[s] = o
     write_simulationparameters(kwargs_input)

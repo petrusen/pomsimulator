@@ -212,7 +212,7 @@ def main():
     metal = "W"
     Labels = Labels_W
     ExpDict = Rosantsev_W12_I01_05I
-    lgkf_file = "../outputs/logkf_W.txt"
+    lgkf_file = "../outputs/logkf_W_test.txt"
     scaling_params_file = "../outputs/regression_output.csv"
 
     Print_logo()

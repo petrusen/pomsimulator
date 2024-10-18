@@ -139,7 +139,7 @@ def Speciation_from_Equilibrium(idx_var, e_var, type_var, idx_ctt=None, e_ctt=No
     return Kf_dft
 
 def Speciation_from_Equilibrium_bimetal(idx_var, e_var, type_var, idx_ctt=None, e_ctt=None, type_ctt=None, z_ctt=None, v_ctt=None,
-                                ref_idxs=None, pH_grid=None, init_guess=None, I=None,
+                                ref_idx=None, pH_grid=None, init_guess=None, I=None,
                                 C_X=0.005, C_M=0.005, temp=298.15, solver='hybr', threshold=None):
     """
     Sets multi-species chemical equilibrium provided that the reactions are
@@ -165,7 +165,7 @@ def Speciation_from_Equilibrium_bimetal(idx_var, e_var, type_var, idx_ctt=None, 
         idx_ctt, e_ctt, type_ctt: same as three first args, but for the constant reactions (acid_base).
         z_ctt: list of integers, charges of all compounds in the dataset.
         v_ctt: list of lists of integers, stoichiometric indices for chemical compounds in the dataset (metal, oxygen, hydrogen).
-        ref_idxs: integer list, index of the reference species in compound-related lists.
+        ref_idx: integer list, index of the reference species in compound-related lists.
         pH_grid: array of floats, all pH values to solve equations for.
         init_guess: array of floats, initial guess for the equation solver.
         I: float, ionic strength for the simulation.
@@ -242,7 +242,7 @@ def Speciation_from_Equilibrium_bimetal(idx_var, e_var, type_var, idx_ctt=None, 
     else:
         y_val_T = list()
 
-    Kf_dft = screen_log_Kf_BiMetal(y_val_T, x_val, v_ctt, ref_idxs=ref_idxs)
+    Kf_dft = screen_log_Kf_BiMetal(y_val_T, x_val, v_ctt, ref_idxs=ref_idx)
 
     return Kf_dft
 

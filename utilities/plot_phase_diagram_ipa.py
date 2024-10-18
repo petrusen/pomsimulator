@@ -34,7 +34,7 @@ def phase_diagram_gen(npz_paths,v_ctt):
         if ii == 0:
             phase_diagram = np.zeros((len(npz_paths), len(pH)), dtype=int)
 
-        mask = get_mask(speciation_array,1.1*C)
+        mask = get_mask(speciation_array,phase_array_dict["labels"],1.1,C)
         speciation_array = speciation_array[:,:,mask]
         Means = np.mean(speciation_array, axis=2)
         Means = Means*v_ctt_arr
