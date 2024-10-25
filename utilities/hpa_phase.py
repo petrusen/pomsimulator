@@ -34,11 +34,13 @@ def main():
     cores = 8
 
     # Input/output files
-    path = "../outputs/logkf_PMo.txt"
+    output_path = "../outputs/PMo_data"
+
+    path = output_path + "/logkf_PMo.txt"
     output_fold = "PMo_phase_arrays"
-    output_path = "../outputs/" + output_fold
-    npz_info_file = "PMo_npz_info.dat"
-    scaling_path = "../outputs/scaling_params_PMo.pomsim"
+    output_path = output_path + "/" + output_fold
+    npz_info_file = output_path + "/PMo_npz_info.dat"
+    scaling_path = output_path + "/scaling_params_PMo.pomsim"
 
     if not os.path.exists(output_path):
         os.makedirs(output_path)

@@ -34,11 +34,13 @@ def main():
 
 
     # Input/output files
-    path = "../outputs/logkf_W_test.txt"
+    output_path = "../outputs/W_data"
+
+    path = output_path + "/logkf_W.txt"
     output_fold = "W_phase_arrays"
-    output_path = "../outputs/" + output_fold
-    npz_info_file = "W_npz_info.dat"
-    scaling_path = "../outputs/scaling_params_W.pomsim"
+    output_path = output_path + "/" + output_fold
+    npz_info_file = output_path + "/W_npz_info.dat"
+    scaling_path = output_path + "/scaling_params_W.pomsim"
 
     if not os.path.exists(output_path):
         os.makedirs(output_path)

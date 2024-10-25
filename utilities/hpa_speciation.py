@@ -33,15 +33,17 @@ def main():
     C_M = 0.1
 
     # Operation parameters
-    all_idxs = False
-    batch_size = 1
-    cores = 8
+    all_idxs = True
+    batch_size = 50
+    cores = 15
 
     # Input/output files
-    path = "../outputs/logkf_PMo.txt"
-    path_to_output = "../outputs/PMo_Array.npz"
-    path_to_params = "../outputs/speciation_parameters_PMo.txt"
-    scaling_path = "../outputs/scaling_params_PMo.pomsim"
+    output_path = "../outputs/PMo_data"
+
+    path = output_path + "/logkf_PMo_test.txt"
+    path_to_npz = output_path + "/PMo_Array.npz"
+    path_to_params = output_path + "/speciation_parameters_PMo.txt"
+    scaling_path = output_path + "/scaling_params_PMo.pomsim"
     #############################################################################################
 
     # Read linear scaling from test_linearity
@@ -57,13 +59,13 @@ def main():
     kwargs_input = dict()
     obj_list = [path_to_params,path,scaling_params["m"],scaling_params["b"],scaling_params["mode"],cores,
                 [C_X,C_M],(min_pH,max_pH),abs(step_pH),len(list(lgkf_df.index)),
-                speciation_labels,[ref_stoich_X,ref_stoich_M],path_to_output]
+                speciation_labels,[ref_stoich_X,ref_stoich_M],path_to_npz]
     for s,o in zip(speciation_parameters_strings, obj_list):
         kwargs_input[s] = o
     write_speciationparameters(kwargs_input)
 
     FilteredSuperArr,IndexArr = compute_speciation_loop(lgkf_df, speciation_labels, pH, [C_X,C_M], [ref_stoich_X,ref_stoich_M],
-                                                        path_to_output, batch_size, cores)
+                                                        path_to_npz, batch_size, cores)
 
 
 if __name__ == '__main__':

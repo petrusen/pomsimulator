@@ -69,14 +69,8 @@ def Molecule_Charge(G1_list, Z, Zcharge):
     charge = list()
     for i in range(len(G1_list)):
         deleteme = list(nx.get_node_attributes(G1_list[i], 'Z').values())
-        if isinstance(Z, int):
-            z = Zcharge
-            stochiometry = [deleteme.count(num) for num in [Z, 8, 1]]
-            charge.append(sum([(v*valence) for v,valence in zip(stochiometry, [z, -2, +1])]))
-        elif isinstance(Z, list):
-            z1, z2 = Zcharge
-            stochiometry = [deleteme.count(num) for num in Z+[8, 1]]
-            charge.append(sum([(v*valence) for v,valence in zip(stochiometry, [z1, z2, -2, +1])]))
+        stoichiometry = [deleteme.count(num) for num in Z + [8, 1]]
+        charge.append(sum([(v * valence) for v, valence in zip(stoichiometry, Zcharge + [-2, +1])]))
     return charge
 
 def Molecule_to_Graph(idx, ploting=False, **kwargs): 

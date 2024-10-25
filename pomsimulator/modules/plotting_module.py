@@ -3,6 +3,8 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import matplotlib.colors
 import seaborn as sns
+
+
 sns.set_context('talk', font_scale=0.8)
 from matplotlib.lines import Line2D
 from matplotlib.patches import Rectangle
@@ -231,10 +233,18 @@ def plot_speciation(conc_arr, labels, pH, c0, plot_list=None,ax=None,err_arr=Non
 
 
 
-def plot_cluster_means(SuperArr,ExpArr,groups,target_shape,speciation_labels,pH,c0,col_dict=None,add_bands=False,
-                       plot_list=None,exp_pH = None):
+def plot_cluster_means(SuperArr,groups,speciation_labels,pH,c0,
+                       col_dict=None,plot_list=None,target_shape=None,m_idx=0):
+    if not target_shape:
+        n_groups = len(groups)
+        m = int(np.ceil(np.sqrt(n_groups)))
+        if (m*(m-1)) >= n_groups:
+            target_shape = (m,m-1)
+        else:
+            target_shape = (m,m)
 
     nm = target_shape[0] * target_shape[1]
+    exceed_plots = nm - n_groups
     mosaic = np.arange(0, nm).reshape(target_shape)
     # Add another row, for the axis
     mosaic = np.vstack([mosaic, [nm] * target_shape[1]])
@@ -242,17 +252,14 @@ def plot_cluster_means(SuperArr,ExpArr,groups,target_shape,speciation_labels,pH,
     axd = fig.subplot_mosaic(mosaic, gridspec_kw={"height_ratios": [1] * target_shape[0] + [0.1]}, sharey=True)
     if not plot_list:
         plot_list = speciation_labels
-    if exp_pH is None:
-        exp_pH = pH
-    plot_speciation(ExpArr,speciation_labels,exp_pH,c0,plot_list,axd[0],err_arr=None,col_dict=col_dict)
-
-    axd[0].set_title("Experimental")
     for ii, grp in enumerate(groups):
         MiniArr = SuperArr[:, :, np.array(grp)]
         means = np.mean(MiniArr, axis=2)
         stds = np.std(MiniArr, axis=2)
-        plot_speciation(means,speciation_labels,pH,c0,plot_list,ax=axd[ii+1],err_arr=stds,col_dict=col_dict)
-        axd[ii + 1].set_title("Cluster %d (%d)" % (ii, len(grp)))
+        plot_speciation(means,speciation_labels,pH,c0,plot_list,ax=axd[ii],err_arr=stds,col_dict=col_dict,m_idx=m_idx)
+        axd[ii].set_title("Cluster %d (%d)" % (ii, len(grp)))
+    for jj in range(ii+1,nm):
+        axd[jj].axis("off")
 
     handles, labels = axd[0].get_legend_handles_labels()
     axd[nm].legend(handles, labels, ncol=4, loc="center")
@@ -308,3 +315,39 @@ def plot_boxplot_plot(x_vector, y_position, box_color, box_height, Label=None, a
 
     return ax, boxplot
 
+def plot_best_mods(lgkf_df,sorted_params_df,Kexp,plot_shape=(2,2)):
+    '''Auxiliary function to simplify the generation of best speciation models,
+    using the information from regressions in lgKf_scaling.
+    Args:
+        lgkf_df. Pandas DataFrame containing lgkf values for a set of speciation models.
+        sorted_params_df. Pandas DataFrame with slope, intercept, regression coefficient, standard error and rmse for each model
+        which has been sorted by a parameter of interest (e.g. by rmse to plot best models)
+        Kexp. NumPy array with experimental values for rate constants.
+        plot_shape. Tuple of integers, marking the no. of panes in the plot.
+    Returns:
+        fig,ax. Matplotlib Figure and Axis objects.
+    '''
+    fig, axes = plt.subplots(plot_shape[0], plot_shape[1], sharex=True, sharey=True)
+    ax = axes.flatten()
+    fig.set_size_inches(4*plot_shape[1],4*plot_shape[0])
+    orange = '#e86e00ff'
+    blue = '#202252ff'
+    Nplots = plot_shape[0]*plot_shape[1]
+    for ii in range(Nplots):
+        mod_idx = sorted_params_df.index[ii]
+        lgkf = lgkf_df.loc[mod_idx,:]
+        pars = sorted_params_df.iloc[ii,:]
+        m = pars.loc["m"]
+        b = pars.loc["b"]
+        r2 = (pars.loc["r"])**2
+        rmse = pars.loc["rmse"]
+        lgkf_scaled = lgkf * m + b
+    ##############################################FIGURA 0,0 ###############################################################
+        ax[ii].set_ylabel("Experimental Constants " + "$(pK_{f}^{Exp})$", fontsize=12)
+        ax[ii].set_xlabel("DFT Constants " + "$(pK_{f}^{DFT})$", fontsize=12)
+        ax[ii].plot(lgkf,lgkf_scaled,'-',color=orange)
+        ax[ii].plot(lgkf, Kexp, '.', markersize=11, color=blue)
+        ax[ii].text(160, 60, "y=%.2fx+(%.2f) and r=%.2f"%(m,b,r2), fontsize=10)
+        ax[ii].text(140, 140, "RMSE = %.2f"%rmse, fontsize=10)
+    plt.tight_layout()
+    return fig,ax

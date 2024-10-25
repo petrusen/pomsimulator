@@ -39,8 +39,8 @@ def phase_diagram_gen(npz_paths,v_ctt):
             phase_diagram_X = np.zeros((len(npz_paths), len(pH)), dtype=int)
             phase_diagram_M = np.zeros((len(npz_paths), len(pH)), dtype=int)
 
-        mask_X = get_mask(speciation_array,labels,1.1,C_X,m_idx=0)
-        mask_M = get_mask(speciation_array,labels,1.1,C_M,m_idx=1)
+        mask_X = mask_models(speciation_array,labels,1.1,C_X,m_idx=0)
+        mask_M = mask_models(speciation_array,labels,1.1,C_M,m_idx=1)
         speciation_array_X = speciation_array[:,:,mask_X]
         speciation_array_M = speciation_array[:,:,mask_M]
         Means_X = np.mean(speciation_array_X, axis=2)*v_ctt_arr_X

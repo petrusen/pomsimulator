@@ -14,7 +14,8 @@ def main():
     ### Paths
 
     MOL_Folder =  "../inputs/W_Set_PBE_molfiles/"
-
+    output_path = "../outputs/W_data"
+    output_file =  output_path + "/np_IM_W.csv"
     Cores = 5  # cpu_count()  #number of cores for the simulation (caution!)
 
     ### Variables for the reaction network
@@ -49,7 +50,7 @@ def main():
 
     diagonal = Molecular_Graphs_to_Isomorphic_Matrix(G1_list, np.tri(num_molec, num_molec, 0), cores=Cores)
 
-    np.savetxt("np_IM.csv",diagonal, fmt = '%d',delimiter = ',')
+    np.savetxt(output_file,diagonal, fmt = '%d',delimiter = ',')
 
 if __name__ == '__main__':
     main()

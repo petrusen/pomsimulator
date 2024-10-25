@@ -52,10 +52,14 @@ def Lab_to_Formula(Label):
             out_str += elem
         else:
             out_str += "%s_{%d}" % (elem, cx)
-    if total_charge < 0:
-        out_str += "]^{%d-}}$" % abs(total_charge)
+    if total_charge == 1:
+        out_str += "]^+}$"
+    elif total_charge == -1:
+        out_str += "]^-}$"
+    elif total_charge < 0:
+        out_str += "]^{%d\!-}}$" % abs(total_charge)
     elif total_charge > 0:
-        out_str += "]^{%d}}$" % abs(total_charge)
+        out_str += "]^{%d\!+}}$" % abs(total_charge)
     else:
         out_str += "]}$"
 
@@ -327,8 +331,10 @@ def Read_csv(path,Labels):
         my_data. Pandas.DataFrame with formation constants.
 
     '''
-    my_data = pd.read_csv(path, sep=',', header=None, index_col=0, skip_blank_lines=True, on_bad_lines='skip',na_values="None", low_memory=False, names=Labels)
+    my_data = pd.read_csv(path, sep=',', header=None, index_col=0, skip_blank_lines=True,
+                          on_bad_lines='skip',na_values="None", low_memory=False, names=Labels)
     my_data.dropna(axis=0, how='all', inplace=True)
+
     #my_data.index -= 1
     return my_data
 

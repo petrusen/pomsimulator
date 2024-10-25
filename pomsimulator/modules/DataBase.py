@@ -9,6 +9,13 @@ Rosantsev_W12_I01_05I = {"W06O22-2H": 53.68,
                          "W07O24-1H": 76.59, 
                          "W12O40-2H": 149.59,
                          "W10O32-0H": 129.63}
+Pettersson_3I = {"P00Mo01O04-0H":0,
+                 "P01Mo00O04-0H":0,
+                 "P01Mo11O39-0H":118.7,
+                 "P01Mo12O40-0H":139.7,
+                 "P02Mo05O23-0H": 61.97,
+                 "P02Mo05O23-1H": 67.07,
+                 "P02Mo05O23-2H": 70.86}#, "P01Mo09O34-2H":104.9,"P01Mo09O34-1H":102.0}#"P01Mo09O34-6H":107.2,"P01Mo09O34-5H":104.7,
 
 # Labels extracted from molecular set, following the guidelines in the manual for species labeling.
 Labels_W  = ['W01O04-0H', 'W01O04-1H', 'W01O04-2H', 
@@ -113,3 +120,8 @@ allowed_systems = ["W","P_Mo"]
 
 # Limit bonds read from Bader QTAIM connectivity
 allowed_bonds_list = [("O","W"),("O","H")]
+
+# Universal scaling methodology
+universal_slope = 0.29
+"""                   Q3    mean   range  Indep."""
+mlr_coefficients = [0.195, -0.216, 0.070, 12.20]

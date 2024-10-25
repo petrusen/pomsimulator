@@ -19,14 +19,17 @@ def main():
     ADF_folder = "../inputs/W_Set_PBE/"
     mol_folder = "../inputs/W_Set_PBE_molfiles/"
     isomorphism_matrix = "../utilities/np_IM.csv"
-    formation_constants_file = "../outputs/logkf_W_test.txt"
-    CRN_file = "../outputs/W_CRN.txt"
-    simulation_file = "../outputs/simulation_parameters.txt"
+    output_path = "../outputs/W_data"
+
+    formation_constants_file = output_path + "/logkf_W.txt"
+    CRN_file = output_path + "/W_CRN.txt"
+    simulation_file = output_path + "/simulation_parameters.txt"
 
     # Operation parameters
     cores = 20
     batch_size = 250
-
+    sample_perc = 10
+    sampl_type = "random" # random / all
     # Chemical parameters
     use_isomorphisms = True
     energy_threshold = 33  # Maximum value for reaction energies
@@ -101,16 +104,15 @@ def main():
 
     start_time = time.time()
 
-    mod_idx_vals = models_sampling("random",number_models,10)
+    mod_idx_vals = models_sampling(sampl_type,number_models,sample_perc=sample_perc)
     data = compute_lgkf_loop(R_idx,R_ene,R_type,mod_idx_vals,number_models,lgkf_params,batch_size=batch_size,cores=cores)
-
 
     # 5) Writing Output #############################################################################################
 
     print("5) Create Output File")
 
     with open(formation_constants_file, "w") as out:
-        for r,d in enumerate(data):
+        for r,d in zip(mod_idx_vals,data):
             out.write(str(r)+","+",".join([str(di) for di in d])+'\n')
     print("Normal Termination. Execution time: " + str(round((time.time() - start_time), 4)) + " sec.")
 

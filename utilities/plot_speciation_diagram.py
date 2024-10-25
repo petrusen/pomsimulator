@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 # Local imports
 from pomsimulator.modules.DataBase import Labels_W_good,Labels_PMo
 from pomsimulator.modules.plotting_module import plot_speciation
-from pomsimulator.modules.stats_module import load_array
+from pomsimulator.modules.helper_module import load_array
 from pomsimulator.modules.text_module import Print_logo, Lab_to_Formula
 
 def main():

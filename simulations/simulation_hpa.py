@@ -20,13 +20,17 @@ def main():
     ADF_folder = "../inputs/PMo_testing/"
     mol_folder = "../inputs/PMo_testing_molfiles/"
     isomorphism_matrix = "../utilities/PMo_np_IM.csv"
-    formation_constants_file = "../outputs/logkf_PMo_test.txt"
-    CRN_file = "../outputs/PMo_CRN.txt"
-    simulation_file = "../outputs/simulation_parameters_PMo.txt"
+    output_path = "../outputs/PMo_data"
+
+    formation_constants_file = output_path + "/logkf_PMo_test.txt"
+    CRN_file = output_path + "/PMo_CRN.txt"
+    simulation_file = output_path + "/simulation_parameters_PMo.txt"
 
     # Operation parameters
     cores = 20
     batch_size = 100
+    sample_perc = 10
+    sampl_type = "random" # random / all
 
     # Chemical parameters
     use_isomorphisms = False
@@ -37,7 +41,7 @@ def main():
     temp = 298.15
     min_pH, max_pH, grid = 0, 35, 70
     ref_compounds = ['P01Mo00O04-0H','P00Mo01O04-0H']
-    POM_system = "P_Mo"
+    POM_system = "P_Mo" # User should input the system as X_M (X for the heteroatom and M for the metal)
     # Internal parameters: These parameters are not meant to be routinely modified
 
     conditions_dict = {"proton_numb":proton_numb,"restrain_addition":12,"restrain_condensation":12,
@@ -103,7 +107,7 @@ def main():
 
     start_time = time.time()
 
-    mod_idx_vals = models_sampling("random",number_models,10)
+    mod_idx_vals = models_sampling(sampl_type,number_models,sample_perc=sample_perc)
     data = compute_lgkf_loop(R_idx,R_ene,R_type,mod_idx_vals,number_models,lgkf_params,batch_size=batch_size,cores=cores)
 
 
@@ -112,7 +116,7 @@ def main():
     print("5) Create Output File")
 
     with open(formation_constants_file, "w") as out:
-        for r,d in enumerate(data):
+        for r,d in zip(mod_idx_vals,data):
             out.write(str(r)+","+",".join([str(di) for di in d])+'\n')
     print("Normal Termination. Execution time: " + str(round((time.time() - start_time), 4)) + " sec.")
 

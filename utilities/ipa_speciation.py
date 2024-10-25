@@ -32,15 +32,17 @@ def main():
     C = 0.1
 
     # Operation parameters
-    all_idxs = False
-    batch_size = 1
+    all_idxs = True
+    batch_size = 50
     cores = 8
 
     # Input/output files
-    path = "../outputs/logkf_W.txt"
-    path_to_output = "../outputs/W_Array.npz"
-    path_to_params = "../outputs/speciation_parameters.txt"
-    scaling_path = "../outputs/scaling_params_W.pomsim"
+    output_path = "../outputs/W_data"
+
+    path = output_path +  "/logkf_W.txt"
+    path_to_output = output_path + "/W_Array.npz"
+    path_to_params = output_path + "/speciation_parameters_W.txt"
+    scaling_path = output_path + "/scaling_params_W.pomsim"
     #############################################################################################
 
     # Read linear scaling from test_linearity
