@@ -29,8 +29,8 @@ def main():
     # Chemical parameters
     min_pH, max_pH, step_pH = 0, 14, -0.1
     pH = np.arange(max_pH,min_pH,step_pH)
-    C_X = 0.1
-    C_M = 0.1
+    C_X = 0.01
+    C_M = 0.12
 
     # Operation parameters
     all_idxs = True
@@ -40,7 +40,7 @@ def main():
     # Input/output files
     output_path = "../outputs/PMo_data"
 
-    path = output_path + "/logkf_PMo_test.txt"
+    path = output_path + "/logkf_PMo.txt"
     path_to_npz = output_path + "/PMo_Array.npz"
     path_to_params = output_path + "/speciation_parameters_PMo.txt"
     scaling_path = output_path + "/scaling_params_PMo.pomsim"
@@ -52,7 +52,7 @@ def main():
     # Read constants and scale them
     ref_stoich_X, ref_stoich_M = [Lab_to_stoich(ref) for ref in ref_compounds]
 
-    lgkf_df = Read_csv(path, formation_labels)
+    lgkf_df = Read_csv(path)
     lgkf_df = lgkf_filtering(lgkf_df,all_idxs,scaling_params, speciation_labels)
 
     ### Write parameters to file once we know the number of models

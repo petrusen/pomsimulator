@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import os
+from pomsimulator.modules.DataBase import Col_Dict_PMo
 from pomsimulator.modules.text_module import Print_logo,Lab_to_Formula
 from pomsimulator.modules.stats_module import *
 from pomsimulator.modules.helper_module import load_array,get_C0
@@ -9,14 +10,15 @@ import matplotlib.pyplot as plt
 
 Print_logo()
 
-output_path = "../outputs/W_data/W_clusterization"
-path_to_npz = output_path + "/W_NewArr.npz"
+output_path = "../outputs/PMo_data/PMo_clusterization"
+path_to_npz = output_path + "/NewArr.npz"
 SuperArr,IndexArr,C_ref,pH,labels = load_array(path_to_npz)
 labels = list(labels)
 filter_path = output_path + "/filtering"
 m_idx = 0
 print(filter_path)
 
+col_dict = Col_Dict_PMo
 plot_list = None
 boxplot_list = None
 C0 = get_C0(C_ref,m_idx)
@@ -41,7 +43,7 @@ for sel_spc in boxplot_list:
     ax=fig.subplot_mosaic([[0],[1]],gridspec_kw={"height_ratios":[1,0.35]})
 
     plot_speciation(np.mean(FilterSelArr,axis=2),labels,pH,C0,
-                    plot_list=None,ax=ax[0],m_idx=m_idx,err_arr=np.std(FilterSelArr,axis=2))
+                    plot_list=None,ax=ax[0],m_idx=m_idx,err_arr=np.std(FilterSelArr,axis=2),col_dict=col_dict)
     ax[0].set_title("%s"%sel_spc)
 
     handles, leg_labels = ax[0].get_legend_handles_labels()

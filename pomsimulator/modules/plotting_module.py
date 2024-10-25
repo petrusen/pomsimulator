@@ -11,7 +11,7 @@ from matplotlib.patches import Rectangle
 import numpy as np
 
 #Local imports
-from pomsimulator.modules.text_module import Lab_to_stoich
+from pomsimulator.modules.text_module import Lab_to_stoich,Lab_to_Formula
 from pomsimulator.modules.stats_module import get_boxplot_data
 
 
@@ -249,7 +249,7 @@ def plot_cluster_means(SuperArr,groups,speciation_labels,pH,c0,
     # Add another row, for the axis
     mosaic = np.vstack([mosaic, [nm] * target_shape[1]])
     fig = plt.figure(constrained_layout=True, figsize=(target_shape[1]*3, target_shape[0]*2.5))
-    axd = fig.subplot_mosaic(mosaic, gridspec_kw={"height_ratios": [1] * target_shape[0] + [0.1]}, sharey=True)
+    axd = fig.subplot_mosaic(mosaic, gridspec_kw={"height_ratios": [1] * target_shape[0] + [0.25]}, sharey=True)
     if not plot_list:
         plot_list = speciation_labels
     for ii, grp in enumerate(groups):
@@ -262,7 +262,8 @@ def plot_cluster_means(SuperArr,groups,speciation_labels,pH,c0,
         axd[jj].axis("off")
 
     handles, labels = axd[0].get_legend_handles_labels()
-    axd[nm].legend(handles, labels, ncol=4, loc="center")
+    labels = [Lab_to_Formula(lab) for lab in labels]
+    axd[nm].legend(handles, labels, ncol=4, loc="center",fontsize=8)
     axd[nm].axis("off")
     return fig,axd
 

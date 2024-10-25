@@ -58,7 +58,7 @@ def main():
 
     # Read constants and scale them
     ref_stoich = Lab_to_stoich(ref_compound)
-    lgkf_df = Read_csv(path, formation_labels)
+    lgkf_df = Read_csv(path)
     lgkf_df = lgkf_filtering(lgkf_df,all_idxs,scaling_params, speciation_labels)
 
     mapping_string = ""

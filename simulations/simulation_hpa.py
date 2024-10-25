@@ -17,19 +17,19 @@ def main():
     Print_logo()
     ######################### User parameters ##############################################
     # Input/output files
-    ADF_folder = "../inputs/PMo_testing/"
+    ADF_folder = "../inputs/PMo_set/"
     mol_folder = "../inputs/PMo_testing_molfiles/"
     isomorphism_matrix = "../utilities/PMo_np_IM.csv"
     output_path = "../outputs/PMo_data"
 
-    formation_constants_file = output_path + "/logkf_PMo_test.txt"
+    formation_constants_file = output_path + "/logkf_PMo.txt"
     CRN_file = output_path + "/PMo_CRN.txt"
     simulation_file = output_path + "/simulation_parameters_PMo.txt"
 
     # Operation parameters
     cores = 20
     batch_size = 100
-    sample_perc = 10
+    sample_perc = 0.005
     sampl_type = "random" # random / all
 
     # Chemical parameters
@@ -37,7 +37,7 @@ def main():
     energy_threshold = 15  # Maximum value for reaction energies
     proton_numb = 1     # Maximum difference in proton number of to species to react
     reference = ["P", "H2Ow1", 'H2Ow2', 'Cw1', 'Cw2', 'Cw3', 'Cw4', "A", 'HO', 'H3O']  # Reaction types of the network
-    I, C0 = 0.25, 0.005
+    I, C0 = 0.6, 0.005
     temp = 298.15
     min_pH, max_pH, grid = 0, 35, 70
     ref_compounds = ['P01Mo00O04-0H','P00Mo01O04-0H']
@@ -77,7 +77,7 @@ def main():
 
     # 4) Speciation #################################################################################################
 
-    print("4) Solving MSCE Models and generate parameters' output")
+    print("4) Solving MSCE Models and generate parameters output")
 
     e_ctt = list(reac_energy[0])
     idx_ctt = list(reac_idx[0])
@@ -116,6 +116,8 @@ def main():
     print("5) Create Output File")
 
     with open(formation_constants_file, "w") as out:
+        header_str = "mod_idx," + ",".join(G1_labels)+"\n"
+        out.write(header_str)
         for r,d in zip(mod_idx_vals,data):
             out.write(str(r)+","+",".join([str(di) for di in d])+'\n')
     print("Normal Termination. Execution time: " + str(round((time.time() - start_time), 4)) + " sec.")

@@ -112,6 +112,8 @@ def main():
     print("5) Create Output File")
 
     with open(formation_constants_file, "w") as out:
+        header_str = "mod_idx," + ",".join(G1_labels)+"\n"
+        out.write(header_str)
         for r,d in zip(mod_idx_vals,data):
             out.write(str(r)+","+",".join([str(di) for di in d])+'\n')
     print("Normal Termination. Execution time: " + str(round((time.time() - start_time), 4)) + " sec.")

@@ -321,18 +321,18 @@ def Write_Reactions(path, G1_labels, all_reac_idx, all_reac_type, all_reac_e_eq,
     return True
 
 
-def Read_csv(path,Labels):
+def Read_csv(path):
     '''Helper function to read formation constant files, in CSV format, as a Pandas DataFrame
     already removing lines without valid constants and handling large files.
     Args:
         path: string, path to the file with formation constants
-        Labels: list of strings, labels for all compounds in the dataset, used as column names
     Returns:
         my_data. Pandas.DataFrame with formation constants.
 
     '''
-    my_data = pd.read_csv(path, sep=',', header=None, index_col=0, skip_blank_lines=True,
-                          on_bad_lines='skip',na_values="None", low_memory=False, names=Labels)
+    my_data = pd.read_csv(path, sep=',', index_col=0, skip_blank_lines=True,
+                          on_bad_lines='skip',na_values="None", low_memory=False)
+
     my_data.dropna(axis=0, how='all', inplace=True)
 
     #my_data.index -= 1

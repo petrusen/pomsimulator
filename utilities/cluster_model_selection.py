@@ -5,11 +5,11 @@ from pomsimulator.modules.text_module import Print_logo
 from pomsimulator.modules.stats_module import *
 from pomsimulator.modules.helper_module import load_array
 
-output_path = "../outputs/W_data/W_clusterization"
-path_to_npz = output_path + "/../W_Array.npz"
+output_path = "../outputs/PMo_data/PMo_clusterization"
+path_to_npz = output_path + "/../PMo_Array.npz"
 groups_file_path = output_path + "/groups.csv"
-sel_groups_idx = [1,11,14]
-features_file_path = output_path + "/../features_W.csv"
+sel_groups_idx = [0,1,2]
+features_file_path = output_path + "/../features_PMo.csv"
 
 SuperArr,IndexArr,C_ref,pH,labels = load_array(path_to_npz)
 

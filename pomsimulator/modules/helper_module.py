@@ -4,7 +4,7 @@ from multiprocessing import Pool, cpu_count
 import time
 from itertools import repeat,compress,islice,product
 import random
-
+import pandas as pd
 # Local imports
 from pomsimulator.modules.text_module import Print_logo,Read_csv,Lab_to_stoich,write_speciationparameters,Bader_Parser
 from pomsimulator.modules.msce_module import *
@@ -252,6 +252,7 @@ def Internal_Lab_Gen(df, lgkf_dict):
     '''
     int_labels = list(lgkf_dict.keys())
     filt_df = df.loc[:, int_labels]
+
     filt_df = filt_df[~filt_df.isna().any(axis=1)]
 
     Kexp = [lgkf_dict[lab] for lab in int_labels]
@@ -332,7 +333,7 @@ def LinearScaling(path, Labels, expKf_dict, scaling_mode="best_rmse", output_sca
             - regression_output.csv. CSV file with the parameters of all individual regressions.
             - scaling_params_PMo.pomsim. File containing the slope and intercept to be used in speciation.
     '''
-    lgkf_df = Read_csv(path, Labels)
+    lgkf_df = Read_csv(path)
     if scaling_mode == "universal":
         _lgkf_df = lgkf_df
     else:

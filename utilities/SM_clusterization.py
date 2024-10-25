@@ -1,5 +1,4 @@
 import sys
-
 import numpy as np
 import matplotlib.pyplot as plt
 import os
@@ -14,21 +13,20 @@ from pomsimulator.modules.plotting_module import plot_cluster_means
 Print_logo()
 
 ############## INPUT VARIABLES ######################
-output_path = "../outputs/W_data"
-path_to_npz = output_path + "/W_Array.npz"
-path_to_features = output_path + "/features_W.csv"
+output_path = "../outputs/PMo_data"
+path_to_npz = output_path + "/PMo_Array.npz"
+path_to_features = output_path + "/features_PMo.csv"
 
-clust_dir = output_path + "/W_clusterization"
+clust_dir = output_path + "/PMo_clusterization"
 clust_path = clust_dir
 
-n_clusters = 15
+n_clusters = 5
 normalize = False
 feats_list = ["height","width","pos"]
 m_idx = 0
 
 plot_list = None
-# Col_Dict = Col_Dict_PMo
-# target_shape = (4,4)
+col_dict = Col_Dict_PMo
 
 
 # 1) Load Array
@@ -93,7 +91,7 @@ with open(clust_path + "/groups.csv", 'w') as fout:
 if not plot_list:
     plot_list = list(labels)
 fig,axd = plot_cluster_means(SuperArr,groups,labels,pH,C0,
-                            col_dict=None,plot_list=plot_list,target_shape=None,m_idx=m_idx)
+                            col_dict=col_dict,plot_list=plot_list,target_shape=None,m_idx=m_idx)
 
 plt.savefig(clust_path + '/clusters_speciation.svg',dpi=300,transparent=False)
 np.savez_compressed(clust_path + "/MiniArr.npz",MeanArray=np.mean(SuperArr,axis=2),StdArray=np.std(SuperArr,axis=2))
