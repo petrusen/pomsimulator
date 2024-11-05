@@ -45,10 +45,7 @@ def Speciation_from_Equilibrium(idx_var, e_var, type_var, idx_ctt=None, e_ctt=No
 
         ·precision=5; the number of pH values at which MSCE are solved.
         ·R=0.00198; atmospheric pressure.
-        ·T=298K; temperature.
         ·[H2O]=1M; concentration of water.
-        ·[Mo]total=0.005; total concentration of molybdenum.
-        ·rmse <= 0.005/10; convergence criterium (10% error).
 
     [1] Powell, M. J. D. An Efficient Method for Finding the Minimum of a Function of Several
     Variables without Calculating Derivatives. The Computer Journal. 1964, p 155.
@@ -65,6 +62,8 @@ def Speciation_from_Equilibrium(idx_var, e_var, type_var, idx_ctt=None, e_ctt=No
         init_guess: array of floats, initial guess for the equation solver.
         I: float, ionic strength for the simulation.
         C: float, total metal concentration in the simulation.
+        temp: float, temperature in Kelvin
+        solver: string, method to be used for nonlinear system resolution from SciPy.
         threshold: float, controls maximum accepted rmse for a solution.
         verbose: boolean controlling the verbosity of the output.
 
@@ -73,7 +72,7 @@ def Speciation_from_Equilibrium(idx_var, e_var, type_var, idx_ctt=None, e_ctt=No
 
     """
 
-    x_val, y_val, = list(), list()
+    solved_pH_val, solved_activity_val, = list(), list()
     reac_e_eq = e_ctt + list(e_var)
     reac_idx = idx_ctt + list(idx_var)
     reac_type = type_ctt + list(type_var)
@@ -124,17 +123,17 @@ def Speciation_from_Equilibrium(idx_var, e_var, type_var, idx_ctt=None, e_ctt=No
                 r2_i, rmse, mae, y_ls_values = Least_Squared(non_lineal_sys, init_guess, activities)
                 rmse_acc = 0
                 if rmse < (C * threshold):
-                    y_val.append(activities)
-                    x_val.append(pH)
+                    solved_activity_val.append(activities)
+                    solved_pH_val.append(pH)
                     rmse_acc = rmse_acc + rmse
                 rmse_l.append(rmse_acc)
 
-    if len(y_val) > 0:
-        y_val_T = [[y_val[j][i] for j in range(len(y_val))] for i in range(len(y_val[0]))]
+    if len(solved_activity_val) > 0:
+        solved_activity_val_T = np.array(solved_activity_val).T
     else:
-        y_val_T = list()
+        solved_activity_val_T = list()
 
-    Kf_dft = screen_log_Kf(y_val_T, x_val, v_ctt, ref_idx=ref_idx)
+    Kf_dft = screen_log_Kf(solved_activity_val_T, solved_pH_val, v_ctt, ref_idx=ref_idx)
 
     return Kf_dft
 
@@ -150,10 +149,7 @@ def Speciation_from_Equilibrium_bimetal(idx_var, e_var, type_var, idx_ctt=None, 
 
         ·precision=5; the number of pH values at which MSCE are solved.
         ·R=0.00198; atmospheric pressure.
-        ·T=298K; temperature.
         ·[H2O]=1M; concentration of water.
-        ·[Mo]total=0.005; total concentration of molybdenum.
-        ·rmse <= 0.005/10; convergence criterium (10% error).
 
     [1] Powell, M. J. D. An Efficient Method for Finding the Minimum of a Function of Several
     Variables without Calculating Derivatives. The Computer Journal. 1964, p 155.
@@ -169,7 +165,9 @@ def Speciation_from_Equilibrium_bimetal(idx_var, e_var, type_var, idx_ctt=None, 
         pH_grid: array of floats, all pH values to solve equations for.
         init_guess: array of floats, initial guess for the equation solver.
         I: float, ionic strength for the simulation.
-        C: float, total metal concentration in the simulation.
+        C_X, C_M: float, total heteroatom and metal concentrations in the simulation.
+        temp: float, temperature in Kelvin
+        solver: string, method to be used for nonlinear system resolution from SciPy.
         threshold: float, controls maximum accepted rmse for a solution.
         verbose: boolean controlling the verbosity of the output.
 
@@ -178,7 +176,7 @@ def Speciation_from_Equilibrium_bimetal(idx_var, e_var, type_var, idx_ctt=None, 
 
         """
 
-    x_val, y_val, rmse_l = list(), list(), list()
+    solved_pH_val, solved_activity_val, rmse_l = list(), list(), list()
     reac_e_eq = e_ctt + list(e_var)
     reac_idx = idx_ctt + list(idx_var)
     reac_type = type_ctt + list(type_var)
@@ -233,39 +231,40 @@ def Speciation_from_Equilibrium_bimetal(idx_var, e_var, type_var, idx_ctt=None, 
             else:
                 r2_i, rmse, mae, y_ls_values = Least_Squared(non_lineal_sys, init_guess, activities)
                 if rmse < ((C_X+C_M) * threshold):
-                    y_val.append(activities)
-                    x_val.append(pH)
+                    solved_activity_val.append(activities)
+                    solved_pH_val.append(pH)
                     rmse_l.append(1/rmse)
 
-    if len(y_val) > 0:
-        y_val_T = np.array(y_val).T
+    if len(solved_activity_val) > 0:
+        solved_activity_val_T = np.array(solved_activity_val).T
     else:
-        y_val_T = list()
+        solved_activity_val_T = list()
 
-    Kf_dft = screen_log_Kf_BiMetal(y_val_T, x_val, v_ctt, ref_idxs=ref_idx)
+    Kf_dft = screen_log_Kf_BiMetal(solved_activity_val_T, solved_pH_val, v_ctt, ref_idxs=ref_idx)
 
     return Kf_dft
 
-def Speciation_from_Formation_singlemetal(lgkf,C, pH_grid, labels,ref_stoich,solver='hybr',acc_thr=5,temp=298.15):
+def Speciation_from_Formation_singlemetal(lgkf,C, pH_grid, labels, ref_stoich, solver='hybr',acc_thr=5, temp=298.15):
     '''Computes the speciation diagram for a given speciation model from its corresponding
     formation constants (lgkf)
     Args:
-        C: float, total metal concentration.
-        pH: array of floats, pH range to compute speciation.
         lgkf: list of floats, logarithmic formation constants log10(Kf) for all species.
+        C: float, total metal concentration.
+        pH_grid: array of floats, pH range to compute speciation.
         labels: list of strings, labels of the species in the diagram.
         ref_stoich: tuple of integers, stoich. coefs. for M, O and H of the reference species.
         solver: string, method to be used for nonlinear system resolution from SciPy.
         acc_thr: integer, no. of iterations used to recompute problematic pH values.
+        temp: float, temperature in Kelvin
     Returns:
-        x_val: list of floats, pH values.
-        y_val_T: 2D NumPy array of floats, Nspecies x NpH, of concentration values.
+        solved_pH_val: list of floats, pH values.
+        solved_activity_val_T: 2D NumPy array of floats, Nspecies x NpH, of concentration values.
     '''
 
     init_guess = [np.zeros(len(labels))]
     v_ctt = [Lab_to_stoich(lab) for lab in labels]
     M_Ratio = [v[0] for v in v_ctt]
-    x_val,y_val = list(),list()
+    solved_pH_val,solved_activity_val = list(),list()
 
     ind_ref = v_ctt.index(ref_stoich)
 
@@ -320,45 +319,33 @@ def Speciation_from_Formation_singlemetal(lgkf,C, pH_grid, labels,ref_stoich,sol
             init_guess.append(conc_i.x)
 
         if conc_i.success:
-            y_val.append(conc_i.x)
-            x_val.append(pH)
+            solved_activity_val.append(conc_i.x)
+            solved_pH_val.append(pH)
 
-        if len(y_val) > 0:
-            y_val_T = np.array(y_val).T
+        if len(solved_activity_val) > 0:
+            solved_activity_val_T = np.array(solved_activity_val).T
         else:
-            y_val_T = list()
+            solved_activity_val_T = list()
 
-    return x_val, y_val_T
-"""(C, pH, lgkf,labels,ref_stoich,solver='hybr',acc_thr=5,temp=298.15)"""
-def Speciation_from_Formation_bimetal(lgkf, C_X, C_M,pH_grid,labels,ref_stoich_X,ref_stoich_M,solver='hybr',acc_thr=5,temp=298.15):
-    """
-    Sets multi-species chemical equilibrium provided that the reactions are
-    acid-base, condensations or addition reactions. The system of non-lineal
-    equations are minimized using Powell's algorithm[1].
+    return solved_pH_val, solved_activity_val_T
 
-    The parameters have been fixed to the following default values:
-
-        ·precision=5; the number of pH values at which MSCE are solved.
-        ·R=0.00198; atmospheric pressure.
-        ·T=298K; temperature.
-        ·[H2O]=1M; concentration of water.
-        ·[Mo]total=0.005; total concentration of molybdenum.
-        ·rmse <= 0.005/10; convergence criterium (10% error).
-
-    [1] Powell, M. J. D. An Efficient Method for Finding the Minimum of a Function of Several
-    Variables without Calculating Derivatives. The Computer Journal. 1964, p 155.
-
+def Speciation_from_Formation_bimetal(lgkf, C_X, C_M, pH_grid, labels, ref_stoich_X, ref_stoich_M, solver='hybr', acc_thr=5, temp=298.15):
+    '''Computes the speciation diagram for a given speciation model from its corresponding
+    formation constants (lgkf)
     Args:
-        param1: combination of chemical reaction indexes.
-        param2: combination of chemical reaction energies.
-        param3: combination of chemical reaction types.
-        param4: list of charges for each compound.
-
+        lgkf: list of floats, logarithmic formation constants log10(Kf) for all species.
+        C_X, C_M: floats, total heteroatom and metal concentrations in the simulation.
+        pH_grid: array of floats, pH range to compute speciation.
+        labels: list of strings, labels of the species in the diagram.
+        ref_stoich_X, ref_stoich_M: tuples of integers, stoich. coefs. for M, O and H of the reference species for heteroatom and metal.
+        solver: string, method to be used for nonlinear system resolution from SciPy.
+        acc_thr: integer, no. of iterations used to recompute problematic pH values.
+        temp: float, temperature in Kelvin
     Returns:
-        reac_idx: indexes of the chemical compounds involved in each reaction.
-
-    """
-    x_val, y_val, = list(), list()
+        solved_pH_val: list of floats, pH values.
+        solved_activity_val_T: 2D NumPy array of floats, Nspecies x NpH, of concentration values.
+    '''
+    solved_pH_val, solved_activity_val, = list(), list()
     v_ctt = [Lab_to_stoich(lab) for lab in labels]
     X_Ratio = [v[0] for v in v_ctt]
     M_Ratio = [v[1] for v in v_ctt]
@@ -418,25 +405,25 @@ def Speciation_from_Formation_bimetal(lgkf, C_X, C_M,pH_grid,labels,ref_stoich_X
             init_guess.append(conc_i.x)
 
         if conc_i.success:
-            y_val.append(conc_i.x)
-            x_val.append(pH)
+            solved_activity_val.append(conc_i.x)
+            solved_pH_val.append(pH)
 
-        if len(y_val) > 0:
-            y_val_T = np.array(y_val).T
+        if len(solved_activity_val) > 0:
+            solved_activity_val_T = np.array(solved_activity_val).T
         else:
-            y_val_T = list()
+            solved_activity_val_T = list()
 
-    return x_val, y_val_T
+    return solved_pH_val, solved_activity_val_T
 
 
-def screen_log_Kf(y_val_T, x_val, stoich, ref_idx):
+def screen_log_Kf(solved_activity_val_T, solved_pH_val, stoich, ref_idx):
     """
     Generalized implementation of the private function log_Kf
     Computes formation constants for all compounds from a given reference,
     considering the stoichiometry of the process
     Args:
-        y_val_T: list of floats, chemical compounds concentrations.
-        x_val: list of floats, pH at which equations were solved.
+        solved_activity_val_T: list of floats, chemical compounds concentrations.
+        solved_pH_val: list of floats, pH at which equations were solved.
         stoich: list of list of integers, chemical compounds stoichiometries.
         ref_idx: integer, index of the chemical compound used as reference.
 
@@ -447,9 +434,9 @@ def screen_log_Kf(y_val_T, x_val, stoich, ref_idx):
 
     Kf_dft = list()
 
-    for y_comp, sto in zip(y_val_T, stoich):
+    for y_comp, sto in zip(solved_activity_val_T, stoich):
         kf_compound = list()
-        for ph, hm, m in zip(x_val, y_comp, y_val_T[ref_idx]):
+        for ph, hm, m in zip(solved_pH_val, y_comp, solved_activity_val_T[ref_idx]):
             kf_comp_i = log_Kf(hm, m, ph, sto, stoich[ref_idx])
             if kf_comp_i != None and not np.isnan(kf_comp_i) and not np.isinf(kf_comp_i):
                 kf_compound.append(kf_comp_i)
@@ -461,30 +448,28 @@ def screen_log_Kf(y_val_T, x_val, stoich, ref_idx):
 
     return Kf_dft
 
-def log_Kf(HM, M, pH, prod_stoich, M_ref_stoich):
+def log_Kf(HM, M, pH, prod_stoich, ref_stoich_M):
     """
     Private function which computes the formation constant of a single reaction.
     Note that the concentration of water is considered to be constant.
 
     For example:
 
-    8 [MoO4]2-  +   12 H+  ---->  [Mo8O26]4-  +    6H2O
+    8 [MO4]2-  +   12 H+  ---->  [M8O26]4-  +    6H2O
 
-    Kf = ([Mo8O26]4- * [H2O] ** 6 ) / ([MoO4]2- ** 8 * [H+] ** 12)
-
-    pKf = -log(Kf)
+    Kf = ([M8O26]4- * [H2O] ** 6 ) / ([MO4]2- ** 8 * [H+] ** 12)
 
     Args:
         HM: float, concentration of the product.
         M: float, concentration of monomer.
         pH: float, pH of the process
         prod_stoich: list of integers, (m, o, h) stoichiometric coefficients of the product
-        M_ref_stoich: list of integers, (m, o, h) stoichiometric coefficients of the reference
+        ref_stoich_M: list of integers, (m, o, h) stoichiometric coefficients of the reference
 
     Returns:
         Kf: float, formation constant of the reaction
     """
-    v_M, v_H3O, v_H2O = Coefficients_Formation(M_ref_stoich, prod_stoich)
+    v_M, v_H3O, v_H2O = Coefficients_Formation(ref_stoich_M, prod_stoich)
 
     H2O = 1  # Concentration of H2O is constant
     H3O = 10 ** (- pH)
@@ -498,18 +483,16 @@ def log_Kf(HM, M, pH, prod_stoich, M_ref_stoich):
     except ZeroDivisionError:
         return None
 
-def log_Kf_BiMetal(HM, X, M, pH, prod_stoich, X_ref_stoich, M_ref_stoich):
+def log_Kf_BiMetal(HM, X, M, pH, prod_stoich, ref_stoich_X, ref_stoich_M):
     """
     Private function which computes the formation constant of a single reaction.
     Note that the concentration of water is considered to be constant.
 
     For example:
 
-    8 [MoO4]2-  +   12 H+  ---->  [Mo8O26]4-  +    6H2O
+    2 [XO4]3- + 5 [MO4]2- + 10 H+ ---> [X2M5O23]6- + 5 H2O
 
-    Kf = ([Mo8O26]4- * [H2O] ** 6 ) / ([MoO4]2- ** 8 * [H+] ** 12)
-
-    pKf = -log(Kf)
+    Kf = ([X2M5O23]6- * [H2O] ** 5 ) / ([MO4]2- ** 5 * [XO4]3- ** 2 * [H+] ** 10)
 
     Args:
         HM: float, concentration of the product.
@@ -517,15 +500,13 @@ def log_Kf_BiMetal(HM, X, M, pH, prod_stoich, X_ref_stoich, M_ref_stoich):
         M: float, concentration of metal reference.
         pH: float, pH of the process
         prod_stoich: list of integers, (x, m, o, h) stoichiometric coefficients of the product
-        X_ref_stoich: list of integers, (x, m, o, h) stoichiometric coefficients of the reference heteroatom.
-        M_ref_stoich: list of integers, (x, m, o, h) stoichiometric coefficients of the reference metal.
+        ref_stoich_X: list of integers, (x, m, o, h) stoichiometric coefficients of the reference heteroatom.
+        ref_stoich_M: list of integers, (x, m, o, h) stoichiometric coefficients of the reference metal.
 
     Returns:
         Kf: float, formation constant of the reaction
     """
-    import numpy as np
-
-    v_X, v_M, v_H3O, v_H2O = Coefficients_Formation_BiMetal(X_ref_stoich, M_ref_stoich, prod_stoich)
+    v_X, v_M, v_H3O, v_H2O = Coefficients_Formation_BiMetal(ref_stoich_X, ref_stoich_M, prod_stoich)
 
     H2O = 1  # Concentration of H2O is constant
     H3O = 10 ** - pH
@@ -538,25 +519,25 @@ def log_Kf_BiMetal(HM, X, M, pH, prod_stoich, X_ref_stoich, M_ref_stoich):
     except ZeroDivisionError:
         return None
 
-def screen_log_Kf_BiMetal(y_val_T, x_val, stoich, ref_idxs):
+def screen_log_Kf_BiMetal(solved_activity_val_T, solved_pH_val, stoich, ref_idxs):
     """
     Generalized implementation of the private function log_Kf
     Computes formation constants for all compounds from a given reference,
     considering the stoichiometry of the process
     Args:
-        y_val_T: list of floats, chemical compounds concentrations.
-        x_val: list of floats, pH at which equations were solved.
+        solved_activity_val_T: list of floats, chemical compounds concentrations.
+        solved_pH_val: list of floats, pH at which equations were solved.
         stoich: list of list of integers, chemical compounds stoichiometries.
-        ref_idxs: integer list, index of the chemical compound used as reference.
+        ref_idxs: integer list, index of the chemical compounds used as reference for heteroatom and metal.
 
     Returns:
         Kf_dft: list of floats, formation constants for all compounds
     """
     Kf_dft = list()
 
-    for y_comp, sto in zip(y_val_T, stoich):
+    for y_comp, sto in zip(solved_activity_val_T, stoich):
         kf_compound = list()
-        for ph, hm, m1, m2 in zip(x_val, y_comp, y_val_T[ref_idxs[0]], y_val_T[ref_idxs[1]]):
+        for ph, hm, m1, m2 in zip(solved_pH_val, y_comp, solved_activity_val_T[ref_idxs[0]], solved_activity_val_T[ref_idxs[1]]):
             kf_comp_i = log_Kf_BiMetal(hm, m1, m2, ph, sto, stoich[ref_idxs[0]], stoich[ref_idxs[1]])
             if kf_comp_i != None and not np.isnan(kf_comp_i) and not np.isinf(kf_comp_i):
                 kf_compound.append(kf_comp_i)
@@ -721,14 +702,14 @@ def Activity(concentrations, charges, ionic_strength):
 
     return activity
 
-def Coefficients_Formation(M_ref_stoich, prod_stoich):
+def Coefficients_Formation(ref_stoich_M, prod_stoich):
     """It finds the stoichiometric coefficents for a general formation reactions
      with the following formula:
 
     [HxMyOz]ref + H+  --> [HxMyOz]prod + H2O
 
     Args:
-        M_ref_stoich: (m, o, h) stoichiometric coefficients of the reference
+        ref_stoich_M: (m, o, h) stoichiometric coefficients of the reference
         prod_stoich: (m, o, h) stoichiometric coefficients of the product
     Returns:
         sto_coeff: list of floats, computed coefficients for the formation reaction
@@ -737,22 +718,29 @@ def Coefficients_Formation(M_ref_stoich, prod_stoich):
     H, W = [0 for _ in range(len(prod_stoich)-2)] + [0, 1], [0 for _ in range(len(prod_stoich)-2)] + [1, 2]
 
 
-    A = np.array([M_ref_stoich, H, W])
+    A = np.array([ref_stoich_M, H, W])
     B = np.array(prod_stoich)
     sto_coeff = np.linalg.solve(A.T,B)
 
     return sto_coeff
 
-def Coefficients_Formation_BiMetal(X_ref_stoich, M_ref_stoich, prod_stoich):
+def Coefficients_Formation_BiMetal(ref_stoich_X, ref_stoich_M, prod_stoich):
     """It finds the stoichiometric coefficents for a general formation reactions
      with the following formula:
 
-    [HxMyOz]ref + H+  --> [HxMyOz]prod + H2O"""
+    [HxMyOz]ref + H+  --> [HxMyOz]prod + H2O
 
+    Args:
+        ref_stoich_X: (x, m, o, h) stoichiometric coefficients of the heteroatom reference
+        ref_stoich_M: (x, m, o, h) stoichiometric coefficients of the metal reference
+        prod_stoich: (x, m, o, h) stoichiometric coefficients of the product
+    Returns:
+        sto_coeff: list of floats, computed coefficients for the formation reaction
 
+    """
     H, W = [0 for _ in range(len(prod_stoich)-2)] + [0, 1], [0 for _ in range(len(prod_stoich)-2)] + [1, 2]
 
-    A = np.array([X_ref_stoich, M_ref_stoich, H, W])
+    A = np.array([ref_stoich_X, ref_stoich_M, H, W])
     B = np.array(prod_stoich)
 
     sto_coeff = np.linalg.solve(A.T,B)
