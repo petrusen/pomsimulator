@@ -85,11 +85,7 @@ def main():
                   init_guess=np.zeros(graphs_info["num_molec"]), I=I, C=C0, threshold=0.1, temp=temp)
     lgkf_params.update({k:graphs_info[k] for k in ["z_ctt","v_ctt","ref_idx"]})
 
-    begin = time.time()
-    number_models = 0
-    for _ in product(*R_type):
-        number_models += 1
-    end = time.time()
+    number_models = np.prod([len(item) for item in R_type])
 
     ### Printing output
     kwargs_input = dict()
@@ -100,7 +96,6 @@ def main():
     write_simulationparameters(kwargs_input)
 
     print("4.1) Total number of models: ", number_models)
-    print("Timing", round(end - begin, 2))
 
     start_time = time.time()
 

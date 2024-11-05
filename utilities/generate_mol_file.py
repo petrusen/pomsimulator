@@ -10,8 +10,8 @@ from pomsimulator.modules.DataBase import *
 def main():
     #### DEFINE VARIABLES ####
 
-    ADF_Folder = "../inputs/W_Set_PBE/"
-    MOL_Folder = "../inputs/W_Set_PBE_molfiles/"
+    ADF_Folder = "../inputs/PMo_Set/"
+    MOL_Folder = "../inputs/PMo_Set_molfiles/"
 
 
     # 1) Get ADF outputs
@@ -30,7 +30,7 @@ def main():
         if label in ['H3O', 'H2O', 'H5O2', 'H4O2']:
             water[label] = adf_dict['Gibbs']
         else:
-            write_molfile(MOL_Folder, Z_dict_inv, **adf_dict) # Creates .mol files from Bader connectivity
+            write_molfile(MOL_Folder,limit_bonds=True, **adf_dict) # Creates .mol files from Bader connectivity
 
 if __name__ == '__main__':
     main()

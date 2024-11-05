@@ -397,3 +397,78 @@ def LinearScaling(path, Labels, expKf_dict, scaling_mode="best_rmse", output_sca
         fout.write(header + vals)
 
     return scaling_params_dict
+
+
+### Functions to handle nuclearities
+### collapsing nuclearities
+def stoich_to_lab(at1,at2,sto):
+    '''Helper function to produce strings for nuclearity stoichiometries, given a (xx,mm,oo) tuple of integers
+    Args:
+        at1,at2: strings, symbols of the heteroatom and atom in the target system.
+        sto: tuple of integers, with stoich. coefficients of heteroatom, atom and oxygen
+    Returns:
+        lab: string of the form XxxMmmOoo for the target nuclearity
+    '''
+    lab = "%s%02d%s%02dO%02d" % (at1,sto[0],at2,sto[1],sto[2])
+    return lab
+
+def collapse_color_dict(col_dict):
+    '''Simplifies a color dictionary to one without protonation states, assigning the first occurrence of that
+    nuclearity in the original dict as the overall color
+    Args:
+        col_dict: dictionary mapping labels to color specifications.
+    Returns:
+        nw_col_dict: dictionary mapping nuclearity labels to color specifications.
+    '''
+    # remove protonation states from the color dict
+    nw_col_dict = {}
+    for mol,col in col_dict.items():
+        nuc = re.sub("-[0-9]{1,2}H","",mol)
+        if nuc not in nw_col_dict.keys():
+            nw_col_dict[nuc] = col
+    return nw_col_dict
+
+def collapse_labels(labels):
+    '''Simplifies a list of labels to one without protonation states, preserving the original order
+    Args:
+        labels: list of strings, labels of the species in the diagram.
+    Returns:
+        nw_labels: list of strings, labels of the nuclearities in the diagram.
+    '''
+
+    nw_labels = []
+    for lab in labels:
+        lab = re.sub("-[0-9]{1,2}H","",lab)
+        if lab not in nw_labels:
+            nw_labels.append(lab)
+    return nw_labels
+
+def nuclearity_collapser(SuperArr,Labels):
+    '''Processes a Nspc x NpH x Nmodels array to join the concentrations of the protonation states of individual nuclearities, obtaining a
+    Nnuc x NpH x Nmodels array
+    Args:
+        SuperArr: array of floats, size Nspc x NpH x Nmodels resulting from speciation calculation.
+        Labels: list of strings, labels of the species in the diagram.
+    Returns:
+        nw_arr: array of floats, size Nnuc x NpH x Nmodels, from the addition of concentrations of the same nuclearity.
+        known_nuc: list of lists of integers, containing stoichiometric indices (xx,mm,oo) for all nuclearities found in the system
+    '''
+    # generate stoichiometries and remove hydrogens
+    stoichs = [Lab_to_stoich(lab) for lab in Labels]
+    sto_noH = [tuple(sto[0:-1]) for sto in stoichs]
+
+    # get unique values, preserving the order
+    selection = defaultdict(list)
+    known_nuc = []
+    for ii,sto in enumerate(sto_noH):
+        selection[sto].append(ii)
+        if sto not in known_nuc:
+            known_nuc.append(sto)
+    Nnuc = len(selection.keys())
+
+    # sum values in the array
+    nw_arr = np.zeros((Nnuc,SuperArr.shape[1],SuperArr.shape[2]))
+    for ii,nuc in enumerate(known_nuc):
+        elems = selection[nuc]
+        nw_arr[ii,:,:] = SuperArr[tuple(elems),:,:].sum(axis=0)
+    return nw_arr,known_nuc

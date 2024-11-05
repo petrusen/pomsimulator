@@ -129,7 +129,7 @@ speciation_parameters_strings = [ "Speciation Parameters File","Formation Consta
 allowed_systems = ["W","P_Mo"]
 
 # Limit bonds read from Bader QTAIM connectivity
-allowed_bonds_list = [("O","W"),("O","H")]
+allowed_bonds_list = [("O","W"),("O","H"),("O","Mo"),("O","P")]
 
 # Universal scaling methodology
 universal_slope = 0.29

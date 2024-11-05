@@ -17,10 +17,10 @@ def main():
     Print_logo()
     ######################### User parameters ##############################################
     # Input/output files
-    ADF_folder = "../inputs/PMo_set/"
+    ADF_folder = "../inputs/PMo_Set/"
     mol_folder = "../inputs/PMo_testing_molfiles/"
-    isomorphism_matrix = "../utilities/PMo_np_IM.csv"
-    output_path = "../outputs/PMo_data"
+    isomorphism_matrix = "../outputs/PMo_test_data/np_IM_PMo.csv"
+    output_path = "../outputs/PMo_test_data"
 
     formation_constants_file = output_path + "/logkf_PMo.txt"
     CRN_file = output_path + "/PMo_CRN.txt"
@@ -88,11 +88,7 @@ def main():
                   init_guess=np.zeros(graphs_info["num_molec"]), I=I, C_X=C0,C_M=C0, threshold=0.1,temp=temp)
     lgkf_params.update({k:graphs_info[k] for k in ["z_ctt","v_ctt","ref_idx"]})
 
-    begin = time.time()
-    number_models = 0
-    for _ in product(*R_type):
-        number_models += 1
-    end = time.time()
+    number_models = np.prod([len(item) for item in R_type])
 
     ### Printing output
     kwargs_input = dict()
@@ -103,7 +99,6 @@ def main():
     write_simulationparameters(kwargs_input)
 
     print("4.1) Total number of models: ", number_models)
-    print("Timing", round(end - begin, 2))
 
     start_time = time.time()
 

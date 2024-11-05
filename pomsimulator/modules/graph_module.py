@@ -586,6 +586,7 @@ def _create_moleculargraph_withoutprotons(Gi):
     nodes, edges = Gi.nodes, Gi.edges
     z_dict = nx.get_node_attributes(Gi, 'Z')
     Gj = nx.Graph()
+    Gj.graph = Gi.graph
     for key in z_dict:
         Z = z_dict[key]
         if Z != 1: # filtering protons

@@ -13,10 +13,10 @@ def main():
 
     ### Paths
 
-    MOL_Folder =  "../inputs/W_Set_PBE_molfiles/"
-    output_path = "../outputs/W_data"
-    output_file =  output_path + "/np_IM_W.csv"
-    Cores = 5  # cpu_count()  #number of cores for the simulation (caution!)
+    MOL_Folder =  "../inputs/PMo_Set_molfiles/"
+    output_path = "../outputs/PMo_data"
+    output_file =  output_path + "/np_IM_PMo.csv"
+    Cores = 10 # cpu_count()  #number of cores for the simulation (caution!)
 
     ### Variables for the reaction network
 
@@ -34,6 +34,7 @@ def main():
     G1_list = list()
     for idx, f in enumerate(mol_files):
         mol_dict = Mol_Parser_2(f)
+
         label = mol_dict['label']
         if label in ['H3O', 'H2O', 'H5O2', 'H4O2']:
             continue
