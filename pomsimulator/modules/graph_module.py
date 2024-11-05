@@ -3,9 +3,10 @@ import networkx as nx
 from itertools import product
 import numpy as np
 from multiprocessing import Pool
+import matplotlib.pyplot as plt
 
 # Local imports
-from pomsimulator.modules import DataBase
+from pomsimulator.modules.DataBase import Z_dict,Z_dict_inv, valence_dict
 
 def Determine_IPA(atomic_number):
     """
@@ -19,7 +20,7 @@ def Determine_IPA(atomic_number):
         Valence: integer, valence of the greatest atomic number for a molecule <i>
         Element: string, element
     """
-    from pomsimulator.modules.DataBase import Z_dict_inv, valence_dict
+
     
     zlist = [obj for obj in atomic_number]
     Z = max(zlist)
@@ -102,12 +103,10 @@ def Molecule_to_Graph(idx, ploting=False, **kwargs):
         G.add_edge(bond[0], bond[1])
     
     if ploting:
-        import matplotlib.pyplot as plt
         nx.draw(G)
         plt.show()
     
     return G
-
 
 def Molecule_to_Graph_from_molfile(idx, Z_list, bond_list, label):
     """
@@ -166,12 +165,9 @@ def Create_Stoich(G1_labels):
         acc = num + 1
     return compounds_set, unique_lab
 
-
-
-
 def Reaction_Type_IPA(G_list, M, ind, water, threshold, valid_cond, hydrated_species):
     """
-    Reaction template for finding the chemical transformation of isopolyoxotungstates. The
+    Reaction template for finding the chemical transformation of isopolyoxometalates. The
     user should tweak this function (or create a new one) depending on the needs of the system.
     It is meant as a modular template.
 
@@ -185,13 +181,9 @@ def Reaction_Type_IPA(G_list, M, ind, water, threshold, valid_cond, hydrated_spe
         hydrated_species: list of hydrated species
     Returns:
         reac_e: reaction energy for a concrete reaction type
-
-    abs(v_r1[3] - v_r2[3]) < proton_numb
-
+        reac_type: reaction type for a concrete reaction
     """
     
-    Z_dict = DataBase.Z_dict
-
     ZM, ZO, ZH = [Z_dict[symb] for symb in [M, 'O', 'H']]
     if len(ind) == 2:  # Unimolecular Reactions
         p1, r1 = ind
@@ -311,13 +303,13 @@ def Reaction_Type_IPA(G_list, M, ind, water, threshold, valid_cond, hydrated_spe
 
 def Reaction_Type_HPA(G_list,XM, ind, water, threshold, valid_cond, hydrated_species):
     """
-    Reaction template for finding the chemical transformation of isopolyoxotungstates. The
+    Reaction template for finding the chemical transformation of heteropolyoxometalates. The
     user should tweak this function (or create a new one) depending on the needs of the system.
     It is meant as a modular template.
 
     Args:
         G_list: list of networkX objects, molecular graphs
-        M: Metal name
+        XM: Heteroatom and Metal name
         ind: integer, molecular graph index,
         water: dictionary, energies of water and its derivates
         threshold: integer, energy threshold to filter out reactions
@@ -325,15 +317,11 @@ def Reaction_Type_HPA(G_list,XM, ind, water, threshold, valid_cond, hydrated_spe
         hydrated_species: list of hydrated species
     Returns:
         reac_e: reaction energy for a concrete reaction type
-
-    abs(v_r1[3] - v_r2[3]) < proton_numb
-
+        reac_type: reaction type for a concrete reaction
     """
 
-    Z_dict = DataBase.Z_dict
     X, M = XM.split('_')
     ZX, ZM, ZO, ZH = [Z_dict[symb] for symb in [X, M, 'O', 'H']]
-
 
     if len(ind) == 2:  # Unimolecular Reactions
         p1, r1 = ind
@@ -413,9 +401,7 @@ def Reaction_Type_HPA(G_list,XM, ind, water, threshold, valid_cond, hydrated_spe
             conditions_addition = conditions_addition and (proton_dif <= valid_cond['proton_numb'])
             conditions_condensation = conditions_condensation and (proton_dif <= valid_cond['proton_numb'])
 
-
         # Classification
-
         if v_p2 == [0, 0, 0, 0]:
             """Addition Type: +HxMoO4"""
             reac_e = G_list[p1].graph['gibbs'] - (G_list[r1].graph['gibbs'] + G_list[r2].graph['gibbs'])
@@ -443,7 +429,6 @@ def Reaction_Type_HPA(G_list,XM, ind, water, threshold, valid_cond, hydrated_spe
                 return reac_e, 'Cw4'
         else:
             return None
-
 
 def Isomorphism_to_ChemicalReactions(G1_list, np_IM, water, reference, POM, threshold, cond_dict):
     """
@@ -477,11 +462,7 @@ def Isomorphism_to_ChemicalReactions(G1_list, np_IM, water, reference, POM, thre
         Reac_type: list of strings, combination of chemical reaction types.
 
     """
-    Z_dict = DataBase.Z_dict
-    allowed_systems = DataBase.allowed_systems
-    if POM not in allowed_systems:
-        print("%s not supported, check your input"%POM)
-        return None
+
     if "_" in POM:
         func = Reaction_Type_HPA
     else:
@@ -661,7 +642,6 @@ def sort_by_type(Reac_idx, Reac_energy, Reac_type, compounds_set, unique_labels,
         R_idx2: list of integers, combination of chemical reaction indexes
         R_ene2: list of floats, combination of chemical reaction energies
         R_type2: list of strings, combination of chemical reaction types
-
     """
 
     size = len(compounds_set)

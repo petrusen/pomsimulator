@@ -362,7 +362,7 @@ def Print_logo():
      '''
     print(banner)
     return None
-
+                                                                                                                                                                                                                                                                                                                                                                  
 def write_simulationparameters(kwargs):
     """
     Generates an output file with the variables and parameters chosen for a given simulation
