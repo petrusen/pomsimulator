@@ -17,7 +17,7 @@ Pettersson_3I = {"P00Mo01O04-0H":0,
                  "P01Mo12O40-0H":139.7,
                  "P02Mo05O23-0H": 61.97,
                  "P02Mo05O23-1H": 67.07,
-                 "P02Mo05O23-2H": 70.86}#"P01Mo09O34-6H":107.2,"P01Mo09O34-5H":104.7,
+                 "P02Mo05O23-2H": 70.86}
 
 # Labels extracted from molecular set, following the guidelines in the manual for species labeling.
 Labels_W  = ['W01O04-0H', 'W01O04-1H', 'W01O04-2H', 
@@ -124,12 +124,6 @@ simulation_parameters_strings = ['ADF Folder', 'MOL Folder', "Formation Constant
 speciation_parameters_strings = [ "Speciation Parameters File","Formation Constants File","Scaling Slope","Scaling Intercept","Scaling Type", "Cores",
             "Initial Concentration (mol/L)",  "Range of pH", "Step of pH", "Number of Calculated Models","Labels", "Formation Constants Referred to",
                                   "Path to Speciation Output"]
-
-# Metals that can be treated
-allowed_systems = ["W","P_Mo"]
-
-# Limit bonds read from Bader QTAIM connectivity
-allowed_bonds_list = [("O","W"),("O","H"),("O","Mo"),("O","P")]
 
 # Universal scaling methodology
 universal_slope = 0.29

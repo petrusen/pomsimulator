@@ -3,26 +3,28 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # Local imports
-from pomsimulator.modules.DataBase import Labels_W_good,Labels_PMo
 from pomsimulator.modules.plotting_module import plot_speciation
-from pomsimulator.modules.helper_module import load_array
+from pomsimulator.modules.helper_module import load_array,get_C0
 from pomsimulator.modules.text_module import Print_logo, Lab_to_Formula
 
 def main():
     Print_logo()
-    path = "../outputs/W_Array.npz"
-    speciation_labels = Labels_W_good
+    output_path = "../outputs/W_data"
+    npz_file = output_path + "/W_Array.npz"
+    output_img = output_path + "/Speciation_Diagram_W.png"
+    m_idx = 0
 
     fig,ax = plt.subplots(1,1,figsize=(6.5,4),constrained_layout=True)
 
-    conc_arr,index_arr,pH = load_array(path)
+    conc_arr,index_arr,C_ref,pH,speciation_labels = load_array(npz_file)
+    C0 = get_C0(C_ref,m_idx=m_idx)
     conc_means = np.mean(conc_arr,axis=2)
-    plot_speciation(conc_means,speciation_labels,pH,0.1,None,ax=ax)
+    plot_speciation(conc_means,speciation_labels,pH,C0,None,ax=ax,m_idx=m_idx)
 
     handle,labels = ax.get_legend_handles_labels()
     ax.legend(handle,[Lab_to_Formula(lab) for lab in labels])
 
-    plt.savefig('../outputs/Speciation_diagram_W.png',dpi=300)
+    plt.savefig(output_img,dpi=300)
     plt.show()
 
 if __name__ == '__main__':

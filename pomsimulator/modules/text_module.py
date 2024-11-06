@@ -5,7 +5,7 @@ import datetime
 import numpy as np
 
 # Local imports
-from pomsimulator.modules.DataBase import Z_dict,Z_dict_inv,allowed_bonds_list
+from pomsimulator.modules.DataBase import Z_dict,Z_dict_inv
 
 
 def Lab_to_stoich(Label):
@@ -102,7 +102,7 @@ def write_molfile(path, verbose=True, limit_bonds=False, **kwargs):
     Args:
         path: string, path to where the cartesian file will be written
         verbose: bolean, prints out the progress
-        limit_bonds: boolean, only allow metal - oxygen and oxygen - hydrogen bonds.
+        limit_bonds: boolean, only allow atom - oxygen bonds (excluding O - O).
         kwargs: dictionary, list of atomic numbers, cartesian coordinates, chemical connectivity, and file label
     
     Returns
@@ -110,8 +110,6 @@ def write_molfile(path, verbose=True, limit_bonds=False, **kwargs):
 
     """
 
-    allowed_bonds_Z = [tuple(sorted([Z_dict[elem] for elem in entry])) for entry in allowed_bonds_list]
-    
     Z, Bonds, xyz, Label = kwargs['Z'], kwargs['bonds'], kwargs['xyz'], kwargs['label']
     countline = " {a} {b}  0  0  0  0  0  0  0  0999 V2000\n"
     atomblock = "   {x}   {y}   {z} {Z}    0  0  0  0  0  0  0  0  0  0  0  0\n"
@@ -126,7 +124,8 @@ def write_molfile(path, verbose=True, limit_bonds=False, **kwargs):
         for zz in Bonds:
             zi, zj = [int(o) for o in zz]
             test = tuple(sorted([Z[zi-1],Z[zj-1]]))
-            if test in allowed_bonds_Z:
+            # only allow bonds involving one oxygen and one non-oxygen atom
+            if test.count(8) == 1:
                 valid_bonds.append(zz)
         Bonds = valid_bonds
 
@@ -367,7 +366,6 @@ def write_simulationparameters(kwargs):
     """
     Generates an output file with the variables and parameters chosen for a given simulation
     """
-    import datetime
 
     with open(kwargs["Simulation Parameters File"], 'w') as outfile:
 

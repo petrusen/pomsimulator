@@ -59,6 +59,10 @@ def main():
     Print_logo()
     ###########################PARAMETERS############################################
 
+    output_path = "../outputs/W_data"
+    npz_info_file = output_path + "/W_npz_info.dat"
+    output_img = "W_phase.png"
+
     formation_labels = Labels_W
     speciation_labels = Labels_W_good
     col_dict = None
@@ -113,7 +117,9 @@ def main():
     leg = ax.legend(handles=legend_elements, loc="center")
     leg.set_draggable(True)
 
-    plt.savefig('../outputs/phase_diagram_W.png',dpi=300)
+    # path for saving the img
+    output_img_path = re.sub("array.*npz","",npz_paths[0]) + output_img
+    plt.savefig(output_img_path,dpi=300)
 
     plt.show()
 

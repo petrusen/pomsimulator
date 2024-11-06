@@ -29,7 +29,7 @@ def main():
     # Operation parameters
     cores = 20
     batch_size = 100
-    sample_perc = 0.005
+    sample_perc = 0.0005
     sampl_type = "random" # random / all
 
     # Chemical parameters

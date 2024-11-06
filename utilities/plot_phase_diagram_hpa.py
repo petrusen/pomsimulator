@@ -7,7 +7,7 @@ from pomsimulator.modules.DataBase import *
 from pomsimulator.modules.plotting_module import *
 from pomsimulator.modules.text_module import *
 from pomsimulator.modules.stats_module import *
-
+import re
 
 def phase_diagram_gen(npz_paths,v_ctt):
     """
@@ -67,11 +67,14 @@ def main():
     Print_logo()
     ###########################PARAMETERS############################################
 
+    output_path = "../outputs/PMo_test_data"
+    npz_info_file = output_path + "/PMo_npz_info.dat"
+    output_img = "PMo_phase.png"
+
     formation_labels = Labels_PMo
     speciation_labels = Labels_PMo
-    col_dict = None
+    col_dict = Col_Dict_PMo
     v_ctt = [Lab_to_stoich(lab) for lab in speciation_labels]
-    npz_info_file = "PMo_npz_info.dat"
     # Load the array with all speciations
     with open(npz_info_file,"r") as infile:
         npz_paths = [line.strip() for line in infile.readlines()]
@@ -121,7 +124,9 @@ def main():
         leg = ax[pp].legend(handles=legend_elements, loc="center")
         leg.set_draggable(True)
 
-    plt.savefig('../outputs/phase_diagram_PMo.png',dpi=300)
+    # path for saving the img
+    output_img_path = re.sub("array.*npz","",npz_paths[0]) + output_img
+    plt.savefig(output_img_path,dpi=300)
 
     plt.show()
 

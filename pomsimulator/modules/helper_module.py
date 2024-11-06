@@ -14,6 +14,26 @@ from pomsimulator.modules.graph_module import *
 #Simulation functions
 
 def generate_graphs(adf_files, ref_compound, POM_system):
+    '''
+    Generates molecular graphs for a list of ADF2019 files containing QTAIM results for connectivity
+    Args:
+        adf_files. list of strings, path to ADF output files
+        ref_compound: string or list of strings, labels of the reference compound(s) for either a metal or a
+        heteroatom and a metal.
+        POM_system: string defining the POM system: element name for IPAs and X_M string for HPAs (heteroatom-atom)
+    Returns:
+        G1_list: list of molecular graphs generated from QTAIM connectivity
+        G1_labels: list of strings, labels of the molecular set, of the form MbbOcc-dH or XaaMbbOcc-dH
+        graphs_info: dictionary containing information parsed from the molecular set
+            - z_ctt: list of integers, charges for all molecules in the set
+            - v_ctt: list of tuples of integers, stoichiometries (bb,cc,d) or (aa,bb,cc,d) for all molecules in the set
+            - water: dictionary mapping water-based molecule names to their Gibbs free energies
+            - ref_idx: integer (IPA) or list of integers (HPA), containing indices of the reference species for metal or heteroatom and metal
+            - num_molec: integer, number of molecules in the set
+            - compounds_set: list of lists, number of molecules for each nuclearity
+            - unique_labels: list of strings, names of the ADF files for each nuclearity
+
+    '''
     G1_list, water, G1_labels = list(), dict(), list()
     for idx, f in enumerate(adf_files):
         adf_dict = Bader_Parser(f)
@@ -41,14 +61,36 @@ def generate_graphs(adf_files, ref_compound, POM_system):
     return G1_list, G1_labels, graphs_info
 
 def get_C0(C_ref,m_idx):
+    '''Convenience function to retrieve concentration values automatically for either IPA or HPA systems
+    Args:
+        C_ref: numpy array, either 0D (IPA) or 1D (HPA), containing the initial concentration(s) of metal or metal and heteroatom
+        m_idx: integer. Marks the element whose concentration is selected: in XxMmOn HPA species, 0 -> X, 1 -> M.
+    Returns:
+        C0: float, concentration of the selected reference species
+    '''
     if C_ref.shape:
         C0 = C_ref[m_idx]
     else:
         C0 = float(C_ref)
     return C0
 
-def compute_lgkf_loop(R_idx, R_ene, R_type, mod_idx_vals, number_models,kwargs,
+def compute_lgkf_loop(R_idx, R_ene, R_type, mod_idx_vals, number_models, kwargs,
                       batch_size=1, cores=1):
+    '''Wrapper function for the calculation of formation constants for a set of speciation models.
+    Args:
+        R_idx: list of lists of integers, chemical reaction indexes organized by nuclearity
+        R_ene: list of lists of floats, chemical reaction energies organized by nuclearity
+        R_type: list of lists of strings, chemical reaction types organized by nuclearity
+        mod_idx_vals: list of integers, speciation model numbers to be solved
+        kwargs: dictionary containing parameters required for speciation: for IPA Speciation_from_Equilibrium
+                for HPA Speciation_from_Equilibrium_bimetal
+        batch_size: integer, size of the batch of models to be solved at a time
+        cores: integer, number of cores used for parallel calculation
+
+    Returns:
+        data: list of lists of logKf values for every solved speciation model, sorted according to labels' order
+
+    '''
     if isinstance(kwargs["ref_idx"],list):
         speciation_func = Speciation_from_Equilibrium_bimetal
     else:
@@ -97,6 +139,18 @@ def compute_lgkf_loop(R_idx, R_ene, R_type, mod_idx_vals, number_models,kwargs,
     return data
 
 def load_array(path_npz):
+    '''Reads a NPZ-formatted array containing speciation information, as produced by
+    Speciation_from_Formation_singlemetal or Speciation_from_Formation_bimetal
+    Args:
+        path_npz: string, path to the NPZ file
+    Returns:
+        SuperArr: 3D NumPy array of size Nspc x NpH x Nmodels containing concentration values.
+        IndexArr: 1D NumPy array of size Nmodels containing model indices to map original indices to positions in SuperArr
+        C_ref: 0D or 1D NumPy array containing initial concentration(s) of the reference species
+        pHArr: 1D NumPy array of size NpH containing pH values used for the speciation calculation
+        labels: 1D NumPy array of size Nspc containing species' labels
+
+    '''
     SuperArr = np.load(path_npz)["SupArray"]
     IndexArr = np.load(path_npz)["IndexArray"]
     C_ref = np.load(path_npz)["C_ref"]
@@ -105,8 +159,15 @@ def load_array(path_npz):
     return SuperArr,IndexArr,C_ref,pHArr,labels
 
 def models_sampling(sampling_type,number_models,sample_perc=10):
+    '''Samples speciation models from a total population
+    Args:
+        sampling_type: string, type of sampling to be used, either "random" or "all" to get all models
+        number_models: integer, total number of models in the population
+        sample_perc: percentage of models to be included in the random sample
+    Returns:
+        mod_idx_vals: list of integers, speciation model numbers to be solved
+    '''
     if sampling_type == "random":
-
         mod_to_calc = int(number_models*sample_perc/100)
         print("Calculated speciation models number %d"%mod_to_calc)
         mod_idx_vals = random.sample(range(0, int(number_models)), mod_to_calc)  # Apply randomizer
@@ -114,19 +175,18 @@ def models_sampling(sampling_type,number_models,sample_perc=10):
     else:
         mod_idx_vals = list(range(0, number_models))
     return mod_idx_vals
-#Speciation function
 
 def speciation_diagram(idxs,lgkf_df,speciation_labels,pH,C_ref,ref_stoich):
     '''Wrapper function employed to solve all speciation models across a DataFrame.
     Args:
-        idxs. Array of integers, indices of the models to be solved.
-        lgkf_df. DataFrame containing log10(Kf) formation constants for all species.
-        C. Float, maximum concentration value.
-        speciation_labels. List of strings, labels of the species to solve speciation for.
-        pH. List of floats, pH values.
-        ref_stoich. Tuple of integers, stoich. coefs. for M, O and H of the reference species.
+        idxs: array of integers, indices of the models to be solved.
+        lgkf_df: DataFrame containing log10(Kf) formation constants for all species.
+        C_ref: float or list of floats, initial concentration(s) of the reference species.
+        speciation_labels: list of strings, labels of the species to solve speciation for.
+        pH: list of floats, pH values.
+        ref_stoich: tuple of integers, stoich. coefs. for M, O and H of the reference species.
     Returns:
-        concentrations_tuple. Tuple, containing list of indices (for bookkeeping) and a dictionary
+        concentrations_tuple: tuple, containing list of indices (for bookkeeping) and a dictionary
         of concentration arrays for each species in the system
     '''
     if isinstance(C_ref,list):
@@ -144,14 +204,24 @@ def speciation_diagram(idxs,lgkf_df,speciation_labels,pH,C_ref,ref_stoich):
     if max(lgkf) > max_lgkf_value:
         concentrations_dict = []
     else:
-        x_val, y_val_T = speciation_func(lgkf=lgkf,pH_grid=pH,labels=speciation_labels,**kwargs)
+        solved_pH_val, solved_conc_val_T = speciation_func(lgkf=lgkf,pH_grid=pH,labels=speciation_labels,**kwargs)
         concentrations_dict = dict()
-        for lab, c in zip(speciation_labels, y_val_T):
+        for lab, c in zip(speciation_labels, solved_conc_val_T):
             concentrations_dict[lab] = c
     concentrations_tuple = (idxs,concentrations_dict)
     return concentrations_tuple
 
 def read_scaling_params(scaling_path):
+    '''Convenience function to read the scaling parameter files generated by scale_constants.py
+    Args:
+        scaling_path: string, path to the file containing scale parameters
+    Returns
+        dictionary, containing:
+            - m: float, slope of the regression
+            - b: float, intercept of the regression
+            - best_model: integer, index of the best model (if not applicable, -1)
+            - mode: string, scaling mode used in scale_constants.py -> best_rmse, average, medians or universal
+    '''
     with open(scaling_path, "r") as fpars:
         data_raw = [line.strip().split() for line in fpars.readlines()]
         data = data_raw[1]
@@ -163,11 +233,20 @@ def read_scaling_params(scaling_path):
             best_model = None
     return {"m":slope,"b":intercept,"best_model":best_model,"mode":mode}
 
-def lgkf_filtering(lgkf_df, all_idxs, scaling_params, speciation_labels):
+def apply_lgkf_scaling(lgkf_df, scaling_params, speciation_labels):
+    '''Filters and scales a DataFrame containing formation constants, applying the scaling parameters contained in a
+       dictionary, selecting a best model if applicable and selecting requested labels
+    Args:
+        lgkf_df: DataFrame containing log(Kf) values produced by a simulation
+        scaling_params: dictionary of scaling parameters read by read_scaling_params()
+        speciation_labels: list of strings, labels used for the speciation
+
+    Returns:
+        lgkf_df: DataFrame containing scaled, selected log(Kf) values
+    '''
     # Select requested indices
-    if all_idxs != True:
+    if scaling_params["mode"] == "best_rmse":
         selected_idxs = [scaling_params["best_model"]]
-        batch_size = 1
         filtered_selected_idxs = [idx for idx in selected_idxs if idx in lgkf_df.index]
         lgkf_df = lgkf_df.loc[filtered_selected_idxs, :]
 
@@ -176,8 +255,24 @@ def lgkf_filtering(lgkf_df, all_idxs, scaling_params, speciation_labels):
     lgkf_df = lgkf_df * scaling_params["m"] + scaling_params["b"]
     return lgkf_df
 
-def compute_speciation_loop(lgkf_df,speciation_labels,pH,C_ref,ref_stoich,path_to_output=None,batch_size=1,cores=1,
-                            show_progress=True):
+def compute_speciation_loop(lgkf_df,speciation_labels,pH,C_ref,ref_stoich,path_to_output=None,
+                            batch_size=1,cores=1,show_progress=True):
+    '''Wrapper function for the calculation of speciation diagrams for a set of speciation models.
+    Args:
+        lgkf_df: DataFrame containing scaled, selected log(Kf) values
+        speciation_labels: list of strings, labels used for the speciation
+        pH: list of floats, pH values.
+        C_ref: float or list of floats, initial concentration(s) of the reference species.
+        ref_stoich: list of integers (IPA) or list of lists of integers (HPA), stoich. coefs. for (X), M, O and H of the reference species.
+        path_to_output: string, name of the NPZ file to store the speciation. If None, no file is created.
+        batch_size: integer, size of the batch of models to be solved at a time
+        cores: integer, number of cores used for parallel calculation
+        show_progress: boolean, if True, print a progress bar throughout the calculation
+    Returns:
+        FilteredSuperArray: 3D NumPy array of size Nspc x NpH x Nmodels containing concentration values.
+        FilteredIndexArray: 1D NumPy array of size Nmodels containing model indices to map original indices to positions in FilteredSuperArray
+
+    '''
     if isinstance(C_ref,list):
         C_X,C_M = C_ref
         ref_stoich_X,ref_stoich_M = ref_stoich
@@ -306,6 +401,12 @@ def df_2_boxplot(df):
 
 
 def apply_MLR(lgkf_df):
+    '''Apply MLR parameters (available in DataBase) derived from universal POM scaling to a set of log(Kf) values
+    Args:
+        lgkf_df: DataFrame containing log(Kf) values produced by a simulation
+    Returns:
+        intercept: float, predicted value of the intercept for the set of DFT constants
+    '''
     Q3 = lgkf_df.quantile(0.75).median()
     minmax = (lgkf_df.max() - lgkf_df.min()).median()
     maximum = lgkf_df.max().median()
@@ -400,7 +501,6 @@ def LinearScaling(path, Labels, expKf_dict, scaling_mode="best_rmse", output_sca
 
 
 ### Functions to handle nuclearities
-### collapsing nuclearities
 def stoich_to_lab(at1,at2,sto):
     '''Helper function to produce strings for nuclearity stoichiometries, given a (xx,mm,oo) tuple of integers
     Args:
@@ -447,7 +547,7 @@ def nuclearity_collapser(SuperArr,Labels):
     '''Processes a Nspc x NpH x Nmodels array to join the concentrations of the protonation states of individual nuclearities, obtaining a
     Nnuc x NpH x Nmodels array
     Args:
-        SuperArr: array of floats, size Nspc x NpH x Nmodels resulting from speciation calculation.
+        SuperArr: 3D NumPy array of size Nspc x NpH x Nmodels containing concentration values.
         Labels: list of strings, labels of the species in the diagram.
     Returns:
         nw_arr: array of floats, size Nnuc x NpH x Nmodels, from the addition of concentrations of the same nuclearity.

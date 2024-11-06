@@ -13,7 +13,7 @@ from pomsimulator.modules.plotting_module import plot_cluster_means
 Print_logo()
 
 ############## INPUT VARIABLES ######################
-output_path = "../outputs/PMo_data"
+output_path = "../outputs/PMo_test_data"
 path_to_npz = output_path + "/PMo_Array.npz"
 path_to_features = output_path + "/features_PMo.csv"
 

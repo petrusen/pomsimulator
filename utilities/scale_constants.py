@@ -9,7 +9,7 @@ def main():
     metal = "PMo"
     labels = Labels_PMo
     ExpDict = Pettersson_3I
-    output_path = "../outputs/PMo_data"
+    output_path = "../outputs/PMo_test_data"
 
     lgkf_file = output_path + "/logkf_PMo.txt"
     scaling_params_file = output_path + "/regression_output.csv"

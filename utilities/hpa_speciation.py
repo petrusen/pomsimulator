@@ -38,7 +38,7 @@ def main():
     cores = 15
 
     # Input/output files
-    output_path = "../outputs/PMo_data"
+    output_path = "../outputs/PMo_test_data"
 
     path = output_path + "/logkf_PMo.txt"
     path_to_npz = output_path + "/PMo_Array.npz"
@@ -53,7 +53,7 @@ def main():
     ref_stoich_X, ref_stoich_M = [Lab_to_stoich(ref) for ref in ref_compounds]
 
     lgkf_df = Read_csv(path)
-    lgkf_df = lgkf_filtering(lgkf_df,all_idxs,scaling_params, speciation_labels)
+    lgkf_df = apply_lgkf_scaling(lgkf_df,scaling_params, speciation_labels)
 
     ### Write parameters to file once we know the number of models
     kwargs_input = dict()

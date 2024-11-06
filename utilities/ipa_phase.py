@@ -35,22 +35,24 @@ def main():
 
     # Input/output files
     output_path = "../outputs/W_data"
+    output_fold = "W_phase_arrays"
 
     path = output_path + "/logkf_W.txt"
-    output_fold = "W_phase_arrays"
-    output_path = output_path + "/" + output_fold
-    npz_info_file = output_path + "/W_npz_info.dat"
     scaling_path = output_path + "/scaling_params_W.pomsim"
 
-    if not os.path.exists(output_path):
-        os.makedirs(output_path)
+    output_phase_path = output_path + "/" + output_fold
+    npz_info_file = output_path + "/W_npz_info.dat"
+
+    if not os.path.exists(output_phase_path):
+        os.makedirs(output_phase_path)
     else:
         counter = 1
-        while os.path.exists(output_path):
-            output_path = "../outputs/" + output_fold + ".%03d"%counter
+        base_path = output_phase_path
+        while os.path.exists(output_phase_path):
+            output_phase_path = base_path + ".%03d"%counter
             counter += 1
         else:
-            os.makedirs(output_path)
+            os.makedirs(output_phase_path)
 
     #############################################################################################
     # Read linear scaling from test_linearity
@@ -59,14 +61,14 @@ def main():
     # Read constants and scale them
     ref_stoich = Lab_to_stoich(ref_compound)
     lgkf_df = Read_csv(path)
-    lgkf_df = lgkf_filtering(lgkf_df,all_idxs,scaling_params, speciation_labels)
+    lgkf_df = apply_lgkf_scaling(lgkf_df,scaling_params, speciation_labels)
 
     mapping_string = ""
     for ii,C in enumerate(C_list):
         print("Speciation for concentration = %.6f" % C)
         speciation_array, IndexArray = compute_speciation_loop(lgkf_df, speciation_labels, pH, C, ref_stoich,
                                                              None, batch_size, cores, show_progress=False)
-        file_name = output_path + "/array_%02d.npz" % ii
+        file_name = output_phase_path + "/array_%02d.npz" % ii
         np.savez_compressed(file_name,SupArray=speciation_array,IndexArray=IndexArray,
                             pH=pH,C=C,labels=speciation_labels)
         mapping_string += file_name + "\n"

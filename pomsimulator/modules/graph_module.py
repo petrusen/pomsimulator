@@ -639,9 +639,9 @@ def sort_by_type(Reac_idx, Reac_energy, Reac_type, compounds_set, unique_labels,
     
     Returns:
 
-        R_idx2: list of integers, combination of chemical reaction indexes
-        R_ene2: list of floats, combination of chemical reaction energies
-        R_type2: list of strings, combination of chemical reaction types
+        R_idx2: list of lists of integers, chemical reaction indexes organized by nuclearity
+        R_ene2: list of lists of floats, chemical reaction energies organized by nuclearity
+        R_type2: list of lists of strings, chemical reaction types organized by nuclearity
     """
 
     size = len(compounds_set)

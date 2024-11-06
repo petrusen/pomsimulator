@@ -26,31 +26,33 @@ def main():
     min_pH, max_pH, step_pH = 0, 14, -0.1
     pH = np.arange(max_pH, min_pH, step_pH)
     C_X = 0.01
-    Ratio_list = np.linspace(1, 12, 20)
+    Ratio_list = np.linspace(1, 12, 10)
 
     # Operation parameters
     all_idxs = False
-    batch_size = 1
-    cores = 8
+    batch_size = 100
+    cores = 20
 
     # Input/output files
-    output_path = "../outputs/PMo_data"
+    output_path = "../outputs/PMo_test_data"
+    output_fold = "PMo_phase_arrays"
 
     path = output_path + "/logkf_PMo.txt"
-    output_fold = "PMo_phase_arrays"
-    output_path = output_path + "/" + output_fold
-    npz_info_file = output_path + "/PMo_npz_info.dat"
     scaling_path = output_path + "/scaling_params_PMo.pomsim"
 
-    if not os.path.exists(output_path):
-        os.makedirs(output_path)
+    output_phase_path = output_path + "/" + output_fold
+    npz_info_file = output_path + "/PMo_npz_info.dat"
+
+    if not os.path.exists(output_phase_path):
+        os.makedirs(output_phase_path)
     else:
         counter = 1
-        while os.path.exists(output_path):
-            output_path = "../outputs/" + output_fold + ".%03d"%counter
+        base_path = output_phase_path
+        while os.path.exists(output_phase_path):
+            output_phase_path = base_path + ".%03d" % counter
             counter += 1
         else:
-            os.makedirs(output_path)
+            os.makedirs(output_phase_path)
 
     #############################################################################################
     # Read linear scaling from test_linearity
@@ -59,7 +61,7 @@ def main():
     # Read constants and scale them
     ref_stoich_X,ref_stoich_M = [Lab_to_stoich(lab)  for lab in ref_compounds]
     lgkf_df = Read_csv(path)
-    lgkf_df = lgkf_filtering(lgkf_df,all_idxs,scaling_params, speciation_labels)
+    lgkf_df = apply_lgkf_scaling(lgkf_df,scaling_params, speciation_labels)
 
     mapping_string = ""
     for ii,Ratio in enumerate(Ratio_list):
@@ -68,7 +70,7 @@ def main():
         speciation_array, IndexArray = compute_speciation_loop(lgkf_df, speciation_labels, pH, [C_X,C_M],
                                                                [ref_stoich_X,ref_stoich_M],
                                                              None, batch_size, cores, show_progress=False)
-        file_name = output_path + "/array_%02d.npz" % ii
+        file_name = output_phase_path + "/array_%02d.npz" % ii
         np.savez_compressed(file_name,SupArray=speciation_array,IndexArray=IndexArray,
                             pH=pH,C_X=C_X,C_M=C_M,labels=speciation_labels)
         mapping_string += file_name + "\n"

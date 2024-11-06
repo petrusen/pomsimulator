@@ -264,7 +264,7 @@ def Speciation_from_Formation_singlemetal(lgkf,C, pH_grid, labels, ref_stoich, s
     init_guess = [np.zeros(len(labels))]
     v_ctt = [Lab_to_stoich(lab) for lab in labels]
     M_Ratio = [v[0] for v in v_ctt]
-    solved_pH_val,solved_activity_val = list(),list()
+    solved_pH_val,solved_concentration_val = list(),list()
 
     ind_ref = v_ctt.index(ref_stoich)
 
@@ -319,15 +319,15 @@ def Speciation_from_Formation_singlemetal(lgkf,C, pH_grid, labels, ref_stoich, s
             init_guess.append(conc_i.x)
 
         if conc_i.success:
-            solved_activity_val.append(conc_i.x)
+            solved_concentration_val.append(conc_i.x)
             solved_pH_val.append(pH)
 
-        if len(solved_activity_val) > 0:
-            solved_activity_val_T = np.array(solved_activity_val).T
+        if len(solved_concentration_val) > 0:
+            solved_concentration_val_T = np.array(solved_concentration_val).T
         else:
-            solved_activity_val_T = list()
+            solved_concentration_val_T = list()
 
-    return solved_pH_val, solved_activity_val_T
+    return solved_pH_val, solved_concentration_val_T
 
 def Speciation_from_Formation_bimetal(lgkf, C_X, C_M, pH_grid, labels, ref_stoich_X, ref_stoich_M, solver='hybr', acc_thr=5, temp=298.15):
     '''Computes the speciation diagram for a given speciation model from its corresponding
@@ -345,7 +345,7 @@ def Speciation_from_Formation_bimetal(lgkf, C_X, C_M, pH_grid, labels, ref_stoic
         solved_pH_val: list of floats, pH values.
         solved_activity_val_T: 2D NumPy array of floats, Nspecies x NpH, of concentration values.
     '''
-    solved_pH_val, solved_activity_val, = list(), list()
+    solved_pH_val, solved_concentration_val, = list(), list()
     v_ctt = [Lab_to_stoich(lab) for lab in labels]
     X_Ratio = [v[0] for v in v_ctt]
     M_Ratio = [v[1] for v in v_ctt]
@@ -405,15 +405,15 @@ def Speciation_from_Formation_bimetal(lgkf, C_X, C_M, pH_grid, labels, ref_stoic
             init_guess.append(conc_i.x)
 
         if conc_i.success:
-            solved_activity_val.append(conc_i.x)
+            solved_concentration_val.append(conc_i.x)
             solved_pH_val.append(pH)
 
-        if len(solved_activity_val) > 0:
-            solved_activity_val_T = np.array(solved_activity_val).T
+        if len(solved_concentration_val) > 0:
+            solved_concentration_val_T = np.array(solved_concentration_val).T
         else:
-            solved_activity_val_T = list()
+            solved_concentration_val_T = list()
 
-    return solved_pH_val, solved_activity_val_T
+    return solved_pH_val, solved_concentration_val_T
 
 
 def screen_log_Kf(solved_activity_val_T, solved_pH_val, stoich, ref_idx):
