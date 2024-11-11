@@ -401,7 +401,7 @@ def write_simulationparameters(kwargs):
         outfile.write("\n==================\n")
         outfile.write("Speciation Models:\n")
         outfile.write("==================\n")
-        l_spe = ["Ionic Strength (mol/L)", "Initial Concentration (mol/L)", "Range of pH", "Grid of pH"
+        l_spe = ["Ionic Strength (mol/L)", "Initial Concentration (mol/L)", "Range of pH", "Step of pH"
                  ,"Range of Simulated Models", "Formation Constants Referred to"]
         for s in l_spe:
             outfile.write(s+": "+str(kwargs[s])+"\n")

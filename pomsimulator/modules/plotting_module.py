@@ -256,7 +256,7 @@ def plot_cluster_means(SuperArr,groups,speciation_labels,pH,c0,
             target_shape = (m,m-1)
         else:
             target_shape = (m,m)
-
+    speciation_labels = list(speciation_labels)
     nm = target_shape[0] * target_shape[1]
     exceed_plots = nm - n_groups
     mosaic = np.arange(0, nm).reshape(target_shape)
@@ -379,3 +379,43 @@ def plot_best_mods(lgkf_df,sorted_params_df,Kexp,plot_shape=(2,2)):
         ax[ii].text(140, 140, "RMSE = %.2f"%rmse, fontsize=10)
     plt.tight_layout()
     return fig,ax
+
+def get_color_phase_diagram(phase_diagram,speciation_labels,col_dict):
+    '''Generates an array of RGBA colors to plot phase diagrams according to a color dictionary
+    Args:
+        phase_diagram: Nvals x NpH array, containing integer indices for the major species at each (C,pH) or (Ratio,pH)
+                       point, as produced by phase_diagram_IPA() or phase_diagram_HPA()
+
+        speciation_labels: list of strings, labels of the species for which speciation has been solved
+        col_dict: dictionary mapping species labels to colors
+    Returns:
+        color_array: Nvals x NpH x 4 array containing final RGBA colors to be directly plotted by plt.imshow()
+        legend_elements: list of Line2D elements with the colors and labels of the final legend
+    '''
+    color_list = np.unique(phase_diagram).astype(int)
+
+    if not col_dict:
+        nc = len(speciation_labels)
+        sample = np.linspace(0,1,nc)
+        colors = plt.cm.YlGnBu_r(sample)
+        idx_color_dict = {idx:colors[idx] for idx, label in enumerate(speciation_labels)}
+        legend_elements = [Line2D([0],[0],marker="o",color=colors[idx],
+                                  label=Lab_to_Formula(speciation_labels[idx]),markerfacecolor=colors[idx],markersize=10)
+                           for idx in color_list]
+    else:
+        idx_color_dict = {idx:col_dict[label] for idx, label in enumerate(speciation_labels)}
+        legend_elements = [Line2D([0],[0],marker="o",color=col_dict[speciation_labels[idx]],
+                                  label=Lab_to_Formula(speciation_labels[idx]),
+                                  markerfacecolor=col_dict[speciation_labels[idx]],markersize=10)
+                           for idx in color_list]
+
+
+    rgba_color_dict = {idx: matplotlib.colors.to_rgba(col) for idx, col in idx_color_dict.items()}
+
+    array_tuple = np.vectorize(rgba_color_dict.get)(phase_diagram)
+    d1,d2 = phase_diagram.shape
+    color_array = np.zeros((d1,d2, 4))
+    for jj, layer in enumerate(array_tuple):
+        color_array[:, :, jj] = layer
+
+    return color_array,legend_elements

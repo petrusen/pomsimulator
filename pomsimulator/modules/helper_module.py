@@ -10,6 +10,7 @@ from pomsimulator.modules.text_module import Print_logo,Read_csv,Lab_to_stoich,w
 from pomsimulator.modules.msce_module import *
 from pomsimulator.modules.DataBase import *
 from pomsimulator.modules.graph_module import *
+from pomsimulator.modules.stats_module import mask_models,get_boxplot_data
 
 #Simulation functions
 
@@ -249,7 +250,6 @@ def apply_lgkf_scaling(lgkf_df, scaling_params, speciation_labels):
         selected_idxs = [scaling_params["best_model"]]
         filtered_selected_idxs = [idx for idx in selected_idxs if idx in lgkf_df.index]
         lgkf_df = lgkf_df.loc[filtered_selected_idxs, :]
-
     # DataFrame filtering
     lgkf_df = lgkf_df[~lgkf_df.loc[:, speciation_labels].isna().any(axis=1)]
     lgkf_df = lgkf_df * scaling_params["m"] + scaling_params["b"]
@@ -416,7 +416,7 @@ def apply_MLR(lgkf_df):
     return intercept
 
 
-def LinearScaling(path, Labels, expKf_dict, scaling_mode="best_rmse", output_scaling="regression_output.csv",
+def LinearScaling(path, expKf_dict, scaling_mode="best_rmse", output_scaling="regression_output.csv",
                   Metal=None, output_path="."):
     '''Wrapper function to apply linear scaling to a set of lgkf values in a
     CSV file.
@@ -572,3 +572,75 @@ def nuclearity_collapser(SuperArr,Labels):
         elems = selection[nuc]
         nw_arr[ii,:,:] = SuperArr[tuple(elems),:,:].sum(axis=0)
     return nw_arr,known_nuc
+
+# Phase diagrams
+def phase_diagram_HPA(npz_paths,v_ctt):
+    """
+        Gathers all concentration arrays, and selects the most predominant species at each pH value.
+    Args:
+        npz_paths: list of strings, paths to the NPZ files containing concentration arrays, pH, initial concentration(s) and labels
+        v_ctt: List of stoichiometries for each molecule
+
+    Returns:
+        phase_diagram_X, phase_diagram_M: 2D NumPy array of shape Nrat x NpH containing the indices of the species with most % at each pair of C,pH,
+                                          considering the heteroatom (X) and the metal (M)
+        Ratio_list: list of floats, length Nrat, X/M ratio values for the Y-axis of the phase diagram
+        pH: 1D NumPy array of shape NpH, pH values for the X-axis of the phase diagram
+    """
+    v_ctt_arr_X = np.array([item[0] for item in v_ctt]).reshape(-1, 1)
+    v_ctt_arr_M = np.array([item[1] for item in v_ctt]).reshape(-1, 1)
+
+    Ratio_list = list()
+    for ii,path in enumerate(npz_paths):
+        phase_array_dict = np.load(path)
+        labels = phase_array_dict["labels"]
+        C_X = phase_array_dict["C_X"]
+        C_M = phase_array_dict["C_M"]
+        Ratio_list.append(C_M/C_X)
+        pH = phase_array_dict["pH"]
+        speciation_array = phase_array_dict["SupArray"]
+        if ii == 0:
+            phase_diagram_X = np.zeros((len(npz_paths), len(pH)), dtype=int)
+            phase_diagram_M = np.zeros((len(npz_paths), len(pH)), dtype=int)
+
+        mask_X = mask_models(speciation_array,labels,1.1,C_X,m_idx=0)
+        mask_M = mask_models(speciation_array,labels,1.1,C_M,m_idx=1)
+        speciation_array_X = speciation_array[:,:,mask_X]
+        speciation_array_M = speciation_array[:,:,mask_M]
+        Means_X = np.mean(speciation_array_X, axis=2)*v_ctt_arr_X
+        Means_M = np.mean(speciation_array_M, axis=2)*v_ctt_arr_M
+
+        phase_diagram_X[ii, :] = np.argmax(Means_X, axis=0)
+        phase_diagram_M[ii, :] = np.argmax(Means_M, axis=0)
+    return phase_diagram_X,phase_diagram_M,Ratio_list,pH
+
+def phase_diagram_IPA(npz_paths,v_ctt):
+    """
+        Gathers all concentration arrays, and selects the most predominant species at each pH value.
+    Args:
+        npz_paths: list of strings, paths to the NPZ files containing concentration arrays, pH, initial concentration(s) and labels
+        v_ctt: List of stoichiometries for each molecule
+
+    Returns:
+        phase_diagram: 2D NumPy array of shape Nconc x NpH containing the indices of the species with most % at each pair of C,pH.
+        C_list: list of floats, length Nconc, concentration values for the Y-axis of the phase diagram
+        pH: 1D NumPy array of shape NpH, pH values for the X-axis of the phase diagram
+    """
+    v_ctt_arr = np.array([item[0] for item in v_ctt]).reshape(-1, 1)
+    C_list = list()
+    for ii,path in enumerate(npz_paths):
+        phase_array_dict = np.load(path)
+        C = phase_array_dict["C"]
+        C_list.append(C)
+        pH = phase_array_dict["pH"]
+        speciation_array = phase_array_dict["SupArray"]
+        if ii == 0:
+            phase_diagram = np.zeros((len(npz_paths), len(pH)), dtype=int)
+
+        mask = mask_models(speciation_array,phase_array_dict["labels"],1.1,C)
+        speciation_array = speciation_array[:,:,mask]
+        Means = np.mean(speciation_array, axis=2)
+        Means = Means*v_ctt_arr
+        phase_ratio = np.argmax(Means, axis=0)
+        phase_diagram[ii, :] = phase_ratio
+    return phase_diagram,C_list,pH

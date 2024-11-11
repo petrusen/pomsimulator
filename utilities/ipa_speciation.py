@@ -10,39 +10,45 @@ from pomsimulator.modules.text_module import Print_logo,Read_csv,Lab_to_stoich,w
 from pomsimulator.modules.msce_module import Speciation_from_Formation_singlemetal,starmap_with_kwargs
 from pomsimulator.modules.DataBase import *
 from pomsimulator.modules.helper_module import *
+from configparser import ConfigParser
 
 os.environ['MKL_NUM_THREADS'] = '1'
 os.environ['NUMEXPR_NUM_THREADS'] = '1'
 os.environ['OMP_NUM_THREADS'] = '1'
 
 
-
 def main():
-
     Print_logo()
+    config_file = "../inputs/config_W.pomsim"
+    config = ConfigParser()
+    config.read(config_file)
     ######################### User parameters ##############################################
+    output_path = config["Preparation"]["output_path"]
+    system = config["Preparation"]["POM_system"]
     # Labels and species
-    formation_labels = Labels_W
-    speciation_labels = Labels_W_good
-    ref_compound = "W01O04-0H"
+    speciation_labels = config["Speciation"]["speciation_labels"].split(",")
+    labels_file = output_path + "/labels_%s.txt" % system
+    if speciation_labels[0] == "all":
+        with open(labels_file,"r") as flab:
+            speciation_labels = [item.strip() for item in flab.readlines()]
+    ref_compound = config["Simulation"]["ref_compound"]
 
     # Chemical parameters
-    min_pH, max_pH, step_pH = 0, 14, -0.1
-    pH = np.arange(max_pH,min_pH,step_pH)
-    C = 0.1
+    min_pH, max_pH, step_pH = [float(config["Speciation"][prop]) for prop in ["min_pH","max_pH","step_pH"]]
+    pH = np.arange(max_pH,min_pH,-step_pH)
+    C = float(config["Speciation"]["C"])
 
     # Operation parameters
-    all_idxs = True
-    batch_size = 50
-    cores = 8
+
+    cores = int(config["Speciation"]["cores"])
+    batch_size = int(config["Speciation"]["batch_size"])
 
     # Input/output files
-    output_path = "../outputs/W_data"
 
-    path = output_path +  "/logkf_W.txt"
-    path_to_output = output_path + "/W_Array.npz"
-    path_to_params = output_path + "/speciation_parameters_W.txt"
-    scaling_path = output_path + "/scaling_params_W.pomsim"
+    path = output_path + "/logkf_%s.csv" % system
+    path_to_output = output_path + "/" + "Array_%s.npz" % system
+    path_to_params = output_path + "/" + "speciation_params_%s.txt" % system
+    scaling_path = output_path + "/scaling_params_%s.pomsim" % system
     #############################################################################################
 
     # Read linear scaling from test_linearity

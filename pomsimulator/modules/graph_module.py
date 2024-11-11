@@ -430,7 +430,7 @@ def Reaction_Type_HPA(G_list,XM, ind, water, threshold, valid_cond, hydrated_spe
         else:
             return None
 
-def Isomorphism_to_ChemicalReactions(G1_list, np_IM, water, reference, POM, threshold, cond_dict):
+def Isomorphism_to_ChemicalReactions(G1_list, np_IM, water, reference, POM, threshold, cond_dict_raw):
     """
     Returns a list of chemical reactions by processing a list of isomorphisms (i.e.,
     Isomorphic Matrix). Heuristics are applied for this particular case, where only
@@ -470,8 +470,15 @@ def Isomorphism_to_ChemicalReactions(G1_list, np_IM, water, reference, POM, thre
     conditions_list = ["proton_numb", "restrain_addition", "restrain_condensation", "include_dimerization",
                        "force_stoich", "adjust_protons_hydration"]
 
-    valid_cond = {cond: cond_val for cond, cond_val in cond_dict.items() if cond in conditions_list}
-    for cond in cond_dict.keys():
+    # Format internal conditions
+    valid_cond = {"proton_numb":int(cond_dict_raw["proton_numb"]),
+                 "restrain_addition":int(cond_dict_raw["restrain_addition"]),
+                 "restrain_condensation":int(cond_dict_raw["restrain_condensation"]),
+                 "include_dimerization":cond_dict_raw.getboolean("include_dimerization"),
+                 "adjust_protons_hydration":cond_dict_raw.getboolean("adjust_protons_hydration"),
+                 "force_stoich":[int(item) if item else None for item in cond_dict_raw["force_stoich"].split(",")]
+                 }
+    for cond in cond_dict_raw.keys():
         if cond not in conditions_list:
             print("Condition %s is not supported. Valid conditions are %s" % (cond, ",".join(conditions_list)))
 

@@ -78,7 +78,7 @@ def get_IP(arr):
         output.extend([ip1,ip2])
     return np.array(output)
 
-def get_features(model,pH,v_ctt):
+def get_features(model,pH):
     '''Computes features for a speciation diagram: peak width, peak center position,
     logarithm of the peak height and area.
     Args:
@@ -98,11 +98,11 @@ def get_features(model,pH,v_ctt):
     height = model[range(model.shape[0]),peak_idx]
     log_height = -np.log10(height)
     log_height2 = np.nan_to_num(log_height,nan=30,neginf=30,posinf=30)
-    area = np.abs(np.trapz(model, x=pH, axis=1)) * v_ctt
+    area = np.abs(np.trapz(model, x=pH, axis=1))
     out_array = np.concatenate([width,pos,log_height2,area])
     return out_array
 
-def get_features_array(SuperArr,speciation_labels,pH,v_ctt):
+def get_features_array(SuperArr,speciation_labels,pH):
     '''Computes features for an array of speciation diagrams
     Args:
         SuperArr. 3D array of floats (Nspecies x NpH x Nmodels) with all speciation information
@@ -114,7 +114,7 @@ def get_features_array(SuperArr,speciation_labels,pH,v_ctt):
     Returns:
         df. DataFrame with computed features for all models, with shape Nmodels x 4*Nspecies
     '''
-    feat_list = [get_features(SuperArr[:,:,k],pH,v_ctt) for k in range(SuperArr.shape[2])]
+    feat_list = [get_features(SuperArr[:,:,k],pH) for k in range(SuperArr.shape[2])]
     feature_names = [name + "-" + lab for name in ["width", "pos", "height","area"] for lab in speciation_labels]
     df = pd.DataFrame(feat_list, columns=feature_names)
     return df

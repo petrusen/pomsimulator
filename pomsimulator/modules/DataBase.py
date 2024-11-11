@@ -19,6 +19,9 @@ Pettersson_3I = {"P00Mo01O04-0H":0,
                  "P02Mo05O23-1H": 67.07,
                  "P02Mo05O23-2H": 70.86}
 
+experimental_constants = {"W12_Rosantsev_I01_05":Rosantsev_W12_I01_05I,
+    "PMo12_Petterson_I3":Pettersson_3I}
+
 # Labels extracted from molecular set, following the guidelines in the manual for species labeling.
 Labels_W  = ['W01O04-0H', 'W01O04-1H', 'W01O04-2H', 
             'W01O06-6H', 'W01O06-7H', 'W01O06-8H',
@@ -120,7 +123,7 @@ molecularity_dict = {'Cw10': 2, 'Cw2': 2, 'Cw3': 2, 'Cw1': 2, 'Cw4': 2, 'A': 2, 
 simulation_parameters_strings = ['ADF Folder', 'MOL Folder', "Formation Constants File", "Chemical Reaction Network File",
             "Simulation Parameters File", "Cores", "Use Isomorphisms", "Reaction Energy Threshold (kcal/mol)",
             "Proton Difference Threshold", "Reference Reactions", "Ionic Strength (mol/L)",
-            "Initial Concentration (mol/L)",  "Range of pH", "Grid of pH", "Range of Simulated Models", "Formation Constants Referred to","Labels"]
+            "Initial Concentration (mol/L)",  "Range of pH", "Step of pH", "Range of Simulated Models", "Formation Constants Referred to","Labels"]
 speciation_parameters_strings = [ "Speciation Parameters File","Formation Constants File","Scaling Slope","Scaling Intercept","Scaling Type", "Cores",
             "Initial Concentration (mol/L)",  "Range of pH", "Step of pH", "Number of Calculated Models","Labels", "Formation Constants Referred to",
                                   "Path to Speciation Output"]
