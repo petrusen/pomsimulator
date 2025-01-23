@@ -1,7 +1,6 @@
 [Preparation]
 adf_inputs_dir = ../inputs/W_Set_PBE
 mol_folder = ../inputs/W_Set_PBE_molfiles
-isomorphism_file = ../utilities/np_IM.csv
 POM_system = W
 output_path = ../outputs/W_data
 [Simulation]
