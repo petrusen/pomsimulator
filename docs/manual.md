@@ -24,8 +24,9 @@ Sincerely, POMSimulator Team
     - [1.2. Running simulation](#12-running-simulation)
   - [2. Data treatment](#2-data-treatment)
     - [2.1. Scale Theoretical Constants Data](#21-scale-theoretical-constants)
-    - [2.2. Chemical Speciation Data](#221-monometal_speciationpy)
-    - [2.3  Chemical Speciation Phase Data](#222-monometal_phasepy)
+    - [2.2. Chemical Speciation Data](#22-monometal_speciationpy)
+    - [2.3  Chemical Speciation Phase Data](#23-chemical-speciation-phase-data)
+    - [2.4 Statistical treatment of speciation models](#24-statistical-treatment)
   - [3. Visualization of Data](#3-visualization-of-data)
     - [3.1 Chemical Reaction Map](#31-plot_reac_mappy)
     - [3.2 Plot Speciation Diagram](#32-plot_speciation_diagrampy)
@@ -311,13 +312,59 @@ Also, we need to define some parameters related to the code:
 
 Last, there is a parameter called `model_subset_file` which is related to the statistical treatment implemented in:  
   - Buils, J.; Garay-Ruiz, D.; Segado-Centellas, M.; Petrus, E.; Bo, C. Computational Insights into Aqueous Speciation of Metal-Oxide Nanoclusters: An in-Depth Study of the Keggin Phosphomolybdate. Chem. Sci. 2024, 10.1039.D4SC03282A. https://doi.org/10.1039/D4SC03282A.
-Modify this parameter only in case a subsample derived from the statistical treatment of speciation models wants to be calculated.
+
+Modify this parameter only in case a subsample derived from the statistical treatment of speciation models wants to be calculated. See more in section [2.4 Statistical treatment of speciation models](#24-statistical-treatment).
 
 After defining the desired parameters, the user can run the speciation phase (IPA or HPA).
 
 As a result from running either `ipa_phase.py` or `hpa_phase.py`, one outputs is generated. A directory is generated which contains as many `.npz` files as the concentrations grid is defined.
 - `Array_"system".npz`: This numpy binary file contains the speciation results for the whole set of speciation models. The data structure could be compared to cube made by different layers. Each layer corresponds to a single speciation model, and is formed by all species on one side, and al pH values to which the speciation is calculated on the other side.
 
+### 2.4 Statistical treatment of speciation models
+
+In addition to the original methodology, since the 2.0 release of POMSimulator, a new feature to treat the results from the speciation has been implemented. The complete details of this new methodology can be accessed in the corresponding publication (https://doi.org/10.1039/D4SC03282A). In this user manual, only the parameters and configurations needed to run this new methodology are detailed. To make use of this new approach, two files are needed: 
+- [SM_clusterization.py](../utilities/SM_clusterization.py)
+- [clust_boxplot_filtering](../utilities/clust_boxplot_filtering.py)
+
+Again, as for the rest of the routines, all the parameters need to run the statistical pipeline are found in the corresponding configuration file. It is important to mention, that for every new clusterization process, a new configuration file is recommended instead of modifying the existing one. The first script to run is python [SM_clusterization.py](../utilities/SM_clusterization.py). The parameters for this script are the following:ç
+
+- `config_file`: Modify this according to the desired configuration file for the system under study.
+- `POM_system`: Modify this parameter to the corresponding polyoxometalate system.
+- `output_path`: Modify this according to the proper path of the results directory.
+- `cluster_dir`: Name of the directory in which clusterization results are to be saved. These results include a figure with all the generated clusters, a csv file with the indices of models classified in their corresponding cluster group number
+- `npz_cluster_file`: Name of the npz file containing all the speciation results.
+- `features_file`: Name of the file that contains the calculated features for the SMs in the npz file. If the file does not exist, it will be generated, if it does, it will be read. This file is stored in the corresponding output path, outside the clusterization results.
+- `n_clusters`: Number of cluster to generate.
+- `normalize_feats`: Boolean, determine whether normalize the calculated features or not
+- `feats_list`: List of strings, with the features to calculate ( height, width, pos, area)
+
+Once the file is run, features are read/generated and later fed into the clustering algorithm (kmeans). Finally, the groups are generated and a file containing the indices, and a figure containing the aspect of the clusters are generated. The next step is the cluster selection. To do so, `cluster_model_selection.py` is needed. After looking at the previously generated figure, the user must select with which clusters to follow.
+The parameters needed to run this script are the following:
+
+- `config_file`: Modify this according to the desired configuration file for the system under study.
+- `POM_system`: Modify this parameter to the corresponding polyoxometalate system.
+- `output_path`: Modify this according to the proper path of the results directory.
+- `cluster_dir`: Name of the directory in which clusterization results are to be saved. These results include a figure with all the generated clusters, a csv file with the indices of models classified in their corresponding cluster group number
+- `npz_cluster_file`: Name of the npz file containing all the speciation results.
+- `sel_groups`: Indices of the selected groups in the clustering process
+- `features_file`: Name of the file that contains the calculated features for the SMs in the npz file. If the file does not exist, it will be generated, if it does, it will be read. This file is stored in the corresponding output path, outside the clusterization results.
+
+This script will filtrate the speciation models according to the selected groups. The original npz and features files will be reduced to only include the selected SMs. 
+
+At this point of the statistical workflow described in https://doi.org/10.1039/D4SC03282A, the user can perform a new clustering cycle. If that is the case, we strongly recommend to use new configuration file.
+
+In case no more clustering wants to be performed, the final step is the refinement of the selected SMs. This is done by using [clust_boxplot_filtering.py](../utilities/clust_boxplot_filtering.py). This script has the following parameters:
+
+- `config_file`: Modify this according to the desired configuration file for the system under study.
+- `POM_system`: Modify this parameter to the corresponding polyoxometalate system.
+- `output_path`: Modify this according to the proper path of the results directory.
+- `cluster_dir`: Name of the directory in which clusterization results are to be saved. These results include a figure with all the generated clusters, a csv file with the indices of models classified in their corresponding cluster group number
+
+Once run, the script will perform the filtering of SMs based on all the possible species in the molecular set. As a result, a figure is generated for each filtering case, and stored in a directory called `filtering`
+
+### 2.4.1 Model selection for phase diagram
+
+As mentioned in the previous section, the generation of the speciation phase diagram can accept a subsample of speciation models. In https://doi.org/10.1039/D4SC03282A we compute the speciation phase diagram using the models selected in the first clustering step. The user can select what suits better.
 
 ## 3. Visualization of data
 
