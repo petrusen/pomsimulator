@@ -10,7 +10,7 @@ cores = 20
 batch_size = 250
 sample_perc = 10
 sample_type = random
-use_isomorphism = True
+use_isomorphism = False
 energy_threshold = 33
 proton_numb = 0
 reference_types = P,H2Ow1,H2Ow2,Cw1,Cw2,Cw3,Cw4,A,HO,H3O
@@ -21,6 +21,10 @@ min_pH = 0
 max_pH = 35
 step_pH = 0.5
 ref_compound = W01O04-0H
+[CRN]
+Full_CRN = True
+Selected_model = 20
+Plot_3D = True
 [Scaling]
 scaling_mode = best_rmse
 experimental_set = W12_Rosantsev_I01_05

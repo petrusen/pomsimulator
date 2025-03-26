@@ -447,5 +447,13 @@ def write_speciationparameters(kwargs):
             outfile.write(s+": "+str(kwargs[s])+"\n")
 
 def read_diagonal(path):
+    """
+    Reads existing isomorphic martrix and generates the corresponding numpt array
+    Args:
+        path: str, path to the subgraph isomorphism matrix
+    Return:
+        Diagonal: numpy array, isomorphic matrix
+    """
+
     Diagonal = np.genfromtxt(path,delimiter=",")
     return Diagonal

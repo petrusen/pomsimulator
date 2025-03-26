@@ -11,6 +11,7 @@ from pomsimulator.modules.msce_module import *
 from pomsimulator.modules.DataBase import *
 from pomsimulator.modules.graph_module import *
 from pomsimulator.modules.stats_module import mask_models,get_boxplot_data
+from pomsimulator.modules.plotting_module import Reaction_Map_2D_monometal,Reaction_Map_3D_monometal
 
 #Simulation functions
 
@@ -332,7 +333,6 @@ def compute_speciation_loop(lgkf_df,speciation_labels,pH,C_ref,ref_stoich,path_t
                             pH=pH,labels=speciation_labels)
     return FilteredSuperArray,IndexArray
 
-
 def Internal_Lab_Gen(df, lgkf_dict):
     '''Determines the species having experimental data from the dictionary
     to filter out the DataFrame.
@@ -355,7 +355,6 @@ def Internal_Lab_Gen(df, lgkf_dict):
 
     return filt_df, int_labels, Kexp
 
-
 def lgKf_scaling(filt_df, Kexp):
     '''Applies linear regression to the whole set of speciation models in the DataFrame against the experimental
     constants, returning a DF of regression parameters for each model.
@@ -374,7 +373,6 @@ def lgKf_scaling(filt_df, Kexp):
     rmse = np.sqrt(np.apply_along_axis(func1d=mean_squared_error, axis=1, arr=arr_sc, y_pred=Kexp))
     df2.loc[:, 'rmse'] = rmse
     return df2
-
 
 def df_2_boxplot(df):
     '''Complete workflow to generate boxplot values for computed DFT constants in a dataset
@@ -399,7 +397,6 @@ def df_2_boxplot(df):
         boxplot_dict[sp] = boxplot
     return boxplot_dict
 
-
 def apply_MLR(lgkf_df):
     '''Apply MLR parameters (available in DataBase) derived from universal POM scaling to a set of log(Kf) values
     Args:
@@ -414,7 +411,6 @@ def apply_MLR(lgkf_df):
     intercept = (Q3 * mlr_coefficients[0] + minmax * mlr_coefficients[1] + maximum * mlr_coefficients[2]
                  + mlr_coefficients[3])
     return intercept
-
 
 def LinearScaling(path, expKf_dict, scaling_mode="best_rmse", output_scaling="regression_output.csv",
                   Metal=None, output_path="."):
@@ -498,7 +494,6 @@ def LinearScaling(path, expKf_dict, scaling_mode="best_rmse", output_scaling="re
         fout.write(header + vals)
 
     return scaling_params_dict
-
 
 ### Functions to handle nuclearities
 def stoich_to_lab(at1,at2,sto):
@@ -644,3 +639,37 @@ def phase_diagram_IPA(npz_paths,v_ctt):
         phase_ratio = np.argmax(Means, axis=0)
         phase_diagram[ii, :] = phase_ratio
     return phase_diagram,C_list,pH
+
+#CRN
+def generate_CRN(G_list,stoich,reac_idx,reac_ener,reac_type,sorted_reac_idx,sorted_reac_ener,sorted_reac_type,
+                 plotting_dict,plot_dict_details):
+    """acid base reactions"""
+
+    if plotting_dict["full"]:
+        if plotting_dict["dimension_3d"]:
+            fig,axd = Reaction_Map_3D_monometal(G_list,reac_idx,reac_ener,reac_type,stoich,
+                                                All_models=True,ploting_details_dict=plot_dict_details)
+            return fig,axd
+        else:
+            fig, ax = Reaction_Map_2D_monometal(G_list, reac_idx, reac_ener, reac_type, stoich,
+                                                 All_models=True, ploting_details_dict=plot_dict_details)
+            return fig,ax
+    else:
+        idx_ctt = list(reac_idx[0])
+        e_ctt = list(reac_ener[0])
+        type_ctt = list(reac_type[0])
+
+        acc = 0
+        for idx_var, e_var, type_var in zip(product(*sorted_reac_idx),product(*sorted_reac_ener),product(*sorted_reac_type)):
+            if acc == plotting_dict["mod_idx"]:
+                if plotting_dict["dimension_3d"]:
+                    fig, axd = Reaction_Map_3D_monometal(G_list, list(idx_var) + idx_ctt, list(e_var) + e_ctt,
+                                                         list(type_var)+type_ctt, stoich,
+                                                         All_models=False, ploting_details_dict=plot_dict_details)
+                    return fig, axd
+                else:
+                    fig, ax = Reaction_Map_2D_monometal(G_list, list(idx_var) + idx_ctt, list(e_var) + e_ctt,
+                                                         list(type_var)+type_ctt, stoich,
+                                                         All_models=False, ploting_details_dict=plot_dict_details)
+                    return fig, ax
+            acc += 1

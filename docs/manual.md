@@ -326,6 +326,9 @@ In addition to the original methodology, since the 2.0 release of POMSimulator, 
 - [SM_clusterization.py](../utilities/SM_clusterization.py)
 - [clust_boxplot_filtering](../utilities/clust_boxplot_filtering.py)
 
+<p align="center">
+    <img src=".img/clustering_workflow.png" alt="drawing" width="1000"/>
+
 Again, as for the rest of the routines, all the parameters need to run the statistical pipeline are found in the corresponding configuration file. It is important to mention, that for every new clusterization process, a new configuration file is recommended instead of modifying the existing one. The first script to run is python [SM_clusterization.py](../utilities/SM_clusterization.py). The parameters for this script are the following:ç
 
 - `config_file`: Modify this according to the desired configuration file for the system under study.
@@ -366,13 +369,16 @@ Once run, the script will perform the filtering of SMs based on all the possible
 
 As mentioned in the previous section, the generation of the speciation phase diagram can accept a subsample of speciation models. In https://doi.org/10.1039/D4SC03282A we compute the speciation phase diagram using the models selected in the first clustering step. The user can select what suits better.
 
+<p align="center">
+    <img src=".img/phase_filtering.png" alt="drawing" width="1000"/>
+
 ## 3. Visualization of data
 
 After POMSimulator has run its simulation in **section 1**, and then treated this information in
 **section 2**, we can now visualize the results. For this purpose we have different programs, located in the 
 `utilities/` directory.
 
-1. [plot_reac_map.py](../utilities/plot_reac_map.py) : With this program user can visualitze the chemical reaction network in a 2D or 3D map
+1. [plot_reac_map.py](../utilities/plot_reac_map_ipa.py) : With this program user can visualitze the chemical reaction network in a 2D or 3D map
 2. `plot_speciation_diagram.py`: This program plots the calculated
 concentrations in **monometal_speciation.py**
 3. [plot_phase_diagram_ipa.py](../utilities/plot_phase_diagram_ipa.py): This program plots the calculated concentrations in **ipa_phase.py**.[plot_phase_diagram_hpa.py](../utilities/plot_phase_diagram_hpa.py): This program plots the calculated

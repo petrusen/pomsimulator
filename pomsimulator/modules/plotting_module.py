@@ -16,8 +16,16 @@ from pomsimulator.modules.stats_module import get_boxplot_data
 
 
 def Reaction_Map_3D_monometal(G1_list, all_reac_idx, all_reac_e, all_reac_type, stoich, All_models=True,ploting_details_dict=None):
-    """Converts a graph into a reaction map. It weights the edges as a function of the
-     reaction energy and uses colors to differentiate them. July 2019 Version."""
+    """
+    Converts a graph into a reaction map. It weights the edges as a function of the
+     reaction energy and uses colors to differentiate them. July 2019 Version.
+     Args:
+
+     Kwargs:
+
+     Return:
+
+     """
 
     print("Entering reaction map")
     G2_obj = nx.Graph()
@@ -34,10 +42,14 @@ def Reaction_Map_3D_monometal(G1_list, all_reac_idx, all_reac_e, all_reac_type, 
     for i in range(len(G1_list)):
         list_Z = list(nx.get_node_attributes(G1_list[i], 'Z').values())
         G2_obj.add_node(i)
-        y = (len(list_Z) - (list_Z.count(1) + list_Z.count(8))) + list_Z.count(8)
-        trivial_zaxis.append(stoich[i][0])
-        trivial_yaxis.append(stoich[i][2])
-        trivial_xaxis.append(0 + (stoich[i][0]/stoich[i][1]))
+        if len(stoich[i]) == 3:
+            trivial_zaxis.append(stoich[i][0])
+            trivial_yaxis.append(stoich[i][2])
+            trivial_xaxis.append(0 + (stoich[i][0]/stoich[i][1]))
+        elif len(stoich[i]) == 4:
+            trivial_zaxis.append(stoich[i][1])
+            trivial_yaxis.append(stoich[i][3])
+            trivial_xaxis.append(stoich[i][0] + (stoich[i][1]/stoich[i][2]))
     if All_models == True: #when functions is called, arguments can be all reactions or the reactions for 1 particular model.
         reac_idx = [item for sublist in all_reac_idx for item in sublist]
         reac_e = [item for sublist in all_reac_e for item in sublist]
@@ -109,15 +121,28 @@ def Reaction_Map_3D_monometal(G1_list, all_reac_idx, all_reac_e, all_reac_type, 
     return fig,axdict
 
 def Reaction_Map_2D_monometal(G1_list, all_reac_idx, all_reac_e, all_reac_type, stoich, All_models=True,ploting_details_dict=None):
+    """
+    Converts a graph into a reaction map. It weights the edges as a function of the
+     reaction energy and uses colors to differentiate them. July 2019 Version.
+     Args:
 
+     Kwargs:
+
+     Return:
+
+     """
     G2_obj = nx.Graph()
 
     colormap_name = ploting_details_dict['colormap']
     colormap = getattr(plt.cm,colormap_name)
     label_dict = {}
     for i in range(len(G1_list)):
-        xpos = stoich[i][0] / stoich[i][1] 
-        ypos = stoich[i][0]
+        if len(stoich[i]) == 3:
+            xpos = stoich[i][0] / stoich[i][1]
+            ypos = stoich[i][0]
+        elif len(stoich[i]) == 4:
+            xpos = stoich[i][0] + stoich[i][1]/ stoich[i][2]
+            ypos = stoich[i][1]
         G2_obj.add_node(i,label=G1_list[i].graph["String"],stoich=stoich[i],xpos=xpos,ypos=ypos)
         label_dict[i] = G1_list[i].graph["String"]
         

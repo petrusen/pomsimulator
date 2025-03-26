@@ -24,6 +24,10 @@ min_pH = 0
 max_pH = 35
 step_pH = 0.5
 ref_compound = P01Mo00O04-0H,P00Mo01O04-0H
+[CRN]
+Full_CRN = False
+Selected_model = 20
+Plot_3D = True
 [Scaling]
 # Parameters for the linear scaling of formation constants
 scaling_mode = medians
