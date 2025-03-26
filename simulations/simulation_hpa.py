@@ -30,7 +30,7 @@ def main():
     CRN_file = output_path + "/CRN_%s.txt" % system
     labels_file = output_path + "/labels_%s.txt" % system
     simulation_file = output_path + "/simulation_parameters_%s.txt" % system
-
+    isomorphism_matrix = output_path + "/np_IM_%s.csv"% system
     # Operation parameters
     cores = int(config["Simulation"]["cores"])
     batch_size = int(config["Simulation"]["batch_size"])

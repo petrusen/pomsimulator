@@ -4,9 +4,8 @@
 # Basic file input/output common to all categories
 adf_inputs_dir = ../inputs/PMo_Set
 mol_folder = ../inputs/PMo_Set_molfiles
-isomorphism_file = ../utilities/np_IM.csv
 POM_system = P_Mo
-output_path = ../outputs/PMo_data_nw
+output_path = ../outputs/PMo_data
 [Simulation]
 # Parameters for the characterization of the CRN and the calculation of formation constants
 # employed by the files in simulations/

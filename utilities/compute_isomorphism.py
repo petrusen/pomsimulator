@@ -16,10 +16,10 @@ def main():
     # 0) Define input variables #### ###################################################################################
 
     ### Paths
-
+    system = config["Preparation"]["POM_system"]
     MOL_Folder = config["Preparation"]["mol_folder"]
     output_path = config["Preparation"]["output_path"]
-    output_file =  output_path + "/np_IM.csv"
+    output_file =  output_path + "/np_IM_%s.csv"% system
     Cores = 10 # cpu_count()  #number of cores for the simulation (caution!)
 
     ### Variables for the reaction network
