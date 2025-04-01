@@ -30,3 +30,34 @@ First python implementation of POMSimulator for isopolyoxometalates
 ./Input: folder that contains the ADF output file subfolders
 
 ./Output: folder that contains the chemical reaction network, formation constants and simulation related files
+
+
+Release 2.0.0
+-------------
+
+Python implementation of POMSimulator for iso (IPA) and hetero (HPA) polyoxometalates. In this version, a new input/output
+configuration has been implemented for the correct and organised use of the many files generated with POMSimulator.
+Configuration files have been added to facilitate the tuning of the needed parameters to run the different simulations and
+utilities across POMSimulator. Two examples of how to input parameters into the different routines within the framework,
+one for IPAs and one for HPAs. Moreover, we have included two new methodologies: a universal scaling of formation constants,
+and a statistical workflow to treat speciation results.
+
+Implemented changes:
+General:
+For each studied system, a folder must be created, as it will be used to save the results derived from that system, thus
+improving the user's file management and findability of results.
+
+Configuration parameters are now include in the corresponding configuration file config_{sys}.pomsim
+
+./simulations:
+- We have included a file to run simulations for HPAs
+
+./utilities:
+
+- We have included 2 files to run HPA's speciation for both speciation diagrams and speciation phase diagrams
+- We have included the files needed to run the statistical workflow as described in ./docs/manual.md
+- We have modified the way the CRN is generated
+
+./pomsimulator/modules
+
+- A new helper_module.py has been included, containing wrapper functions as well as other suport functions
