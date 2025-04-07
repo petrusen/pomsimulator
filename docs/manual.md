@@ -230,7 +230,7 @@ POMSimulator is prepared to perform the scaling of formation constants in four d
   - Buils, J.; Garay-Ruiz, D.; Segado-Centellas, M.; Petrus, E.; Bo, C. Computational Insights into Aqueous Speciation of Metal-Oxide Nanoclusters: An in-Depth Study of the Keggin Phosphomolybdate. Chem. Sci. 2024, 10.1039.D4SC03282A. https://doi.org/10.1039/D4SC03282A.
 
 - `medians`: This scaling methodology is similar to the average mode. Instead of performing as many linear regressions as SMs, this scaling mode considers the formation constants across all the SMs as a boxplot, and performs a unique linear regression using the median values.
--<p align="center">
+<p align="center">
 <img src=".img/scaling_boxplots.png" alt="drawing" width="600"/>
 
 - `universal`: This scaling mode consists in the application of an universal scaling equation derived from the Multi-Linear Regression model described in:
@@ -318,7 +318,7 @@ In addition to the original methodology, since the release 2.0 of POMSimulator, 
 - [clust_boxplot_filtering](../utilities/clust_boxplot_filtering.py)
 
 <p align="center">
-    <img src=".img/clustering_workflow.png" alt="drawing" width="1000"/>
+   <img src=".img/clustering_workflow.png" alt="drawing" width="1000"/>
 
 Again, as for the rest of the routines, all the parameters need to run the statistical pipeline are found in the corresponding configuration file. It is important to mention, that for every new clusterization process, a new configuration file is recommended instead of modifying the existing one. The first script to run is python [SM_clusterization.py](../utilities/SM_clusterization.py). The parameters for this script are the following:ç
 
