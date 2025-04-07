@@ -1,14 +1,14 @@
 [Preparation]
-adf_inputs_dir = ../inputs/W_Set_PBE
+adf_inputs_dir = ../inputs/W_Set_PBE_test
 mol_folder = ../inputs/W_Set_PBE_molfiles
 POM_system = W
 output_path = ../outputs/W_data
 [Simulation]
 kf_file = logkf_W.txt
 CRN_file = W_CRN.txt
-cores = 20
-batch_size = 250
-sample_perc = 10
+cores = 2
+batch_size = 10
+sample_perc = 100
 sample_type = random
 use_isomorphism = False
 energy_threshold = 33

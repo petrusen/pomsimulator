@@ -69,8 +69,9 @@ def Molecule_Charge(G1_list, Z, Zcharge):
 
     charge = list()
     for i in range(len(G1_list)):
-        deleteme = list(nx.get_node_attributes(G1_list[i], 'Z').values())
-        stoichiometry = [deleteme.count(num) for num in Z + [8, 1]]
+        tmp = list(nx.get_node_attributes(G1_list[i], 'Z').values())
+        print(tmp, Z)
+        stoichiometry = [tmp.count(num) for num in Z + [8, 1]]
         charge.append(sum([(v * valence) for v, valence in zip(stoichiometry, Zcharge + [-2, +1])]))
     return charge
 
