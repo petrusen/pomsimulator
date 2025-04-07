@@ -17,3 +17,4 @@ The initial authors of the method are Enric Petrus, Mireia Segado and Carles Bo.
 
 ### Further Contributors
 
+* Laura Susanne Junkers (University of Copenhagen, Denmark)
