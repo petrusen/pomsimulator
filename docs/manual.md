@@ -100,7 +100,7 @@ If the isomorphism check is to be requested, the user *should* run inside the di
 and the directory to store the generated .mol files. Both parameters can be found in the [configuration file](../inputs/config_PMo.pomsim) in the "Preparation" section labeled as **adf_inputs_dir** and **mol_folder** respectively.
 
 2. ``compute_isomorphism.py``: in this case, only the .mol directory must be used as an input
-parameter. The result of this program is the isomorphism matrix, that will be saved as an .csv file named ``np_IM_"system".csv`` where system would be changed to the proper tag. The isomorphism matrix is then stored in the corresponding output directory.
+parameter. The result of this program is the isomorphism matrix, that will be saved as an .csv file named ``np_IM_{system}.csv`` where system would be changed to the proper tag. The isomorphism matrix is then stored in the corresponding output directory.
 
 
 ### 1.2. Running simulation
@@ -117,7 +117,7 @@ To run POMSimulator, the user should run the to `simulation_ipa.py` or `simulati
 - ``formation_constants_file``: modify this according to the name you want to give to the **formation constants** file.
 - ``CRN_file``: modify this according to the name you want to give to the file containing the **chemical reactions**.
 - ``simulation_file``: modify this parameter, to name the file which will contain all the simulation details.
-- 
+
 **Operation parameters**
 
 - ``cores``: the number of **cores** to which the program will parallelize the resolution of speciation models.
@@ -173,7 +173,7 @@ These parameters are contained in a special section tagged as Internal Parameter
 Once the parameters fit the user's needs, the simulation is ready to run. Once all the speciation models have
 been calculated, the simulation will write the output file, containing all the formation constants for all the
 speciation models. This file will be named according to the ``Output_File`` parameter mentioned above. Also, a file
-with all the parameters used in the simulation will be written named as `simulation_par ameters.txt`. 
+with all the parameters used in the simulation will be written named as `simulation_parameters.txt`. 
 
 **IMPORTANT NOTE :** These simulation parameters are key to constrain the factorial growth of the number of models. If the
 reactions are not restrained with chemical hypothesis, it would become impossible to calculate the formation constants of all speciation
@@ -183,10 +183,10 @@ After properly checking all simulation parameters described in this section, the
 
 Once the simulation file is executed, different files are obtained. Name and path of these files should be modified in the corresponding section of the [configuration file](../inputs/config_PMo.pomsim). The obtained files are the following:
 
-- `logkf_"system".csv`: file containing the calculated formation constants for the studied molecular set. A formation constants is calculated for each species in each speciation model.
-- `"system"_CRN.txt`: file containing the defined reactions within the molecular set.
+- `logkf_{system}.csv`: file containing the calculated formation constants for the studied molecular set. A formation constants is calculated for each species in each speciation model.
+- `{system}_CRN.txt`: file containing the defined reactions within the molecular set.
 - `simulation_parameters.txt`: output file from the simulation, containing the parameters used.
-- `labels_"system".txt`: file containing the labels for all the species present in the molecular set.
+- `labels_{system}.txt`: file containing the labels for all the species present in the molecular set.
 
 ## 2. Data treatment
 
@@ -220,21 +220,21 @@ calculated one. Some parameters are needed to run `scale_constants.py` and can b
 POMSimulator is prepared to perform the scaling of formation constants in four different ways, depending on the size the system and availability of experimental data:
 
 - `best_rmse`: this mode corresponds to the original approach used in POMSimulator which relies on performing a linear regression for each speciation model (SM), and sort the results according to the root mean squared error (RMSE), to later select the SM with lowest RMSE value. It has been used for the prediction of the aqueous speciation of Mo, W, V, Nb and Ta isopolyoxometalates. 
-  - Petrus, E.; Segado-Centellas, M.; Bo, C. Computational Prediction of Speciation Diagrams and Nucleation Mechanisms: Molecular Vanadium, Niobium, and Tantalum Oxide Nanoclusters in Solution. Inorg. Chem. 2022, 61 (35), 13708–13718. https://doi.org/10.1021/acs.inorgchem.2c00925.
-  - Petrus, E.; Bo, C. Unlocking Phase Diagrams for Molybdenum and Tungsten Nanoclusters and Prediction of Their Formation Constants. Journal of Physical Chemistry A 2021, 125 (23), 5212–5219. https://doi.org/10.1021/acs.jpca.1c03292.
-  - Petrus, E.; Segado, M.; Bo, C. Nucleation Mechanisms and Speciation of Metal Oxide Clusters. Chemical Science 2020, 11 (32), 8448–8456. https://doi.org/10.1039/d0sc03530k.
+  - Petrus, E.; Segado-Centellas, M.; Bo, C. Computational Prediction of Speciation Diagrams and Nucleation Mechanisms: Molecular Vanadium, Niobium, and Tantalum Oxide Nanoclusters in Solution. *Inorg. Chem.* **2022**, 61 (35), 13708–13718, [DOI: 10.1021/acs.inorgchem.2c00925](https://doi.org/10.1021/acs.inorgchem.2c00925).
+  - Petrus, E.; Bo, C. Unlocking Phase Diagrams for Molybdenum and Tungsten Nanoclusters and Prediction of Their Formation Constants. *J. Phys. Chem. A* **2021**, 125 (23), 5212–5219, [DOI: 10.1021/acs.jpca.1c03292](https://doi.org/10.1021/acs.jpca.1c03292).
+  - Petrus, E.; Segado, M.; Bo, C. Nucleation Mechanisms and Speciation of Metal Oxide Clusters. *Chem. Sci.* **2020**, 11 (32), 8448–8456, [DOI: 10.1039/d0sc03530k](https://doi.org/10.1039/d0sc03530k).
 <p align="center">
 <img src=".img/scaling_plot_best_model.png" alt="drawing" width="550"/>
 
 - `average`: this scaling mode is a derivation of the previous one. A linear regression is carried out for each SM, but instead of selecting the model with lowest RMSE value, all SM scaling parameters are averaged using the mean value. This approach has been used for the prediction of the PMo heteropolyoxometalate system:
-  - Buils, J.; Garay-Ruiz, D.; Segado-Centellas, M.; Petrus, E.; Bo, C. Computational Insights into Aqueous Speciation of Metal-Oxide Nanoclusters: An in-Depth Study of the Keggin Phosphomolybdate. Chem. Sci. 2024, 10.1039.D4SC03282A. https://doi.org/10.1039/D4SC03282A.
+  - Buils, J.; Garay-Ruiz, D.; Segado-Centellas, M.; Petrus, E.; Bo, C. Computational Insights into Aqueous Speciation of Metal-Oxide Nanoclusters: An in-Depth Study of the Keggin Phosphomolybdate. *Chem. Sci.* **2024**, 15, 14218-14227 [DOI: 10.1039.D4SC03282A](https://doi.org/10.1039/D4SC03282A).
 
 - `medians`: This scaling methodology is similar to the average mode. Instead of performing as many linear regressions as SMs, this scaling mode considers the formation constants across all the SMs as a boxplot, and performs a unique linear regression using the median values.
 <p align="center">
 <img src=".img/scaling_boxplots.png" alt="drawing" width="600"/>
 
 - `universal`: This scaling mode consists in the application of an universal scaling equation derived from the Multi-Linear Regression model described in:
-  - Buils, J.; Garay-Ruiz, D.; Petrus, E.; Segado-Centellas, M.; Bo, C. Towards a Universal Scaling Method for Predicting Equilibrium Constants of Polyoxometalates. November 5, 2024. https://doi.org/10.26434/chemrxiv-2024-r2lsq.
+  - Buils, J.; Garay-Ruiz, D.; Petrus, E.; Segado-Centellas, M.; Bo, C. Towards a Universal Scaling Method for Predicting Equilibrium Constants of Polyoxometalates, *Digital Discovery* **2025**, 4, 970-978. [DOI: 10.1039/D4DD00358F](https://doi.org/10.1039/D4DD00358F)
 
   
 As a result, an output file will be written, containing the scaling
@@ -273,8 +273,8 @@ After defining the desired parameters, the user can run the speciation (IPA or H
 
 As a result from running either [ipa_speciation](../utilities/ipa_speciation.py) or [hpa_speciation](../utilities/hpa_speciation.py), two files are generated:
 
-- `Array_"system".npz`: this numpy binary file contains the speciation results for the whole set of speciation models. The data structure could be compared to cube made by different layers. Each layer corresponds to a single speciation model, and is formed by all species on one side, and al pH values to which the speciation is calculated on the other side.
-- `speciation_params_"system".txt`: output file, similar to simulation_params file from **Section 1**. Contains the parameters used to calculate the speciation.
+- `Array_{system}.npz`: this numpy binary file contains the speciation results for the whole set of speciation models. The data structure could be compared to cube made by different layers. Each layer corresponds to a single speciation model, and is formed by all species on one side, and al pH values to which the speciation is calculated on the other side.
+- `speciation_params_{system}.txt`: output file, similar to simulation_params file from **Section 1**. Contains the parameters used to calculate the speciation.
 
 ### 2.3 Chemical Speciation Phase Data
 
@@ -302,25 +302,26 @@ Also, we need to define some parameters related to the code:
 - `cores`: the speciation calculation is parallelized, and for this reason user must define the amount of cores to use. **Depending on the hardware capacity of the user, this parameter should not be too high!**
 
 Last, there is a parameter called `model_subset_file` which is related to the statistical treatment implemented in:  
-  - Buils, J.; Garay-Ruiz, D.; Segado-Centellas, M.; Petrus, E.; Bo, C. Computational Insights into Aqueous Speciation of Metal-Oxide Nanoclusters: An in-Depth Study of the Keggin Phosphomolybdate. Chem. Sci. 2024, 10.1039.D4SC03282A. https://doi.org/10.1039/D4SC03282A.
+  - Buils, J.; Garay-Ruiz, D.; Segado-Centellas, M.; Petrus, E.; Bo, C. Computational Insights into Aqueous Speciation of Metal-Oxide Nanoclusters: An in-Depth Study of the Keggin Phosphomolybdate. *Chem. Sci.* **2024**, 10.1039.D4SC03282A. [DOI: 10.1039/D4SC03282A](https://doi.org/10.1039/D4SC03282A).
 
 Modify this parameter only in case a subsample derived from the statistical treatment of speciation models wants to be calculated. See more in section [2.4 Statistical treatment of speciation models](#24-statistical-treatment).
 
 After defining the desired parameters, the user can run the speciation phase (IPA or HPA).
 
 As a result from running either `ipa_phase.py` or `hpa_phase.py`, one outputs is generated. A directory is generated which contains as many `.npz` files as the concentrations grid is defined.
-- `Array_"system".npz`: this numpy binary file contains the speciation results for the whole set of speciation models. The data structure could be compared to cube made by different layers. Each layer corresponds to a single speciation model, and is formed by all species on one side, and al pH values to which the speciation is calculated on the other side.
+- `Array_{system}.npz`: this numpy binary file contains the speciation results for the whole set of speciation models. The data structure could be compared to cube made by different layers. Each layer corresponds to a single speciation model, and is formed by all species on one side, and al pH values to which the speciation is calculated on the other side.
 
 ### 2.4 Statistical treatment of speciation models
 
-In addition to the original methodology, since the release 2.0 of POMSimulator, a new feature to treat the results from the speciation has been implemented. The complete details of this new methodology can be accessed in the corresponding publication (https://doi.org/10.1039/D4SC03282A). In this user manual, only the parameters and configurations needed to run this new methodology are detailed. To make use of this new approach, two files are needed: 
+In addition to the original methodology, since the release 2.0 of POMSimulator, a new feature to treat the results from the speciation has been implemented. The complete details of this new methodology can be accessed in the corresponding publication (https://doi.org/10.1039/D4SC03282A). In this user manual, only the parameters and configurations needed to run this new methodology are detailed. To make use of this new approach, three files are needed: 
 - [SM_clusterization.py](../utilities/SM_clusterization.py)
+- [cluster_model_selection.py](../utilities/cluster_model_selection.py)
 - [clust_boxplot_filtering](../utilities/clust_boxplot_filtering.py)
 
 <p align="center">
    <img src=".img/clustering_workflow.png" alt="drawing" width="1000"/>
 
-Again, as for the rest of the routines, all the parameters need to run the statistical pipeline are found in the corresponding configuration file. It is important to mention, that for every new clusterization process, a new configuration file is recommended instead of modifying the existing one. The first script to run is python [SM_clusterization.py](../utilities/SM_clusterization.py). The parameters for this script are the following:ç
+Again, as for the rest of the routines, all the parameters need to run the statistical pipeline are found in the corresponding configuration file. It is important to mention, that for every new clusterization process, a new configuration file is recommended instead of modifying the existing one. The first script to run is python [SM_clusterization.py](../utilities/SM_clusterization.py). The parameters for this script are the following:
 
 - `config_file`: modify this according to the desired configuration file for the system under study.
 - `POM_system`: modify this parameter to the corresponding polyoxometalate system.
@@ -343,11 +344,11 @@ The parameters needed to run this script are the following:
 - `sel_groups`: indices of the selected groups in the clustering process
 - `features_file`: name of the file that contains the calculated features for the SMs in the npz file. If the file does not exist, it will be generated, if it does, it will be read. This file is stored in the corresponding output path, outside the clusterization results.
 
-This script will filtrate the speciation models according to the selected groups. The original npz and features files will be reduced to only include the selected SMs. 
+This script will filter the speciation models according to the selected groups. The original npz and features files will be reduced to only include the selected SMs. 
 
-At this point of the statistical workflow described in https://doi.org/10.1039/D4SC03282A, the user can perform a new clustering cycle. If that is the case, we strongly recommend to use new configuration file.
+At this point of the statistical workflow described in https://doi.org/10.1039/D4SC03282A, the user can iteratively perform further clustering on the already reduced data. If that is the case, we strongly recommend to use new configuration files.
 
-In case no more clustering wants to be performed, the final step is the refinement of the selected SMs. This is done by using [clust_boxplot_filtering.py](../utilities/clust_boxplot_filtering.py). This script has the following parameters:
+Once the clustering stage is finished, the final step is the refinement of the selected SMs. This is done by using [clust_boxplot_filtering.py](../utilities/clust_boxplot_filtering.py). This script has the following parameters:
 
 - `config_file`: modify this according to the desired configuration file for the system under study.
 - `POM_system`: modify this parameter to the corresponding polyoxometalate system.
@@ -370,9 +371,10 @@ After POMSimulator has run its simulation in **section 1**, and then treated thi
 `utilities/` directory.
 
 1. [plot_reac_map.py](../utilities/plot_reac_map_ipa.py) : with this program user can visualitze the chemical reaction network in a 2D or 3D map
-2. `plot_speciation_diagram.py`: this program plots the calculated
-concentrations in **monometal_speciation.py**
-3. [plot_phase_diagram_ipa.py](../utilities/plot_phase_diagram_ipa.py): this program plots the calculated concentrations in **ipa_phase.py**.[plot_phase_diagram_hpa.py](../utilities/plot_phase_diagram_hpa.py): this program plots the calculated concentrations in **hpa_phase.py**. 
+2. [plot_speciation_diagram.py](../utilities/plot_speciation_diagram.py): this program plots the calculated
+concentrations in `monometal_speciation.py`
+3. [plot_phase_diagram_ipa.py](../utilities/plot_phase_diagram_ipa.py): this program plots the calculated concentrations in `ipa_phase.py`.
+[plot_phase_diagram_hpa.py](../utilities/plot_phase_diagram_hpa.py): this program plots the calculated concentrations in `hpa_phase.py`. 
 
 
 ### 3.1 Chemical Reaction Network 
@@ -382,7 +384,7 @@ pass the same parameters as in the simulation file, to reproduce the exact syste
 User can then choose between a 2D or 3D plot and whether all reactions are included
 or only the reactions in a particular speciation model. Inside `utilities/`:
 
-``plot_reac_map.py``
+``plot_reac_map_ipa.py`` and ``plot_reac_map_hpa.py``
 
 Moreover some parameters of the plot can be tuned, from the plotting_dict. Some
 of these parameters are:
@@ -411,10 +413,19 @@ following one can be obtained running `plot_speciation_diagram.py` inside `utili
 <p align="center">
 <img src=".img/Speciation_diagram_W.png" alt="drawing" width="400"/>
 
+The `Speciation` section of the configuration file includes a `m_idx` parameter, which selects the species for which molar fractions/percentages are computed to get the speciation plot. For IPAs, this value will be **0**, targetting the unique metal atom. For HPAs (XxxMmmOoo-hhH), we have:
+- `m_idx = 0`: molar fractions for the heteroatom (X). 
+- `m_idx = 1`: molar fractions for the metal atom (M). 
+
 ### 3.3 Plot Speciation Phase Diagram
 
-As in previous section, to plot phase diagrams, only the concentrations array computed at different values of the total concentration, generated by ``monometal_phase.py`` is needed.
-As a result of running `plot_phase_diagram.py` inside `utilities/`, a plot like the following one can be obtained:
+#### IPA systems:
+
+As in previous section, to plot phase diagrams, only the concentrations array computed at different values of the total concentration, generated by ``ipa_phase.py`` is needed.
+As a result of running `plot_phase_diagram_ipa.py` inside `utilities/`, a plot like the following one can be obtained:
 
 <p align="center">
 <img src=".img/phase_diagram_W.png" alt="drawing" width="400"/>
+
+#### HPA systems
+The procedure is the same, using ``hpa_phase.py`` for the calculation and ``plot_phase_diagram_hpa`` for the plotting. In this case, the variable in the Y-axis of the phase diagram is not the logarithmic concentration of the metal, but the X/M ratio instead.
