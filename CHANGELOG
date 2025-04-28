@@ -4,22 +4,23 @@ Changelog
 Release 2.0.0
 -------------
 
-Python implementation of POMSimulator for iso (IPA) and hetero (HPA) polyoxometalates. In this version, a new input/output
-configuration has been implemented for the correct and organised use of the many files generated with POMSimulator.
+Python implementation of POMSimulator for iso- (IPA) and hetero- (HPA) polyoxometalates. In this version, a new input/output
+configuration has been implemented for the correct and organised use of the multiple files generated with POMSimulator.
 Configuration files have been added to facilitate the tuning of the needed parameters to run the different simulations and
 utilities across POMSimulator. Two examples of how to input parameters into the different routines within the framework,
-one for IPAs and one for HPAs. A complete statistical workflow to treat speciation result has been implemented, clustering ensembles of similar speciation models and averaging them (see docs/manual.md for a more thorough explanation).
+one for IPAs and one for HPAs. A complete statistical workflow to treat speciation result has been implemented, clustering 
+ensembles of similar speciation models and averaging them (see docs/manual.md for a more detailed explanation).
 
 Implemented changes:
 
 General:
 For each studied system, a folder must be created, as it will be used to save the results derived from that system, thus
-improving the user's file management and findability of results.
+improving the user's file management and accessability to the results.
 
-Configuration parameters are now include in the corresponding configuration file config_{sys}.pomsim
+Configuration parameters are now included in the corresponding configuration file config_X.pomsim
 
 ./inputs:
-- PMo_Set: folder containing QM output files for the simplified phosphomolybdate system
+- PMo_Set: folder containing ADF output files for the simplified phosphomolybdate system
 - config_W.pomsim: configuration file for tungsten IPA system.
 - config_PMo.pomsim: configuration file for phosphomolybdate HPA system.
 
