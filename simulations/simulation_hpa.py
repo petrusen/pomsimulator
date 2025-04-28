@@ -4,6 +4,7 @@ from os import listdir
 from os.path import isfile, join
 import time
 import random
+import pkg_resources
 # Local imports
 from pomsimulator.modules.text_module import *
 from pomsimulator.modules.DataBase import *
@@ -17,7 +18,8 @@ os.environ['OMP_NUM_THREADS'] = '1'
 def main():
     Print_logo()
     ######################### User parameters ##############################################
-    config_file = "../inputs/config_PMo.pomsim"
+    config_file = pkg_resources.resource_filename(
+        __name__, "../inputs/config_PMo.pomsim")
     config = ConfigParser()
     config.read(config_file)
     # Input/output files
