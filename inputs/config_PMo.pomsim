@@ -2,7 +2,7 @@
 
 [Preparation]
 # Basic file input/output common to all categories
-adf_inputs_dir = ../inputs/PMo_Set_test
+adf_inputs_dir = ../inputs/PMo_Set
 mol_folder = ../inputs/PMo_Set_molfiles
 POM_system = P_Mo
 output_path = ../outputs/PMo_data

@@ -28,10 +28,10 @@ def main():
     output_path = pkgr.resource_filename(__name__, config["Preparation"]["output_path"])
 
     isomorphism_matrix = pkgr.resource_filename(__name__, output_path + "/np_IM.csv")
-    formation_constants_file = pkgr.resource_filename(__name__, output_path + "/logkf_%s.csv" % system)
-    CRN_file = pkgr.resource_filename(__name__, output_path + "/CRN_%s.txt" % system)
-    labels_file = pkgr.resource_filename(__name__, output_path + "/labels_%s.txt" % system)
-    simulation_file = pkgr.resource_filename(__name__, output_path + "/simulation_parameters_%s.txt" % system)
+    formation_constants_file = output_path + "/logkf_%s.csv" % system
+    CRN_file = output_path + "/CRN_%s.txt" % system
+    labels_file = output_path + "/labels_%s.txt" % system
+    simulation_file = output_path + "/simulation_parameters_%s.txt" % system
 
     # Operation parameters -> all from config file
     cores = int(config["Simulation"]["cores"])
