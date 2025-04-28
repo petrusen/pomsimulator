@@ -1,0 +1,52 @@
+[Preparation]
+adf_inputs_dir = ../inputs/W_Set_PBE_test
+mol_folder = ../inputs/W_Set_PBE_molfiles
+POM_system = W
+output_path = ../outputs/W_data
+[Simulation]
+kf_file = logkf_W.txt
+CRN_file = W_CRN.txt
+cores = 2
+batch_size = 10
+sample_perc = 100
+sample_type = random
+use_isomorphism = False
+energy_threshold = 33
+proton_numb = 0
+reference_types = P,H2Ow1,H2Ow2,Cw1,Cw2,Cw3,Cw4,A,HO,H3O
+I = 0.25
+C0 = 0.005
+temp = 298.15
+min_pH = 0
+max_pH = 35
+step_pH = 0.5
+ref_compound = W01O04-0H
+[CRN]
+Full_CRN = True
+Selected_model = 20
+Plot_3D = True
+[Scaling]
+scaling_mode = best_rmse
+experimental_set = W12_Rosantsev_I01_05
+[Speciation]
+speciation_labels = W01O04-0H,W06O22-2H,W07O24-1H,W12O40-2H,W10O32-0H
+min_pH = 0
+max_pH = 14
+step_pH = 0.1
+C = 0.1
+cores = 8
+batch_size = 1
+npz_file = W_Array.npz
+m_idx = 0
+# Phase diagram
+min_logC = -4
+max_logC = 0
+num_logC = 200
+phase_dir = W_phase_arrays
+# Internal simulation parameters: These parameters are not meant to be routinely modified
+[InternalConditions]
+restrain_addition = 2
+restrain_condensation = 2
+include_dimerization = True
+force_stoich = 11
+adjust_protons_hydration = True

@@ -1,6 +1,43 @@
 Changelog
 =========
 
+Release 2.0.0
+-------------
+
+Python implementation of POMSimulator for iso (IPA) and hetero (HPA) polyoxometalates. In this version, a new input/output
+configuration has been implemented for the correct and organised use of the many files generated with POMSimulator.
+Configuration files have been added to facilitate the tuning of the needed parameters to run the different simulations and
+utilities across POMSimulator. Two examples of how to input parameters into the different routines within the framework,
+one for IPAs and one for HPAs. A complete statistical workflow to treat speciation result has been implemented, clustering ensembles of similar speciation models and averaging them (see docs/manual.md for a more thorough explanation).
+
+Implemented changes:
+
+General:
+For each studied system, a folder must be created, as it will be used to save the results derived from that system, thus
+improving the user's file management and findability of results.
+
+Configuration parameters are now include in the corresponding configuration file config_{sys}.pomsim
+
+./inputs:
+- PMo_Set: folder containing QM output files for the simplified phosphomolybdate system
+- config_W.pomsim: configuration file for tungsten IPA system.
+- config_PMo.pomsim: configuration file for phosphomolybdate HPA system.
+
+./simulations:
+- simulation_hpa.py: main simulation file to run POMSimulator for HPA systems
+
+./utilities:
+
+- hpa_speciation.py: calculation of speciation arrays for HPAs
+- hpa_phase.py: calculation of speciation phase arrays for HPAs
+- SM_clusterization.py: clusterization of speciation models for IPA and HPA systems
+- cluster_model_selection.py: selection of specific SM clusters in IPA and HPA systems
+- clust_boxplot_filtering.py: outlier filtering for SM clusters in IPA and HPA systems
+- plot_reac_map_ipa.py and plot_reac_map_hpa.py: modified CRN generation
+
+./pomsimulator/modules
+- stats_module.py: functions used for SM clusterization and treatment
+- helper_module.py: wrapper and supports functions for several POMSimulator components, simplifying the code of the utilities and simulation files
 
 Release 1.0.0
 -------------
@@ -30,3 +67,5 @@ First python implementation of POMSimulator for isopolyoxometalates
 ./Input: folder that contains the ADF output file subfolders
 
 ./Output: folder that contains the chemical reaction network, formation constants and simulation related files
+
+
