@@ -1,0 +1,68 @@
+### POMSimulator configuration file
+
+[Preparation]
+# Basic file input/output common to all categories
+adf_inputs_dir = ../inputs/PMo_Set_test
+mol_folder = ../inputs/PMo_Set_molfiles
+POM_system = P_Mo
+output_path = ../outputs/PMo_data
+[Simulation]
+# Parameters for the characterization of the CRN and the calculation of formation constants
+# employed by the files in simulations/
+cores = 2
+batch_size = 1
+sample_perc = 10
+sample_type = random
+use_isomorphism = False
+energy_threshold = 15
+proton_numb = 1
+reference_types = P,H2Ow1,H2Ow2,Cw1,Cw2,Cw3,Cw4,A,HO,H3O
+I = 0.6
+C0 = 0.005
+temp = 298.15
+min_pH = 0
+max_pH = 35
+step_pH = 0.5
+ref_compound = P01Mo00O04-0H,P00Mo01O04-0H
+[CRN]
+Full_CRN = False
+Selected_model = 20
+Plot_3D = True
+[Scaling]
+# Parameters for the linear scaling of formation constants
+scaling_mode = medians
+experimental_set = PMo12_Petterson_I3
+[Speciation]
+# Parameters for the calculation of speciation and phase diagrams from precomputed formation constants
+speciation_labels = all
+min_pH = 0
+max_pH = 14
+step_pH = 0.1
+C_X = 0.01
+C_M = 0.12
+cores = 20
+batch_size = 50
+m_idx = 0
+# Phase diagram
+min_Ratio = 1
+max_Ratio = 12
+num_Ratio = 10
+phase_dir = PMo_phase_arrays
+model_subset_file = PMo_clusterization/sel_model_indices.pomsim
+[InternalConditions]
+# Internal simulation parameters: these parameters are not meant to be routinely modified
+# and are used to refine the CRN in the simulation
+restrain_addition = 12
+restrain_condensation = 12
+include_dimerization = True
+force_stoich =
+adjust_protons_hydration = True
+[Clustering]
+# Parameters for clusterization of speciation models
+cluster_dir = PMo_clusterization
+npz_cluster_file = Array_P_Mo.npz
+features_file = features_P_Mo.csv
+n_clusters = 8
+normalize_feats = False
+feats_list = height,width,pos
+sel_groups = 1

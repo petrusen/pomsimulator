@@ -5,7 +5,7 @@ import datetime
 import numpy as np
 
 # Local imports
-from pomsimulator.modules.DataBase import Z_dict,Z_dict_inv,allowed_bonds_list
+from pomsimulator.modules.DataBase import Z_dict,Z_dict_inv
 
 
 def Lab_to_stoich(Label):
@@ -52,10 +52,14 @@ def Lab_to_Formula(Label):
             out_str += elem
         else:
             out_str += "%s_{%d}" % (elem, cx)
-    if total_charge < 0:
-        out_str += "]^{%d-}}$" % abs(total_charge)
+    if total_charge == 1:
+        out_str += "]^+}$"
+    elif total_charge == -1:
+        out_str += "]^-}$"
+    elif total_charge < 0:
+        out_str += "]^{%d\!-}}$" % abs(total_charge)
     elif total_charge > 0:
-        out_str += "]^{%d}}$" % abs(total_charge)
+        out_str += "]^{%d\!+}}$" % abs(total_charge)
     else:
         out_str += "]}$"
 
@@ -98,7 +102,7 @@ def write_molfile(path, verbose=True, limit_bonds=False, **kwargs):
     Args:
         path: string, path to where the cartesian file will be written
         verbose: bolean, prints out the progress
-        limit_bonds: boolean, only allow metal - oxygen and oxygen - hydrogen bonds.
+        limit_bonds: boolean, only allow atom - oxygen bonds (excluding O - O).
         kwargs: dictionary, list of atomic numbers, cartesian coordinates, chemical connectivity, and file label
     
     Returns
@@ -106,8 +110,6 @@ def write_molfile(path, verbose=True, limit_bonds=False, **kwargs):
 
     """
 
-    allowed_bonds_Z = [tuple(sorted([Z_dict[elem] for elem in entry])) for entry in allowed_bonds_list]
-    
     Z, Bonds, xyz, Label = kwargs['Z'], kwargs['bonds'], kwargs['xyz'], kwargs['label']
     countline = " {a} {b}  0  0  0  0  0  0  0  0999 V2000\n"
     atomblock = "   {x}   {y}   {z} {Z}    0  0  0  0  0  0  0  0  0  0  0  0\n"
@@ -122,7 +124,8 @@ def write_molfile(path, verbose=True, limit_bonds=False, **kwargs):
         for zz in Bonds:
             zi, zj = [int(o) for o in zz]
             test = tuple(sorted([Z[zi-1],Z[zj-1]]))
-            if test in allowed_bonds_Z:
+            # only allow bonds involving one oxygen and one non-oxygen atom
+            if test.count(8) == 1:
                 valid_bonds.append(zz)
         Bonds = valid_bonds
 
@@ -317,18 +320,20 @@ def Write_Reactions(path, G1_labels, all_reac_idx, all_reac_type, all_reac_e_eq,
     return True
 
 
-def Read_csv(path,Labels):
+def Read_csv(path):
     '''Helper function to read formation constant files, in CSV format, as a Pandas DataFrame
     already removing lines without valid constants and handling large files.
     Args:
         path: string, path to the file with formation constants
-        Labels: list of strings, labels for all compounds in the dataset, used as column names
     Returns:
         my_data. Pandas.DataFrame with formation constants.
 
     '''
-    my_data = pd.read_csv(path, sep=',', header=None, index_col=0, skip_blank_lines=True, on_bad_lines='skip',na_values="None", low_memory=False, names=Labels)
+    my_data = pd.read_csv(path, sep=',', index_col=0, skip_blank_lines=True,
+                          on_bad_lines='skip',na_values="None", low_memory=False)
+
     my_data.dropna(axis=0, how='all', inplace=True)
+
     #my_data.index -= 1
     return my_data
 
@@ -356,12 +361,11 @@ def Print_logo():
      '''
     print(banner)
     return None
-
+                                                                                                                                                                                                                                                                                                                                                                  
 def write_simulationparameters(kwargs):
     """
     Generates an output file with the variables and parameters chosen for a given simulation
     """
-    import datetime
 
     with open(kwargs["Simulation Parameters File"], 'w') as outfile:
 
@@ -397,11 +401,14 @@ def write_simulationparameters(kwargs):
         outfile.write("\n==================\n")
         outfile.write("Speciation Models:\n")
         outfile.write("==================\n")
-        l_spe = ["Ionic Strength (mol/L)", "Initial Concentration (mol/L)", "Range of pH", "Grid of pH"
+        l_spe = ["Ionic Strength (mol/L)", "Initial Concentration (mol/L)", "Range of pH", "Step of pH"
                  ,"Range of Simulated Models", "Formation Constants Referred to"]
         for s in l_spe:
             outfile.write(s+": "+str(kwargs[s])+"\n")
-
+        outfile.write("\n==================\n")
+        outfile.write("System Labels:\n")
+        outfile.write("==================\n")
+        outfile.write(str(kwargs["Labels"])+"\n")
 
 def write_speciationparameters(kwargs):
     """
@@ -440,5 +447,13 @@ def write_speciationparameters(kwargs):
             outfile.write(s+": "+str(kwargs[s])+"\n")
 
 def read_diagonal(path):
+    """
+    Reads existing isomorphic martrix and generates the corresponding numpt array
+    Args:
+        path: str, path to the subgraph isomorphism matrix
+    Return:
+        Diagonal: numpy array, isomorphic matrix
+    """
+
     Diagonal = np.genfromtxt(path,delimiter=",")
     return Diagonal

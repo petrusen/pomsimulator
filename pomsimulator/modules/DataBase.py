@@ -9,6 +9,18 @@ Rosantsev_W12_I01_05I = {"W06O22-2H": 53.68,
                          "W07O24-1H": 76.59, 
                          "W12O40-2H": 149.59,
                          "W10O32-0H": 129.63}
+Pettersson_3I = {"P00Mo01O04-0H":0,
+                 "P01Mo00O04-0H":0,
+                 "P01Mo09O34-2H":104.9,
+                 "P01Mo09O34-1H":102.0,
+                 "P01Mo11O39-0H":118.7,
+                 "P01Mo12O40-0H":139.7,
+                 "P02Mo05O23-0H": 61.97,
+                 "P02Mo05O23-1H": 67.07,
+                 "P02Mo05O23-2H": 70.86}
+
+experimental_constants = {"W12_Rosantsev_I01_05":Rosantsev_W12_I01_05I,
+    "PMo12_Petterson_I3":Pettersson_3I}
 
 # Labels extracted from molecular set, following the guidelines in the manual for species labeling.
 Labels_W  = ['W01O04-0H', 'W01O04-1H', 'W01O04-2H', 
@@ -26,6 +38,24 @@ Labels_W  = ['W01O04-0H', 'W01O04-1H', 'W01O04-2H',
             'W07O24-0H', 'W07O24-1H', 'W07O24-2H',
             'W10O32-0H', 'W10O32-1H', 'W10O32-2H',
             'W12O40-0H', 'W12O40-1H', 'W12O40-2H']
+
+
+Labels_PMo = ['P00Mo01O04-0H', 'P00Mo01O04-1H', 'P00Mo01O04-2H',
+              'P00Mo02O07-0H', 'P00Mo02O07-1H', 'P00Mo02O07-2H',
+              'P00Mo02O08-1H', 'P00Mo02O08-2H',
+              'P00Mo03O09-0H', 'P00Mo03O09-1H', 'P00Mo03O09-2H',
+              'P00Mo03O10-0H', 'P00Mo03O10-1H', 'P00Mo03O10-2H',
+              'P00Mo03O11-1H', 'P00Mo03O11-2H',
+              'P00Mo06O21-1H', 'P00Mo06O21-2H',
+              'P01Mo00O04-0H', 'P01Mo00O04-1H', 'P01Mo00O04-2H', 'P01Mo00O04-3H',
+              'P01Mo03O13-0H', 'P01Mo03O13-1H', 'P01Mo03O13-2H', 'P01Mo03O13-3H',
+              'P01Mo05O19-0H', 'P01Mo05O19-1H', 'P01Mo05O19-2H',
+              'P01Mo06O22-0H', 'P01Mo06O22-1H',
+              'P01Mo09O31-0H', 'P01Mo09O31-1H', 'P01Mo09O31-2H', 'P01Mo09O31-3H',
+              'P01Mo09O34-0H', 'P01Mo09O34-1H', 'P01Mo09O34-2H', 'P01Mo09O34-3H',
+              'P01Mo11O39-0H', 'P01Mo11O39-1H', 'P01Mo11O39-2H', 'P01Mo11O39-3H',
+              'P01Mo12O40-0H', 'P01Mo12O40-1H', 'P01Mo12O40-2H',
+              'P02Mo05O23-0H', 'P02Mo05O23-1H', 'P02Mo05O23-2H']
 
 # Labels corresponding to species present in experimental studies
 Labels_W_good = ['W01O04-0H','W06O22-2H', 'W07O24-1H', 'W12O40-2H', 'W10O32-0H']
@@ -57,7 +87,7 @@ Z_dict_inv = {1: 'H', 2: 'He', 3: 'Li', 4: 'Be', 5: 'B', 6: 'C', 7: 'N', 8: 'O',
               111: 'Rg ', 112: 'Cn ', 113: 'Nh', 114: 'Fl', 115: 'Mc', 116: 'Lv', 117: 'Ts', 118: 'Og'}
 
 # Oxidation states for common atoms present in polyoxometalates
-valence_dict = {'W': 6, 'O': -2, 'H':1}
+valence_dict = {'W': 6, 'O': -2, 'H':1, 'Mo':6, 'P':5}
 
 # Dictionary for mapping reaction type to its proper written from
 stringreac_dict = {'P' : 'Acid Base: {R1} + H+ --> {P}    G={G}\n',
@@ -93,13 +123,92 @@ molecularity_dict = {'Cw10': 2, 'Cw2': 2, 'Cw3': 2, 'Cw1': 2, 'Cw4': 2, 'A': 2, 
 simulation_parameters_strings = ['ADF Folder', 'MOL Folder', "Formation Constants File", "Chemical Reaction Network File",
             "Simulation Parameters File", "Cores", "Use Isomorphisms", "Reaction Energy Threshold (kcal/mol)",
             "Proton Difference Threshold", "Reference Reactions", "Ionic Strength (mol/L)",
-            "Initial Concentration (mol/L)",  "Range of pH", "Grid of pH", "Range of Simulated Models", "Formation Constants Referred to"]
+            "Initial Concentration (mol/L)",  "Range of pH", "Step of pH", "Range of Simulated Models", "Formation Constants Referred to","Labels"]
 speciation_parameters_strings = [ "Speciation Parameters File","Formation Constants File","Scaling Slope","Scaling Intercept","Scaling Type", "Cores",
             "Initial Concentration (mol/L)",  "Range of pH", "Step of pH", "Number of Calculated Models","Labels", "Formation Constants Referred to",
                                   "Path to Speciation Output"]
 
-# Metals that can be treated
-allowed_IPA_systems = ["W"]
+# Universal scaling methodology
+universal_slope = 0.29
+"""                   Q3    mean   range  Indep."""
+mlr_coefficients = [0.195, -0.216, 0.070, 12.20]
 
-# Limit bonds read from Bader QTAIM connectivity
-allowed_bonds_list = [("O","W"),("O","H")]
+# Coloring
+Col_Dict_PMo = {"P00Mo01O04-0H": "#393b79ff",
+            "P00Mo01O04-1H": "#393b79ff",
+            "P00Mo01O04-2H": "#393b79ff",
+            "P00Mo01O04-3H": "#393b79ff",
+            "P00Mo01O06-4H": "#5254a3ff",
+            "P00Mo01O06-5H": "#5254a3ff",
+            "P00Mo01O06-6H": "#5254a3ff",
+            "P00Mo01O06-7H": "#5254a3ff",
+            "P00Mo01O06-8H": "#5254a3ff",
+            "P00Mo02O06-0H": "#6b6ecfff",
+            "P00Mo02O06-1H": "#6b6ecfff",
+            "P00Mo02O06-2H": "#6b6ecfff",
+            "P00Mo02O07-0H": "#9294daff",
+            "P00Mo02O07-1H": "#9294daff",
+            "P00Mo02O07-2H": "#9294daff",
+            "P00Mo02O08-0H": "#c3c3e3ff",
+            "P00Mo02O08-1H": "#c3c3e3ff",
+            "P00Mo02O08-2H": "#c3c3e3ff",
+            "P00Mo03O09-0H": "#637939ff",
+            "P00Mo03O09-1H": "#637939ff",
+            "P00Mo03O09-2H": "#637939ff",
+            "P00Mo03O10-0H": "#8ca252ff",
+            "P00Mo03O10-1H": "#8ca252ff",
+            "P00Mo03O10-2H": "#8ca252ff",
+            "P00Mo03O11-0H": "#b5cf6bff",
+            "P00Mo03O11-1H": "#b5cf6bff",
+            "P00Mo03O11-2H": "#b5cf6bff",
+            "P00Mo04O13-0H": "#cedb9cff",
+            "P00Mo04O13-1H": "#cedb9cff",
+            "P00Mo04O13-2H": "#cedb9cff",
+            "P00Mo05O16-0H": "#8c6d31ff",
+            "P00Mo05O16-1H": "#8c6d31ff",
+            "P00Mo05O16-2H": "#8c6d31ff",
+            "P00Mo05O17-0H": "#bd9e39ff",
+            "P00Mo05O17-1H": "#bd9e39ff",
+            "P00Mo05O17-2H": "#bd9e39ff",
+            "P00Mo06O20-0H": "#e7ba52ff",
+            "P00Mo06O20-1H": "#e7ba52ff",
+            "P00Mo06O21-0H": "#e7cb94ff",
+            "P00Mo06O21-1H": "#e7cb94ff",
+            "P00Mo06O21-2H": "#e7cb94ff",
+            "P01Mo00O04-0H": "#843c39ff",
+            "P01Mo00O04-1H": "#ad494aff",
+            "P01Mo00O04-2H": "#d6616bff",
+            "P01Mo00O04-3H": "#e7969cff",
+            "P01Mo03O13-0H": "#7b4173ff",
+            "P01Mo03O13-1H": "#a55194ff",
+            "P01Mo03O13-2H": "#ce6dbdff",
+            "P01Mo03O13-3H": "#de9ed6ff",
+            "P01Mo05O19-0H": "#82f7e3ff",
+            "P01Mo05O19-1H": "#82f7e3ff",
+            "P01Mo05O19-2H": "#b9eae2ff",
+            "P01Mo06O22-0H": "#555555ff",
+            "P01Mo06O22-1H": "#808080ff",
+            "P01Mo06O22-2H": "#aeaeaeff",
+            "P01Mo06O22-3H": "#e2e2e2ff",
+            "P01Mo09O31-0H": "#e48308ff",
+            "P01Mo09O31-1H": "#e48308ff",
+            "P01Mo09O31-2H": "#f8a43dff",
+            "P01Mo09O31-3H": "#f8a43dff",
+            "P01Mo09O34-0H": "#fbca8bff",
+            "P01Mo09O34-1H": "#fbca8bff",
+            "P01Mo09O34-2H": "#fde3c1ff",
+            "P01Mo09O34-3H": "#fde3c1ff",
+            "P01Mo09O34-5H": "#fde3c1ff",
+            "P01Mo09O34-6H": "#fde3c1ff",
+            "P01Mo11O39-0H": "#40af47ff",
+            "P01Mo11O39-1H": "#5acf60ff",
+            "P01Mo11O39-2H": "#7fe884ff",
+            "P01Mo11O39-3H": "#b3f1b6ff",
+            "P01Mo11O39-4H": "#b3f1b6ff",
+            "P01Mo12O40-0H": "#ae266bff",
+            "P01Mo12O40-1H": "#d84c93ff",
+            "P01Mo12O40-2H": "#e37db1ff",
+            "P02Mo05O23-0H": "#04b899ff",
+            "P02Mo05O23-1H": "#33dbc0ff",
+            "P02Mo05O23-2H": "#33dbc0ff",
+            'P00Mo00O00-0H': "#000000ff"}

@@ -3,9 +3,10 @@ import networkx as nx
 from itertools import product
 import numpy as np
 from multiprocessing import Pool
+import matplotlib.pyplot as plt
 
 # Local imports
-from pomsimulator.modules import DataBase
+from pomsimulator.modules.DataBase import Z_dict,Z_dict_inv, valence_dict
 
 def Determine_IPA(atomic_number):
     """
@@ -19,7 +20,7 @@ def Determine_IPA(atomic_number):
         Valence: integer, valence of the greatest atomic number for a molecule <i>
         Element: string, element
     """
-    from pomsimulator.modules.DataBase import Z_dict_inv, valence_dict
+
     
     zlist = [obj for obj in atomic_number]
     Z = max(zlist)
@@ -68,15 +69,10 @@ def Molecule_Charge(G1_list, Z, Zcharge):
 
     charge = list()
     for i in range(len(G1_list)):
-        deleteme = list(nx.get_node_attributes(G1_list[i], 'Z').values())
-        if isinstance(Z, int):
-            z = Zcharge
-            stochiometry = [deleteme.count(num) for num in [Z, 8, 1]]
-            charge.append(sum([(v*valence) for v,valence in zip(stochiometry, [z, -2, +1])]))
-        elif isinstance(Z, list):
-            z1, z2 = Zcharge
-            stochiometry = [deleteme.count(num) for num in Z+[8, 1]]
-            charge.append(sum([(v*valence) for v,valence in zip(stochiometry, [z1, z2, -2, +1])]))
+        tmp = list(nx.get_node_attributes(G1_list[i], 'Z').values())
+        print(tmp, Z)
+        stoichiometry = [tmp.count(num) for num in Z + [8, 1]]
+        charge.append(sum([(v * valence) for v, valence in zip(stoichiometry, Zcharge + [-2, +1])]))
     return charge
 
 def Molecule_to_Graph(idx, ploting=False, **kwargs): 
@@ -108,12 +104,10 @@ def Molecule_to_Graph(idx, ploting=False, **kwargs):
         G.add_edge(bond[0], bond[1])
     
     if ploting:
-        import matplotlib.pyplot as plt
         nx.draw(G)
         plt.show()
     
     return G
-
 
 def Molecule_to_Graph_from_molfile(idx, Z_list, bond_list, label):
     """
@@ -172,12 +166,9 @@ def Create_Stoich(G1_labels):
         acc = num + 1
     return compounds_set, unique_lab
 
-
-
-
 def Reaction_Type_IPA(G_list, M, ind, water, threshold, valid_cond, hydrated_species):
     """
-    Reaction template for finding the chemical transformation of isopolyoxotungstates. The
+    Reaction template for finding the chemical transformation of isopolyoxometalates. The
     user should tweak this function (or create a new one) depending on the needs of the system.
     It is meant as a modular template.
 
@@ -191,14 +182,10 @@ def Reaction_Type_IPA(G_list, M, ind, water, threshold, valid_cond, hydrated_spe
         hydrated_species: list of hydrated species
     Returns:
         reac_e: reaction energy for a concrete reaction type
-
-    abs(v_r1[3] - v_r2[3]) < proton_numb
-
+        reac_type: reaction type for a concrete reaction
     """
     
-    Z_dict = DataBase.Z_dict
-
-    ZM, ZO, ZH = Z_dict[M], Z_dict['O'], Z_dict['H']
+    ZM, ZO, ZH = [Z_dict[symb] for symb in [M, 'O', 'H']]
     if len(ind) == 2:  # Unimolecular Reactions
         p1, r1 = ind
         Z_p1 = list(nx.get_node_attributes(G_list[p1], 'Z').values())  # Atomic Numbers List
@@ -236,8 +223,6 @@ def Reaction_Type_IPA(G_list, M, ind, water, threshold, valid_cond, hydrated_spe
         v_r2 = [Z_r2.count(z) for z in [ZM, ZO, ZH]]
         v_p2 = [(v_p1[m] - (v_r1[m] + v_r2[m])) for m in range(3)]
 
-        # Classification
-    
         # Handle hydrated species to check proton numbering if condition is selected
         if valid_cond.get("adjust_protons_hydration",False):
             vr_nw_list = []
@@ -278,6 +263,7 @@ def Reaction_Type_IPA(G_list, M, ind, water, threshold, valid_cond, hydrated_spe
             conditions_addition = conditions_addition and (proton_dif <= valid_cond['proton_numb'])
             conditions_condensation = conditions_condensation and (proton_dif <= valid_cond['proton_numb'])
 
+        # Classification
         if v_p2 == [0, 0, 0]: 
             """Addition Type: + HxMO4"""
             reac_e = G_list[p1].graph['gibbs'] - (G_list[r1].graph['gibbs'] + G_list[r2].graph['gibbs'])
@@ -316,8 +302,136 @@ def Reaction_Type_IPA(G_list, M, ind, water, threshold, valid_cond, hydrated_spe
         else:
             return None
 
+def Reaction_Type_HPA(G_list,XM, ind, water, threshold, valid_cond, hydrated_species):
+    """
+    Reaction template for finding the chemical transformation of heteropolyoxometalates. The
+    user should tweak this function (or create a new one) depending on the needs of the system.
+    It is meant as a modular template.
 
-def Isomorphism_to_ChemicalReactions(G1_list, np_IM, water, reference, POM, threshold, cond_dict):
+    Args:
+        G_list: list of networkX objects, molecular graphs
+        XM: Heteroatom and Metal name
+        ind: integer, molecular graph index,
+        water: dictionary, energies of water and its derivates
+        threshold: integer, energy threshold to filter out reactions
+        valid_cond: dictionary of conditions
+        hydrated_species: list of hydrated species
+    Returns:
+        reac_e: reaction energy for a concrete reaction type
+        reac_type: reaction type for a concrete reaction
+    """
+
+    X, M = XM.split('_')
+    ZX, ZM, ZO, ZH = [Z_dict[symb] for symb in [X, M, 'O', 'H']]
+
+    if len(ind) == 2:  # Unimolecular Reactions
+        p1, r1 = ind
+        Z_p1 = list(nx.get_node_attributes(G_list[p1], 'Z').values())  # Atomic Numbers List
+        Z_r1 = list(nx.get_node_attributes(G_list[r1], 'Z').values())
+        v_p1 = [Z_p1.count(z) for z in [ZX, ZM, ZO, ZH]]  # Stoichiometry
+        v_r1 = [Z_r1.count(z) for z in [ZX, ZM, ZO, ZH]]
+        v_p2 = [(v_p1[m] - v_r1[m]) for m in range(4)]
+
+        if v_p2 == [0, 0, 0, 1]:  # M + H5O2 -> HM + 2H2O
+            reac_e = G_list[p1].graph['gibbs'] + water['H4O2'] - (G_list[r1].graph['gibbs'] + water['H5O2'])
+            return reac_e, 'P'
+        elif v_p2 == [0, 0, 1, 2]:  # MO4 + 2H2O -> MO4·2H2O
+            reac_e = G_list[p1].graph['gibbs'] - (G_list[r1].graph['gibbs'] + 1 * water['H2O'])
+            return reac_e, 'H2Ow1'
+        elif v_p2 == [0, 0, 2, 4]:  # MoO4 + 2H2O -> MoO4·2H2O
+            reac_e = G_list[p1].graph['gibbs'] - (G_list[r1].graph['gibbs'] + 2 * water['H2O'])
+            # if reac_e < max_perc:
+            return reac_e, 'H2Ow2'
+        elif v_p2 == [0, 0, 1, 3]:  # MoO4 + H3O -> H3MoO5 (Acid hydration)
+            reac_e = G_list[p1].graph['gibbs'] - (G_list[r1].graph['gibbs'] + water['H3O'])
+            return reac_e, 'H3O'
+        elif v_p2 == [0, 0, 1, 1] and 'H6O3' in water.keys():  # M + 3H2O -> HM + H5O2 (Hydroxylation)
+            reac_e = G_list[p1].graph['gibbs'] + water['H5O2'] - (G_list[r1].graph['gibbs'] + water['H6O3'])
+            return reac_e, 'HO'
+        else:
+            return None
+
+    elif len(ind) == 3:  # Bimolecular Reactions
+        p1, r1, r2 = ind
+        Z_p1 = list(nx.get_node_attributes(G_list[p1], 'Z').values())  # Atomic Numbers List
+        Z_r1 = list(nx.get_node_attributes(G_list[r1], 'Z').values())
+        Z_r2 = list(nx.get_node_attributes(G_list[r2], 'Z').values())
+        v_p1 = [Z_p1.count(z) for z in [ZX, ZM, ZO, ZH]]  # Stoichiometry
+        v_r1 = [Z_r1.count(z) for z in [ZX, ZM, ZO, ZH]]
+        v_r2 = [Z_r2.count(z) for z in [ZX, ZM, ZO, ZH]]
+        v_p2 = [(v_p1[m] - (v_r1[m] + v_r2[m])) for m in range(4)]
+
+
+        # Handle hydrated species to check proton numbering if condition is selected
+        if valid_cond.get("adjust_protons_hydration", False):
+            vr_nw_list = []
+            for vr in [v_r1, v_r2]:
+                if tuple(vr) in hydrated_species.keys():
+                    nwater = hydrated_species[tuple(vr)]
+                    vr_nw = [vr[0], vr[1], vr[2] - 1 * nwater, vr[3] - 2 * nwater]
+                    vr_nw_list.append(vr_nw)
+                else:
+                    vr_nw_list.append(vr)
+            v_r1_nw, v_r2_nw = vr_nw_list
+            proton_dif = abs(v_r1_nw[3] - v_r2_nw[3])
+        else:
+            proton_dif = abs(v_r1[3] - v_r2[3])
+
+        has_metal_monomer = (v_r1[1] == 1 or v_r2[1] == 1)
+        conditions_addition = True
+        conditions_condensation = True
+        force_condition = False
+
+        if 'restrain_addition' in valid_cond.keys():
+            val = valid_cond['restrain_addition']
+            conditions_addition = conditions_addition and (v_r1[1] <= val or v_r2[1] <= val)
+
+        if 'restrain_condensation' in valid_cond.keys():
+            val = valid_cond['restrain_condensation']
+            conditions_condensation = conditions_condensation and (v_r1[1] <= val or v_r2[1] <= val)
+
+        if valid_cond.get('include_dimerization', False):
+            conditions_addition = conditions_addition or (v_r1 == v_r2)
+            conditions_condensation = conditions_condensation or (v_r1 == v_r2)
+
+        if 'force_stoich' in valid_cond.keys():
+            sel_stoich = valid_cond['force_stoich']
+            force_condition = v_p1[1] in sel_stoich
+
+        if 'proton_numb' in valid_cond.keys():
+            conditions_addition = conditions_addition and (proton_dif <= valid_cond['proton_numb'])
+            conditions_condensation = conditions_condensation and (proton_dif <= valid_cond['proton_numb'])
+
+        # Classification
+        if v_p2 == [0, 0, 0, 0]:
+            """Addition Type: +HxMoO4"""
+            reac_e = G_list[p1].graph['gibbs'] - (G_list[r1].graph['gibbs'] + G_list[r2].graph['gibbs'])
+            if (reac_e < threshold and conditions_addition):
+                return reac_e, 'A'
+        elif v_p2 == [0, 0, -1, -2]:
+            """Condensation Type: +HxMoO4 + H2O"""
+            reac_e = G_list[p1].graph['gibbs'] + 1 * water['H2O'] - (G_list[r1].graph['gibbs'] + G_list[r2].graph['gibbs'])
+            if (reac_e < threshold and conditions_condensation) or force_condition:
+                return reac_e, 'Cw1'
+        elif v_p2 == [0, 0, -2, -4]:
+            """Condensation Type: +HxMoO4 + 2 H2O"""
+            reac_e = G_list[p1].graph['gibbs'] + 2 * water['H2O'] - (G_list[r1].graph['gibbs'] + G_list[r2].graph['gibbs'])
+            if (reac_e < threshold and conditions_condensation) or force_condition:
+                return reac_e, 'Cw2'
+        elif v_p2 == [0, 0, -3, -6]:
+            """Condensation Type: +HxMoO4 + 3 H2O"""
+            reac_e = G_list[p1].graph['gibbs'] + 3 * water['H2O'] - (G_list[r1].graph['gibbs'] + G_list[r2].graph['gibbs'])
+            if (reac_e < threshold and conditions_condensation) or force_condition:
+                return reac_e, 'Cw3'
+        elif v_p2 == [0, 0, -4, -8]:
+            """Condensation Type: +HxMoO4 + 4 H2O"""
+            reac_e = G_list[p1].graph['gibbs'] + 4 * water['H2O'] - (G_list[r1].graph['gibbs'] + G_list[r2].graph['gibbs'])
+            if (reac_e < threshold and conditions_condensation) or force_condition:
+                return reac_e, 'Cw4'
+        else:
+            return None
+
+def Isomorphism_to_ChemicalReactions(G1_list, np_IM, water, reference, POM, threshold, cond_dict_raw):
     """
     Returns a list of chemical reactions by processing a list of isomorphisms (i.e.,
     Isomorphic Matrix). Heuristics are applied for this particular case, where only
@@ -349,15 +463,23 @@ def Isomorphism_to_ChemicalReactions(G1_list, np_IM, water, reference, POM, thre
         Reac_type: list of strings, combination of chemical reaction types.
 
     """
-    Z_dict = DataBase.Z_dict
-    allowed_systems = DataBase.allowed_IPA_systems
-    if POM in allowed_systems:
-        func = Reaction_Type_IPA
-        conditions_list = ["proton_numb", "restrain_addition", "restrain_condensation", "include_dimerization",
-                           "force_stoich", "adjust_protons_hydration"]
 
-    valid_cond = {cond: cond_val for cond, cond_val in cond_dict.items() if cond in conditions_list}
-    for cond in cond_dict.keys():
+    if "_" in POM:
+        func = Reaction_Type_HPA
+    else:
+        func = Reaction_Type_IPA
+    conditions_list = ["proton_numb", "restrain_addition", "restrain_condensation", "include_dimerization",
+                       "force_stoich", "adjust_protons_hydration"]
+
+    # Format internal conditions
+    valid_cond = {"proton_numb":int(cond_dict_raw["proton_numb"]),
+                 "restrain_addition":int(cond_dict_raw["restrain_addition"]),
+                 "restrain_condensation":int(cond_dict_raw["restrain_condensation"]),
+                 "include_dimerization":cond_dict_raw.getboolean("include_dimerization"),
+                 "adjust_protons_hydration":cond_dict_raw.getboolean("adjust_protons_hydration"),
+                 "force_stoich":[int(item) if item else None for item in cond_dict_raw["force_stoich"].split(",")]
+                 }
+    for cond in cond_dict_raw.keys():
         if cond not in conditions_list:
             print("Condition %s is not supported. Valid conditions are %s" % (cond, ",".join(conditions_list)))
 
@@ -369,6 +491,7 @@ def Isomorphism_to_ChemicalReactions(G1_list, np_IM, water, reference, POM, thre
     bimolec_comb = product(range(N_Graphs),repeat=3)
 
     # Flag hydrated species so they are not considered when applying proton_numb filter
+    Z_atoms = [Z_dict[symb] for symb in POM.split("_") + ['O', 'H']]
     hydrated_products = {}
     for i,j in monomolec_comb:
         obj = func(G1_list, POM, [i, j], water, threshold, valid_cond, hydrated_species=[])
@@ -380,8 +503,7 @@ def Isomorphism_to_ChemicalReactions(G1_list, np_IM, water, reference, POM, thre
             # get stoich to save hydrated species
             if reac_type in ["H2Ow1","H2Ow2"]:
                 Z_hyd = list(nx.get_node_attributes(G1_list[i], 'Z').values())
-                ZM, ZO, ZH = Z_dict[POM], Z_dict['O'], Z_dict['H']
-                v_hyd = [Z_hyd.count(z) for z in [ZM, ZO, ZH]]
+                v_hyd = [Z_hyd.count(z) for z in Z_atoms]
                 n_water = int(reac_type.replace("H2Ow",""))
                 hydrated_products[tuple(v_hyd)] = n_water
 
@@ -453,6 +575,7 @@ def _create_moleculargraph_withoutprotons(Gi):
     nodes, edges = Gi.nodes, Gi.edges
     z_dict = nx.get_node_attributes(Gi, 'Z')
     Gj = nx.Graph()
+    Gj.graph = Gi.graph
     for key in z_dict:
         Z = z_dict[key]
         if Z != 1: # filtering protons
@@ -524,10 +647,9 @@ def sort_by_type(Reac_idx, Reac_energy, Reac_type, compounds_set, unique_labels,
     
     Returns:
 
-        R_idx2: list of integers, combination of chemical reaction indexes
-        R_ene2: list of floats, combination of chemical reaction energies
-        R_type2: list of strings, combination of chemical reaction types
-
+        R_idx2: list of lists of integers, chemical reaction indexes organized by nuclearity
+        R_ene2: list of lists of floats, chemical reaction energies organized by nuclearity
+        R_type2: list of lists of strings, chemical reaction types organized by nuclearity
     """
 
     size = len(compounds_set)

@@ -6,16 +6,21 @@ import numpy as np
 # Local imports
 from pomsimulator.modules.text_module import *
 from pomsimulator.modules.graph_module import *
-
+from configparser import ConfigParser
 
 def main():
+
+    config_file = "../inputs/config_W.pomsim"
+    config = ConfigParser()
+    config.read(config_file)
     # 0) Define input variables #### ###################################################################################
 
     ### Paths
-
-    MOL_Folder =  "../inputs/W_Set_PBE_molfiles/"
-
-    Cores = 5  # cpu_count()  #number of cores for the simulation (caution!)
+    system = config["Preparation"]["POM_system"]
+    MOL_Folder = config["Preparation"]["mol_folder"]
+    output_path = config["Preparation"]["output_path"]
+    output_file =  output_path + "/np_IM_%s.csv"% system
+    Cores = 10 # cpu_count()  #number of cores for the simulation (caution!)
 
     ### Variables for the reaction network
 
@@ -24,7 +29,7 @@ def main():
 
     Print_logo()
     print("1) Get ADF outputs and generate parameters' output", "".join(["=" for _ in range(100)]))
-    mol_files = sorted([MOL_Folder + f for f in listdir(MOL_Folder) if isfile(join(MOL_Folder, f))])
+    mol_files = sorted([MOL_Folder + "/" +  f for f in listdir(MOL_Folder) if isfile(join(MOL_Folder, f))])
 
 
     # 2) Graph creation #############################################################################################
@@ -33,12 +38,12 @@ def main():
     G1_list = list()
     for idx, f in enumerate(mol_files):
         mol_dict = Mol_Parser_2(f)
+
         label = mol_dict['label']
         if label in ['H3O', 'H2O', 'H5O2', 'H4O2']:
             continue
         else:
             Gi = Molecule_to_Graph_from_molfile(idx, mol_dict["Z"], mol_dict["bonds"], mol_dict["label"])
-            #print(Gi,Gi.edges)
             G1_list.append(Gi)
 
     num_molec = len(G1_list)
@@ -49,7 +54,7 @@ def main():
 
     diagonal = Molecular_Graphs_to_Isomorphic_Matrix(G1_list, np.tri(num_molec, num_molec, 0), cores=Cores)
 
-    np.savetxt("np_IM.csv",diagonal, fmt = '%d',delimiter = ',')
+    np.savetxt(output_file,diagonal, fmt = '%d',delimiter = ',')
 
 if __name__ == '__main__':
     main()

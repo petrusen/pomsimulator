@@ -3,19 +3,29 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import matplotlib.colors
 import seaborn as sns
+
+
 sns.set_context('talk', font_scale=0.8)
 from matplotlib.lines import Line2D
 from matplotlib.patches import Rectangle
 import numpy as np
 
 #Local imports
-from pomsimulator.modules.text_module import Lab_to_stoich
+from pomsimulator.modules.text_module import Lab_to_stoich,Lab_to_Formula
 from pomsimulator.modules.stats_module import get_boxplot_data
 
 
 def Reaction_Map_3D_monometal(G1_list, all_reac_idx, all_reac_e, all_reac_type, stoich, All_models=True,ploting_details_dict=None):
-    """Converts a graph into a reaction map. It weights the edges as a function of the
-     reaction energy and uses colors to differentiate them. July 2019 Version."""
+    """
+    Converts a graph into a reaction map. It weights the edges as a function of the
+     reaction energy and uses colors to differentiate them. July 2019 Version.
+     Args:
+
+     Kwargs:
+
+     Return:
+
+     """
 
     print("Entering reaction map")
     G2_obj = nx.Graph()
@@ -32,10 +42,14 @@ def Reaction_Map_3D_monometal(G1_list, all_reac_idx, all_reac_e, all_reac_type, 
     for i in range(len(G1_list)):
         list_Z = list(nx.get_node_attributes(G1_list[i], 'Z').values())
         G2_obj.add_node(i)
-        y = (len(list_Z) - (list_Z.count(1) + list_Z.count(8))) + list_Z.count(8)
-        trivial_zaxis.append(stoich[i][0])
-        trivial_yaxis.append(stoich[i][2])
-        trivial_xaxis.append(0 + (stoich[i][0]/stoich[i][1]))
+        if len(stoich[i]) == 3:
+            trivial_zaxis.append(stoich[i][0])
+            trivial_yaxis.append(stoich[i][2])
+            trivial_xaxis.append(0 + (stoich[i][0]/stoich[i][1]))
+        elif len(stoich[i]) == 4:
+            trivial_zaxis.append(stoich[i][1])
+            trivial_yaxis.append(stoich[i][3])
+            trivial_xaxis.append(stoich[i][0] + (stoich[i][1]/stoich[i][2]))
     if All_models == True: #when functions is called, arguments can be all reactions or the reactions for 1 particular model.
         reac_idx = [item for sublist in all_reac_idx for item in sublist]
         reac_e = [item for sublist in all_reac_e for item in sublist]
@@ -107,15 +121,28 @@ def Reaction_Map_3D_monometal(G1_list, all_reac_idx, all_reac_e, all_reac_type, 
     return fig,axdict
 
 def Reaction_Map_2D_monometal(G1_list, all_reac_idx, all_reac_e, all_reac_type, stoich, All_models=True,ploting_details_dict=None):
+    """
+    Converts a graph into a reaction map. It weights the edges as a function of the
+     reaction energy and uses colors to differentiate them. July 2019 Version.
+     Args:
 
+     Kwargs:
+
+     Return:
+
+     """
     G2_obj = nx.Graph()
 
     colormap_name = ploting_details_dict['colormap']
     colormap = getattr(plt.cm,colormap_name)
     label_dict = {}
     for i in range(len(G1_list)):
-        xpos = stoich[i][0] / stoich[i][1] 
-        ypos = stoich[i][0]
+        if len(stoich[i]) == 3:
+            xpos = stoich[i][0] / stoich[i][1]
+            ypos = stoich[i][0]
+        elif len(stoich[i]) == 4:
+            xpos = stoich[i][0] + stoich[i][1]/ stoich[i][2]
+            ypos = stoich[i][1]
         G2_obj.add_node(i,label=G1_list[i].graph["String"],stoich=stoich[i],xpos=xpos,ypos=ypos)
         label_dict[i] = G1_list[i].graph["String"]
         
@@ -168,7 +195,27 @@ def Reaction_Map_2D_monometal(G1_list, all_reac_idx, all_reac_e, all_reac_type, 
     return fig,ax
 
 def plot_speciation(conc_arr, labels, pH, c0, plot_list=None,ax=None,err_arr=None, col_dict=None,formula_dict=None,
-                    raw_concentrations=False):
+                    raw_concentrations=False,m_idx=0):
+    '''Plotting function for speciation diagrams in IPA and HPA systems, supporting the plotting of percentages of different
+    species (X and M for XM bimetallic species), raw concentration plots, and error bands
+    Args:
+        conc_arr: NumPy array of size Nspc x NpH, containing concentration values. With statistical procedures, is often the mean of the
+        Nspc x NpH x Nmodel array resulting from speciation calculation.
+        labels: list of strings, labels of the species in the diagram.
+        pH: array of floats, pH range to compute speciation.
+        c0: float, total concentration of the target metal or heteroatom.
+        plot_list: list of strings, labels of the species to be plotted. If None, all labels are plotted.
+        ax: Matplotlib.Axis object where the diagram will be drawn. If None, a new figure and axis are instantiated.
+        err_arr: array of size Nspc x NpH containing the values used to plot error bands, considering a symmetric +- error. Usually,
+        the standard deviation of the Nspc x NpH x Nmodel array is used.
+        col_dict: dictionary mapping labels to color specifications. If None, tab10 will be used.
+        formula_dict: dictionary mapping labels to formatted formula specifications (e.g. generated with Lab_to_Formula). If None,
+        raw labels are used for the legend.
+        raw_concentrations: boolean. If True, concentrations (in mol/L) will be plotted, without computing percentages for the target element.
+        m_idx: integer. Marks the element for which percentages are computed: in XxMmOn HPA species, 0 -> X, 1 -> M.
+    Returns:
+        ax: Matplotlib.Axis object with the corresponding plot
+    '''
     alpha = 0.10
     linewidth = 2.5
     v_ctt2 = [Lab_to_stoich(lab) for lab in labels]
@@ -188,7 +235,7 @@ def plot_speciation(conc_arr, labels, pH, c0, plot_list=None,ax=None,err_arr=Non
             continue
         if formula_dict:
             Lab = formula_dict[Lab]
-        multiplier = v_ctt2[i][0] / c0 * 100
+        multiplier = v_ctt2[i][m_idx] / c0 * 100
         if raw_concentrations:
             multiplier = 1
         percent_concent = conc_arr[i, :] * multiplier
@@ -198,8 +245,9 @@ def plot_speciation(conc_arr, labels, pH, c0, plot_list=None,ax=None,err_arr=Non
             style = "--"
 
         ax.plot(pH, percent_concent, style, linewidth=linewidth, label=Lab, color=colors[j])
-        if err_arr != None:
-            percent_error = err_arr[i, :] * v_ctt2[i][0] / c0
+
+        if err_arr is not None:
+            percent_error = err_arr[i, :] * multiplier
             ax.fill_between(pH, percent_concent + percent_error, percent_concent - percent_error,
                             alpha=alpha, color=colors[j])
         j += 1
@@ -209,38 +257,72 @@ def plot_speciation(conc_arr, labels, pH, c0, plot_list=None,ax=None,err_arr=Non
 
     return ax
 
-def plot_cluster_means(SuperArr,ExpArr,groups,target_shape,speciation_labels,pH,c0,col_dict=None,add_bands=False,
-                       plot_list=None,exp_pH = None):
 
+def plot_cluster_means(SuperArr,groups,speciation_labels,pH,c0,
+                       col_dict=None,plot_list=None,target_shape=None,m_idx=0):
+    '''Convenience function to plot the average speciation for all clusters generated by the SM clusterization pipeline
+    Args:
+        SuperArr: 3D NumPy array of size Nspc x NpH x Nmodels containing concentration values.
+        groups: list of lists of integers, containing indices of the speciation models pertaining to each cluster
+        speciation_labels: list of strings, labels of the species for which speciation has been solved
+        pH: list of floats, pH values.
+        c0: float or list of floats, initial concentration(s) of the reference species.
+        col_dict: dictionary mapping species labels to colors
+        plot_list: list of strings, species to be included in the plot
+        target_shape: tuple of integers, shape of the plot layout. If None, it is decided automatically
+        m_idx: integer. Marks the element for which percentages are computed: in XxMmOn HPA species, 0 -> X, 1 -> M.
+    Returns:
+        fig,axd: Matplotlib figure and dictionary of axis for the figure
+    '''
+    if not target_shape:
+        n_groups = len(groups)
+        m = int(np.ceil(np.sqrt(n_groups)))
+        if (m*(m-1)) >= n_groups:
+            target_shape = (m,m-1)
+        else:
+            target_shape = (m,m)
+    speciation_labels = list(speciation_labels)
     nm = target_shape[0] * target_shape[1]
+    exceed_plots = nm - n_groups
     mosaic = np.arange(0, nm).reshape(target_shape)
     # Add another row, for the axis
     mosaic = np.vstack([mosaic, [nm] * target_shape[1]])
     fig = plt.figure(constrained_layout=True, figsize=(target_shape[1]*3, target_shape[0]*2.5))
-    axd = fig.subplot_mosaic(mosaic, gridspec_kw={"height_ratios": [1] * target_shape[0] + [0.1]}, sharey=True)
+    axd = fig.subplot_mosaic(mosaic, gridspec_kw={"height_ratios": [1] * target_shape[0] + [0.25]}, sharey=True)
     if not plot_list:
         plot_list = speciation_labels
-    if exp_pH is None:
-        exp_pH = pH
-    plot_speciation(ExpArr,speciation_labels,exp_pH,c0,plot_list,axd[0],err_arr=None,col_dict=col_dict)
-
-    axd[0].set_title("Experimental")
     for ii, grp in enumerate(groups):
         MiniArr = SuperArr[:, :, np.array(grp)]
         means = np.mean(MiniArr, axis=2)
         stds = np.std(MiniArr, axis=2)
-        plot_speciation(means,speciation_labels,pH,c0,plot_list,ax=axd[ii+1],err_arr=stds,col_dict=col_dict)
-        axd[ii + 1].set_title("Cluster %d (%d)" % (ii, len(grp)))
+        plot_speciation(means,speciation_labels,pH,c0,plot_list,ax=axd[ii],err_arr=stds,col_dict=col_dict,m_idx=m_idx)
+        axd[ii].set_title("Cluster %d (%d)" % (ii, len(grp)))
+    for jj in range(ii+1,nm):
+        axd[jj].axis("off")
 
     handles, labels = axd[0].get_legend_handles_labels()
-    axd[nm].legend(handles, labels, ncol=4, loc="center")
+    labels = [Lab_to_Formula(lab) for lab in labels]
+    axd[nm].legend(handles, labels, ncol=4, loc="center",fontsize=8)
     axd[nm].axis("off")
     return fig,axd
 
 def plot_boxplot_plot(x_vector, y_position, box_color, box_height, Label=None, ax=None,
                       remove_outliers=False):
     '''Function to easily plot box-and-whisker plots at a requested y-position,
-    using data as generated by get_boxplot_data from stats_module'''
+    using data as generated by get_boxplot_data from stats_module.
+    Args:
+        x_vector: NumPy array of floats, containing values to be used for the boxplot
+        y_position: float, vertical position where the boxplot is placed
+        box_color: string, hex code for the color of the boxplot (or other color specification supported by matplotlib)
+        box_height: float, height of the box
+        Label: string, label to tag the boxplot
+        ax: Matplotlib axis to place the boxplots at
+        remove_outliers: boolean, if True, remove the outliers and regenerate the box-and-whisker plot
+    Returns:
+        ax: Matplotlib axis
+        boxplot: dictionary containing boxplot parameters: quartiles, median, IQR,
+                 whisker limits, no. of points in the box, no. of points in the whiskers and no. of outliers
+    '''
     boxplot = get_boxplot_data(x_vector)
 
     if not ax:
@@ -286,3 +368,79 @@ def plot_boxplot_plot(x_vector, y_position, box_color, box_height, Label=None, a
 
     return ax, boxplot
 
+def plot_best_mods(lgkf_df,sorted_params_df,Kexp,plot_shape=(2,2)):
+    '''Auxiliary function to simplify the generation of best speciation models,
+    using the information from regressions in lgKf_scaling.
+    Args:
+        lgkf_df. Pandas DataFrame containing lgkf values for a set of speciation models.
+        sorted_params_df. Pandas DataFrame with slope, intercept, regression coefficient, standard error and rmse for each model
+        which has been sorted by a parameter of interest (e.g. by rmse to plot best models)
+        Kexp. NumPy array with experimental values for rate constants.
+        plot_shape. Tuple of integers, marking the no. of panes in the plot.
+    Returns:
+        fig,ax. Matplotlib Figure and Axis objects.
+    '''
+    fig, axes = plt.subplots(plot_shape[0], plot_shape[1], sharex=True, sharey=True)
+    ax = axes.flatten()
+    fig.set_size_inches(4*plot_shape[1],4*plot_shape[0])
+    orange = '#e86e00ff'
+    blue = '#202252ff'
+    Nplots = plot_shape[0]*plot_shape[1]
+    for ii in range(Nplots):
+        mod_idx = sorted_params_df.index[ii]
+        lgkf = lgkf_df.loc[mod_idx,:]
+        pars = sorted_params_df.iloc[ii,:]
+        m = pars.loc["m"]
+        b = pars.loc["b"]
+        r2 = (pars.loc["r"])**2
+        rmse = pars.loc["rmse"]
+        lgkf_scaled = lgkf * m + b
+    ##############################################FIGURA 0,0 ###############################################################
+        ax[ii].set_ylabel("Experimental Constants " + "$(pK_{f}^{Exp})$", fontsize=12)
+        ax[ii].set_xlabel("DFT Constants " + "$(pK_{f}^{DFT})$", fontsize=12)
+        ax[ii].plot(lgkf,lgkf_scaled,'-',color=orange)
+        ax[ii].plot(lgkf, Kexp, '.', markersize=11, color=blue)
+        ax[ii].text(160, 60, "y=%.2fx+(%.2f) and r=%.2f"%(m,b,r2), fontsize=10)
+        ax[ii].text(140, 140, "RMSE = %.2f"%rmse, fontsize=10)
+    plt.tight_layout()
+    return fig,ax
+
+def get_color_phase_diagram(phase_diagram,speciation_labels,col_dict):
+    '''Generates an array of RGBA colors to plot phase diagrams according to a color dictionary
+    Args:
+        phase_diagram: Nvals x NpH array, containing integer indices for the major species at each (C,pH) or (Ratio,pH)
+                       point, as produced by phase_diagram_IPA() or phase_diagram_HPA()
+
+        speciation_labels: list of strings, labels of the species for which speciation has been solved
+        col_dict: dictionary mapping species labels to colors
+    Returns:
+        color_array: Nvals x NpH x 4 array containing final RGBA colors to be directly plotted by plt.imshow()
+        legend_elements: list of Line2D elements with the colors and labels of the final legend
+    '''
+    color_list = np.unique(phase_diagram).astype(int)
+
+    if not col_dict:
+        nc = len(speciation_labels)
+        sample = np.linspace(0,1,nc)
+        colors = plt.cm.YlGnBu_r(sample)
+        idx_color_dict = {idx:colors[idx] for idx, label in enumerate(speciation_labels)}
+        legend_elements = [Line2D([0],[0],marker="o",color=colors[idx],
+                                  label=Lab_to_Formula(speciation_labels[idx]),markerfacecolor=colors[idx],markersize=10)
+                           for idx in color_list]
+    else:
+        idx_color_dict = {idx:col_dict[label] for idx, label in enumerate(speciation_labels)}
+        legend_elements = [Line2D([0],[0],marker="o",color=col_dict[speciation_labels[idx]],
+                                  label=Lab_to_Formula(speciation_labels[idx]),
+                                  markerfacecolor=col_dict[speciation_labels[idx]],markersize=10)
+                           for idx in color_list]
+
+
+    rgba_color_dict = {idx: matplotlib.colors.to_rgba(col) for idx, col in idx_color_dict.items()}
+
+    array_tuple = np.vectorize(rgba_color_dict.get)(phase_diagram)
+    d1,d2 = phase_diagram.shape
+    color_array = np.zeros((d1,d2, 4))
+    for jj, layer in enumerate(array_tuple):
+        color_array[:, :, jj] = layer
+
+    return color_array,legend_elements
