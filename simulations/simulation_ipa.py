@@ -3,7 +3,7 @@ from os import listdir
 from os.path import isfile, join
 import time
 import random
-import pkg_resources
+import pkg_resources as pkgr
 # Local imports
 from pomsimulator.modules.text_module import *
 from pomsimulator.modules.DataBase import *
@@ -17,24 +17,21 @@ os.environ['OMP_NUM_THREADS'] = '1'
 def main():
     Print_logo()
     ######################### User parameters ##############################################
-    config_file = pkg_resources.resource_filename(
-            __name__, "../inputs/config_W.pomsim")
+    config_file = pkgr.resource_filename(__name__, "../inputs/config_W.pomsim")
     config = ConfigParser()
     config.read(config_file)
     # Input/output files
 
     system = config["Preparation"]["POM_system"]
-    ADF_folder = config["Preparation"]["adf_inputs_dir"]
-    mol_folder = config["Preparation"]["mol_folder"]
-    output_path = config["Preparation"]["output_path"]
+    ADF_folder = pkgr.resource_filename(__name__, config["Preparation"]["adf_inputs_dir"])
+    mol_folder = pkgr.resource_filename(__name__, config["Preparation"]["mol_folder"])
+    output_path = pkgr.resource_filename(__name__, config["Preparation"]["output_path"])
 
-
-    isomorphism_matrix = output_path + "/np_IM.csv"
-    formation_constants_file = output_path + "/logkf_%s.csv" % system
-    CRN_file = output_path + "/CRN_%s.txt" % system
-    labels_file = output_path + "/labels_%s.txt" % system
-    simulation_file = output_path + "/simulation_parameters_%s.txt" % system
-
+    isomorphism_matrix = pkgr.resource_filename(__name__, output_path + "/np_IM.csv")
+    formation_constants_file = pkgr.resource_filename(__name__, output_path + "/logkf_%s.csv" % system)
+    CRN_file = pkgr.resource_filename(__name__, output_path + "/CRN_%s.txt" % system)
+    labels_file = pkgr.resource_filename(__name__, output_path + "/labels_%s.txt" % system)
+    simulation_file = pkgr.resource_filename(__name__, output_path + "/simulation_parameters_%s.txt" % system)
 
     # Operation parameters -> all from config file
     cores = int(config["Simulation"]["cores"])
