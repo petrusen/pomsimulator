@@ -64,6 +64,7 @@ def main():
     G1_list, G1_labels, graphs_info = generate_graphs(adf_files, ref_compound, system)
     with open(labels_file,"w") as flab:
         flab.write("\n".join(G1_labels))
+
     # 3) Isomorphism matrix generation ##############################################################################
 
     print("3) Isomorphism matrix and reactions generation")

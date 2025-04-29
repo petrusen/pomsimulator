@@ -111,7 +111,6 @@ def main():
     mod_idx_vals = models_sampling(sample_type,number_models,sample_perc=sample_perc)
     data = compute_lgkf_loop(R_idx,R_ene,R_type,mod_idx_vals,number_models,lgkf_params,batch_size=batch_size,cores=cores)
 
-
     # 5) Writing Output #############################################################################################
 
     print("5) Create Output File")
