@@ -25,7 +25,7 @@ def main():
     conc_arr,index_arr,C_ref,pH,speciation_labels = load_array(npz_file)
     C0 = get_C0(C_ref,m_idx=m_idx)
     conc_means = np.mean(conc_arr,axis=2)
-    plot_speciation(conc_means,speciation_labels,pH,C0,None,ax=ax,m_idx=m_idx,col_dict=Col_Dict_PMo)
+    plot_speciation(conc_means,speciation_labels,pH,C0,None,ax=ax,m_idx=m_idx)
 
     handle,labels = ax.get_legend_handles_labels()
     ax.legend(handle,[Lab_to_Formula(lab) for lab in labels])

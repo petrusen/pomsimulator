@@ -41,7 +41,7 @@ step_pH = 0.1
 C_X = 0.01
 C_M = 0.12
 cores = 2
-batch_size = 1
+batch_size = 50
 m_idx = 0
 npz_file = Array_P_Mo.npz
 # Phase diagram
