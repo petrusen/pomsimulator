@@ -8,8 +8,8 @@ cores = 15
 [Simulation]
 kf_file = logkf_W.txt
 CRN_file = W_CRN.txt
-cores = 20
-batch_size = 40
+cores = 10
+batch_size = 10
 sample_perc = 1
 sample_type = random
 use_isomorphism = True

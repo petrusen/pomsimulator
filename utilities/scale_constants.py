@@ -10,7 +10,7 @@ from pomsimulator.modules.DataBase import *
 
 
 def main():
-    config_file = pkgr.resource_filename(__name__, "../inputs/config_PMo.pomsim")
+    config_file = pkgr.resource_filename(__name__, "../inputs/config_W.pomsim")
     config = ConfigParser()
     config.read(config_file)
 

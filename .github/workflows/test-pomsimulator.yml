@@ -37,7 +37,9 @@ jobs:
         git checkout quick-fixes
         python -m pip install -v .  # -v for verbose output
         echo "Fully installed"  # Use echo to print a message
+        python utilities/compute_isomorphism.py
         python simulations/simulation_ipa.py
+        python utilities/scale_constants.py
         cd ../../
         rm -rf deleteme
 
