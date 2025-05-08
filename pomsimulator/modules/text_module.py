@@ -129,7 +129,7 @@ def write_molfile(path, verbose=True, limit_bonds=False, **kwargs):
                 valid_bonds.append(zz)
         Bonds = valid_bonds
 
-    with open(path + Label + ".mol", 'w') as outfile:
+    with open(path + '/' +Label + ".mol", 'w') as outfile:
         outfile.write(" \n") # Header - Title
         outfile.write(" Created with POMSimulator \n") # Header - Original Program
         outfile.write("\n") # Header - Black line

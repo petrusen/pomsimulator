@@ -1,27 +1,29 @@
 # Standard library imports
-from os import listdir
+from os import listdir,makedirs
 from os.path import isfile, join
+from configparser import ConfigParser
+import pkg_resources as pkgr
+#Third-party imports
 import numpy as np
-
 # Local imports
 from pomsimulator.modules.text_module import *
 from pomsimulator.modules.graph_module import *
-from configparser import ConfigParser
+
 
 def main():
 
-    config_file = "../inputs/config_W.pomsim"
+    config_file = pkgr.resource_filename(__name__, "../inputs/config_W.pomsim")
     config = ConfigParser()
     config.read(config_file)
     # 0) Define input variables #### ###################################################################################
 
     ### Paths
     system = config["Preparation"]["POM_system"]
-    MOL_Folder = config["Preparation"]["mol_folder"]
-    output_path = config["Preparation"]["output_path"]
+    mol_folder = pkgr.resource_filename(__name__, config["Preparation"]["mol_folder"])
+    output_path = pkgr.resource_filename(__name__, config["Preparation"]["output_path"])
     output_file =  output_path + "/np_IM_%s.csv"% system
-    Cores = 10 # cpu_count()  #number of cores for the simulation (caution!)
-
+    Cores = int(config["Isomorphism"]["cores"]) #number of cores for the subgraph isomorphism calculation (caution!)
+    makedirs(output_path, exist_ok=True)
     ### Variables for the reaction network
 
 
@@ -29,7 +31,7 @@ def main():
 
     Print_logo()
     print("1) Get ADF outputs and generate parameters' output", "".join(["=" for _ in range(100)]))
-    mol_files = sorted([MOL_Folder + "/" +  f for f in listdir(MOL_Folder) if isfile(join(MOL_Folder, f))])
+    mol_files = sorted([mol_folder + "/" +  f for f in listdir(mol_folder) if isfile(join(mol_folder, f))])
 
 
     # 2) Graph creation #############################################################################################

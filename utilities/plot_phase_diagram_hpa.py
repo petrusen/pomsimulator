@@ -1,22 +1,27 @@
-# Local imports
+#Standard library imports
+import re
+from configparser import ConfigParser
+import pkg_resources as pkgr
+#Third-party imports
 import matplotlib.pyplot as plt
+# Local imports
 from pomsimulator.modules.helper_module import phase_diagram_HPA
 from pomsimulator.modules.DataBase import *
 from pomsimulator.modules.plotting_module import get_color_phase_diagram
 from pomsimulator.modules.text_module import Lab_to_stoich,Print_logo
-import re
-from configparser import ConfigParser
+
 
 def main():
     Print_logo()
-    config_file = "../inputs/config_PMo.pomsim"
+    config_file = pkgr.resource_filename(__name__, "../inputs/config_PMo.pomsim")
     config = ConfigParser()
     config.read(config_file)
     ###########################PARAMETERS############################################
 
-    output_path = config["Preparation"]["output_path"]
+    output_path = pkgr.resource_filename(__name__, config["Preparation"]["output_path"])
     system = config["Preparation"]["POM_system"]
     npz_info_file = output_path + "/npz_info_%s.dat" % system
+
     output_img = "phase_diagram_%s.png" % system
 
     speciation_labels = config["Speciation"]["speciation_labels"].split(",")
@@ -31,6 +36,7 @@ def main():
     # Load the array with all speciations
     with open(npz_info_file,"r") as infile:
         npz_paths = [line.strip() for line in infile.readlines()]
+
     phase_diagram_X,phase_diagram_M,Ratio_list,pH = phase_diagram_HPA(npz_paths,v_ctt)
 
     ####################  PLOTTING ######################
@@ -57,6 +63,6 @@ def main():
     plt.savefig(output_img_path,dpi=300)
 
     plt.show()
-
+    print("Normal termination")
 if __name__ == '__main__':
     main()

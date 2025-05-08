@@ -1,0 +1,50 @@
+name: Test pomsimulator on multiple Python versions
+
+on:
+  push:
+    branches: [ main, quick-fixes ]
+  pull_request:
+    branches: [ main, quick-fixes ]
+
+jobs:
+  test:
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install dependencies
+      run: |
+        python -m venv deleteme
+        source deleteme/bin/activate
+
+        # Remove existing pomsimulator directory if it exists
+        if [ -d "pomsimulator" ]; then
+          rm -rf pomsimulator
+        fi
+
+        git clone https://github.com/petrusen/pomsimulator.git
+        cd pomsimulator
+        git checkout quick-fixes
+        python -m pip install -v .  # -v for verbose output
+        echo "Fully installed"  # Use echo to print a message
+        python utilities/compute_isomorphism.py
+        python simulations/simulation_ipa.py
+        python utilities/scale_constants.py
+        cd ../../
+        rm -rf deleteme
+
+    - name: Clean up
+      run: |
+        # Any additional clean-up can be done here if needed
+        echo "Finished testing with Python ${{ matrix.python-version }}"
+

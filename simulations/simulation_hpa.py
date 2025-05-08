@@ -26,7 +26,7 @@ def main():
     ADF_folder = pkgr.resource_filename(__name__, config["Preparation"]["adf_inputs_dir"])
     mol_folder = pkgr.resource_filename(__name__, config["Preparation"]["mol_folder"])
     output_path = pkgr.resource_filename(__name__, config["Preparation"]["output_path"])
-
+    os.makedirs(output_path,exist_ok=True)
     formation_constants_file = output_path + "/logkf_%s.csv" % system
     CRN_file = output_path + "/CRN_%s.txt" % system
     labels_file = output_path + "/labels_%s.txt" % system

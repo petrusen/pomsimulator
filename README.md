@@ -29,25 +29,22 @@ plotting this data.
 
 ## Installation
 
-POMSimulator can be installed via git and pip (see below).
+POMSimulator can be installed via git and pip (see below). Tested and confirmed compatibility with Python 3.8–3.12 in Ubuntu 22.04. 
 
 ```console
 git clone <pomsimulator-repo>
 cd pomsimulator
-pip install -e .
+pip install -e . # we recommend installing it in editable mode
 ```
-
-To ensure that the installation has been successful, we recommend to run the test `python simulation_test.py` from inside the Simulations folder. 
 
 ## Quickstart  
 
-
-The main simulation file of POMSimulator is stored in `./Simulations`. The code reads the quantum mechanical outputs in `./Inputs` and generates two
-output files in the folder `./Outputs`. These two files correspond to the chemical reaction network, and the list predicted of formation constants. Hitherto, the code parses the input data from the calculations of the SCM ADF 2019 package. Nonetheless, the input data can also be introduced separately. 
+The main simulation file of POMSimulator is stored in `./simulations`. The code reads the quantum mechanical outputs in `./inputs` and generates two
+output files in the folder `./outputs`. These two files correspond to the chemical reaction network, and the list predicted of formation constants. Hitherto, the code parses the input data from the calculations of the SCM ADF 2019 package. Nonetheless, the input data can also be introduced separately. 
 
 The run the code, the user has to set the simulation.py file, and the execute it. For example: `python simulation_tungstates.py`. 
 
-With the obtained results, the package offers a set of tools, in the folder `./Utilities`, for analysing and plotting the results.
+With the obtained results, the package offers a set of tools, in the folder `./utilities`, for analysing and plotting the results.
 Before plotting the speciation and/or phase diagrams, it is necessary to linearly scale the predicted formation constants. This is done with 
 `scale_constants.py`. The scaling parameters are stored as a text file (`scaling_params.pomsim`), and then employed by `speciation_diagram.py`.
 

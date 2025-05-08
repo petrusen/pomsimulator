@@ -1,20 +1,22 @@
 # Standard library imports
+from configparser import ConfigParser
+import pkg_resources as pkgr
+# Third-party imports
 import numpy as np
 import matplotlib.pyplot as plt
-
 # Local imports
 from pomsimulator.modules.plotting_module import plot_speciation
 from pomsimulator.modules.helper_module import load_array,get_C0
 from pomsimulator.modules.text_module import Print_logo, Lab_to_Formula
 from pomsimulator.modules.DataBase import Col_Dict_PMo
-from configparser import ConfigParser
+
 
 def main():
     Print_logo()
-    config_file = "../inputs/config_PMo.pomsim"
+    config_file = pkgr.resource_filename(__name__, "../inputs/config_W.pomsim")
     config = ConfigParser()
     config.read(config_file)
-    output_path = config["Preparation"]["output_path"]
+    output_path = pkgr.resource_filename(__name__, config["Preparation"]["output_path"])
     system = config["Preparation"]["POM_system"]
     npz_file = output_path + "/" + config["Speciation"]["npz_file"]
     m_idx = int(config["Speciation"]["m_idx"])
@@ -32,6 +34,6 @@ def main():
 
     plt.savefig(output_img,dpi=300)
     plt.show()
-
+    print("Normal Termination")
 if __name__ == '__main__':
     main()

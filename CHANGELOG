@@ -1,5 +1,23 @@
 Changelog
 =========
+Release 2.0.1
+-------------
+
+Implemented changes:
+
+General:
+- Added a GitHub Actions workflow to test compatibility with multiple Python versions (3.8–3.12) on an Ubuntu 22 machine.
+- The outputs folder is now automatically created when running simulation scripts if it does not already exist. compute_isomorphism.py also ensures the folder is created when needed.
+- Included an __init__.py file in the modules/ folder to ensure the package can be installed via pip install, not only in editable mode as in the previous version.
+- Updated path management to allow scripts to be run from any directory. The pkg_resources library has been added for this purpose and implemented in all simulation files (simulation_ipa.py and simulation_hpa.py) and utility scripts.
+- Updated the README file with the Python versions.
+
+Test workflow checks the installation process and the execution of the following scripts:
+- simulation_ipa.py
+- compute_isomorphism.py
+- simulation_hpa.py
+- scale_constants.py
+
 
 Release 2.0.0
 -------------

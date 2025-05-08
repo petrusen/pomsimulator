@@ -1,5 +1,7 @@
+#Standard library imports
 from configparser import ConfigParser
-
+import pkg_resources as pkgr
+#Local imports
 from pomsimulator.modules.helper_module import load_array, get_C0
 from pomsimulator.modules.stats_module import *
 from pomsimulator.modules.text_module import Print_logo
@@ -7,11 +9,11 @@ from pomsimulator.modules.text_module import Print_logo
 
 def main():
     Print_logo()
-    config_file = "../inputs/config_PMo.pomsim"
+    config_file = pkgr.resource_filename(__name__, "../inputs/config_PMo.pomsim")
     config = ConfigParser()
     config.read(config_file)
 
-    output_path = config["Preparation"]["output_path"]
+    output_path = pkgr.resource_filename(__name__, config["Preparation"]["output_path"])
     system = config["Preparation"]["POM_system"]
 
     clust_dir = output_path + "/" + config["Clustering"]["cluster_dir"]
@@ -54,5 +56,8 @@ def main():
     model_idxs = [IndexArr[k] for k in sorted(group_indices)]
     with open(clust_dir + "/sel_model_indices.pomsim","w") as fmod:
         fmod.write("\n".join([str(idx) for idx in model_idxs]))
+
+    print("Selected model indices saved to ", clust_dir)
+    print("Normal termination")
 if __name__ == "__main__":
     main()

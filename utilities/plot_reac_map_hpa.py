@@ -1,10 +1,11 @@
 # Standard library imports
 from os import listdir
 from os.path import isfile, join
+import time
+import pkg_resources as pkgr
+#Third-party imports
 import numpy as np
 from itertools import product
-import time
-
 # Local imports
 from pomsimulator.modules.text_module import *
 from pomsimulator.modules.graph_module import *
@@ -16,13 +17,13 @@ from configparser import ConfigParser
 def main():
     Print_logo()
     ######################### User parameters ##############################################
-    config_file = "../inputs/config_PMo.pomsim"
+    config_file = pkgr.resource_filename(__name__, "../inputs/config_PMo.pomsim")
     config = ConfigParser()
     config.read(config_file)
     # Input/output files
     system = config["Preparation"]["POM_system"]
-    ADF_folder = config["Preparation"]["adf_inputs_dir"]
-    output_path = config["Preparation"]["output_path"]
+    ADF_folder = pkgr.resource_filename(__name__, config["Preparation"]["adf_inputs_dir"])
+    output_path = pkgr.resource_filename(__name__, config["Preparation"]["output_path"])
 
     isomorphism_matrix = output_path + "/np_IM_%s.csv" % system
     # Chemical parameters
@@ -83,5 +84,6 @@ def main():
                            plotting_dict,plot_dict_details)
     plt.savefig(output_path + "/Reaction_map_%s.png"%system,dpi=300)
     plt.show()
+    print("Normal termination")
 if __name__ == '__main__':
     main()

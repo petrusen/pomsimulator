@@ -1,26 +1,31 @@
+#Standard library imports
 import sys
-import numpy as np
-import matplotlib.pyplot as plt
 import os
 import re
-import pandas as pd
 import time
+import pkg_resources as pkgr
+from configparser import ConfigParser
+#Third-party imports
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
+#Local imports
 from pomsimulator.modules.stats_module import *
 from pomsimulator.modules.DataBase import *
 from pomsimulator.modules.text_module import Print_logo
 from pomsimulator.modules.helper_module import load_array,get_C0
 from pomsimulator.modules.plotting_module import plot_cluster_means
-from configparser import ConfigParser
+
 
 def main():
     Print_logo()
 
     ############## INPUT VARIABLES ######################
-    config_file = "../inputs/config_PMo.pomsim"
+    config_file = pkgr.resource_filename(__name__, "../inputs/config_PMo.pomsim")
     config = ConfigParser()
     config.read(config_file)
 
-    output_path = config["Preparation"]["output_path"]
+    output_path = pkgr.resource_filename(__name__, config["Preparation"]["output_path"])
     system = config["Preparation"]["POM_system"]
 
     path_to_npz = output_path + "/" + config["Clustering"]["npz_cluster_file"]
@@ -33,7 +38,7 @@ def main():
     normalize = config["Clustering"].getboolean("normalize_feats")
     feats_list = config["Clustering"]["feats_list"].split(",")
 
-    col_dict = Col_Dict_PMo
+    col_dict = None
     plot_list = None
 
     # 1) Load Array
@@ -106,6 +111,6 @@ def main():
                                     col_dict=col_dict,plot_list=plot_list,
                                     target_shape=None,m_idx=ii)
         plt.savefig(clust_path + '/clusters_speciation_idx%d.svg' % ii ,dpi=300,transparent=False)
-
+    print("Normal termination")
 if __name__ == "__main__":
     main()
