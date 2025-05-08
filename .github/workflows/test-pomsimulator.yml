@@ -28,21 +28,13 @@ jobs:
     - name: Upgrade pip
       run: python -m pip install --upgrade pip
 
-    # Install dependencies
+    # Install dependencies from setup.py
     - name: Install dependencies
-      run: |
-        python -m pip install -r requirements.txt --timeout 1800 --verbose  # Set a longer timeout and verbose logging
-      timeout-minutes: 30  # Increase the timeout for this step if necessary
+      run: python -m pip install . --verbose  # Install your package and dependencies
 
-    # Fix permissions (in case of issues with f2py and fonttools)
-    - name: Fix permissions
-      run: |
-        chmod -R 777 /opt/hostedtoolcache/Python/${{ matrix.python-version }}/x64/bin/
-
-    # Reinstall pomsimulator with forced reinstallation and verbosity
+    # Reinstall pomsimulator with forced reinstallation and verbosity (if needed)
     - name: Reinstall pomsimulator
-      run: |
-        python -m pip install --force-reinstall pomsimulator --verbose
+      run: python -m pip install --force-reinstall pomsimulator --verbose
 
     # Check installed packages
     - name: Check installed packages
