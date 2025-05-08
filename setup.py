@@ -1,6 +1,6 @@
 from setuptools import setup,find_packages
 setup(name='pomsimulator',
-      version='2.0',
+      version='2.0.1',
       author="Enric Petrus, Jordi Buils, Diego Garay-Ruiz",
       author_email="enricpz@icloud.com, jbuils@iciq.es, dgaray@iciq.es",
       description="Simulate the aqueous speciation of polyoxometalates (POMs) from quantum mechanical results",
