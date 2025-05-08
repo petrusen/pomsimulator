@@ -1,16 +1,18 @@
 # Standard library imports
-import numpy as np
 import os
 from multiprocessing import Pool, cpu_count
 import time
+from configparser import ConfigParser
+import pkg_resources as pkgr
+#Third-party imports
 from itertools import repeat
-
+import numpy as np
 # Local imports
 from pomsimulator.modules.text_module import Print_logo,Read_csv,Lab_to_stoich,write_speciationparameters
 from pomsimulator.modules.msce_module import Speciation_from_Formation_singlemetal,starmap_with_kwargs
 from pomsimulator.modules.DataBase import *
 from pomsimulator.modules.helper_module import *
-from configparser import ConfigParser
+
 
 os.environ['MKL_NUM_THREADS'] = '1'
 os.environ['NUMEXPR_NUM_THREADS'] = '1'
@@ -19,11 +21,11 @@ os.environ['OMP_NUM_THREADS'] = '1'
 
 def main():
     Print_logo()
-    config_file = "../inputs/config_W.pomsim"
+    config_file = pkgr.resource_filename(__name__, "../inputs/config_W.pomsim")
     config = ConfigParser()
     config.read(config_file)
     ######################### User parameters ##############################################
-    output_path = config["Preparation"]["output_path"]
+    output_path = pkgr.resource_filename(__name__, config["Preparation"]["output_path"])
     system = config["Preparation"]["POM_system"]
     # Labels and species
     speciation_labels = config["Speciation"]["speciation_labels"].split(",")
@@ -70,6 +72,6 @@ def main():
 
     FilteredSuperArr,IndexArr = compute_speciation_loop(lgkf_df, speciation_labels, pH, C, ref_stoich, path_to_output, batch_size, cores)
 
-
+    print("Normal termination")
 if __name__ == '__main__':
     main()

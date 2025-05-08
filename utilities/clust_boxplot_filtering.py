@@ -1,21 +1,28 @@
+#Standard library imports
+import os
+from configparser import ConfigParser
+import pkg_resources as pkgr
+#Third-party imports
 import numpy as np
 import pandas as pd
-import os
+import matplotlib.pyplot as plt
+
+#Local imports
 from pomsimulator.modules.DataBase import Col_Dict_PMo
 from pomsimulator.modules.text_module import Print_logo,Lab_to_Formula
 from pomsimulator.modules.stats_module import *
 from pomsimulator.modules.helper_module import load_array,get_C0
 from pomsimulator.modules.plotting_module import plot_speciation
-import matplotlib.pyplot as plt
-from configparser import ConfigParser
+
+
 
 def main():
     Print_logo()
-    config_file = "../inputs/config_PMo.pomsim"
+    config_file = pkgr.resource_filename(__name__, "../inputs/config_PMo.pomsim")
     config = ConfigParser()
     config.read(config_file)
 
-    output_path = config["Preparation"]["output_path"]
+    output_path = pkgr.resource_filename(__name__, config["Preparation"]["output_path"])
     system = config["Preparation"]["POM_system"]
     clust_dir = output_path + "/" + config["Clustering"]["cluster_dir"]
     path_to_npz = clust_dir + "/NewArr.npz"
@@ -25,7 +32,7 @@ def main():
     filter_path = clust_dir + "/filtering"
     m_idx = int(config["Speciation"]["m_idx"])
 
-    col_dict = Col_Dict_PMo
+    col_dict = None
     plot_list = None
     boxplot_list = None
     C0 = get_C0(C_ref,m_idx)
@@ -61,6 +68,6 @@ def main():
 
         plt.savefig(filter_path + "/filt_by_%s.svg" % sel_spc,
                     dpi=300)
-
+    print("Normal termination")
 if __name__ == "__main__":
     main()

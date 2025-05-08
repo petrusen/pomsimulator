@@ -1,16 +1,18 @@
 [Preparation]
-adf_inputs_dir = ../inputs/W_Set_PBE_test
+adf_inputs_dir = ../inputs/W_Set_PBE
 mol_folder = ../inputs/W_Set_PBE_molfiles
 POM_system = W
 output_path = ../outputs/W_data
+[Isomorphism]
+cores = 15
 [Simulation]
 kf_file = logkf_W.txt
 CRN_file = W_CRN.txt
-cores = 1
-batch_size = 10
-sample_perc = 100
+cores = 20
+batch_size = 40
+sample_perc = 1
 sample_type = random
-use_isomorphism = False
+use_isomorphism = True
 energy_threshold = 33
 proton_numb = 0
 reference_types = P,H2Ow1,H2Ow2,Cw1,Cw2,Cw3,Cw4,A,HO,H3O
@@ -26,7 +28,7 @@ Full_CRN = True
 Selected_model = 20
 Plot_3D = True
 [Scaling]
-scaling_mode = best_rmse
+scaling_mode = medians
 experimental_set = W12_Rosantsev_I01_05
 [Speciation]
 speciation_labels = W01O04-0H,W06O22-2H,W07O24-1H,W12O40-2H,W10O32-0H
@@ -36,13 +38,14 @@ step_pH = 0.1
 C = 0.1
 cores = 8
 batch_size = 1
-npz_file = W_Array.npz
+npz_file = Array_W.npz
 m_idx = 0
 # Phase diagram
 min_logC = -4
 max_logC = 0
-num_logC = 200
+num_logC = 5
 phase_dir = W_phase_arrays
+model_subset_file = W_clusterization/sel_model_indices.pomsim
 # Internal simulation parameters: These parameters are not meant to be routinely modified
 [InternalConditions]
 restrain_addition = 2
@@ -50,3 +53,12 @@ restrain_condensation = 2
 include_dimerization = True
 force_stoich = 11
 adjust_protons_hydration = True
+[Clustering]
+# Parameters for clusterization of speciation models
+cluster_dir = W_clusterization
+npz_cluster_file = Array_W.npz
+features_file = features_W.csv
+n_clusters = 5
+normalize_feats = False
+feats_list = height,width,pos
+sel_groups = 0,3

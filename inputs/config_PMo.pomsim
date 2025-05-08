@@ -6,12 +6,14 @@ adf_inputs_dir = ../inputs/PMo_Set
 mol_folder = ../inputs/PMo_Set_molfiles
 POM_system = P_Mo
 output_path = ../outputs/PMo_data
+[Isomorphism]
+cores = 1
 [Simulation]
 # Parameters for the characterization of the CRN and the calculation of formation constants
 # employed by the files in simulations/
-cores = 2
-batch_size = 1
-sample_perc = 10
+cores = 15
+batch_size = 15
+sample_perc = 0.00001
 sample_type = random
 use_isomorphism = False
 energy_threshold = 15
@@ -40,8 +42,8 @@ max_pH = 14
 step_pH = 0.1
 C_X = 0.01
 C_M = 0.12
-cores = 2
-batch_size = 50
+cores = 1
+batch_size = 1
 m_idx = 0
 npz_file = Array_P_Mo.npz
 # Phase diagram
@@ -63,7 +65,7 @@ adjust_protons_hydration = True
 cluster_dir = PMo_clusterization
 npz_cluster_file = Array_P_Mo.npz
 features_file = features_P_Mo.csv
-n_clusters = 8
+n_clusters = 2
 normalize_feats = False
 feats_list = height,width,pos
-sel_groups = 2,5
+sel_groups = 0,1

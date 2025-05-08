@@ -1,21 +1,24 @@
 # Standard library imports
-# Local imports
+import re
+from configparser import ConfigParser
+import pkg_resources as pkgr
+#Third-party imports
 import numpy as np
 import matplotlib.pyplot as plt
+# Local imports
 from pomsimulator.modules.helper_module import phase_diagram_IPA
 from pomsimulator.modules.DataBase import *
 from pomsimulator.modules.plotting_module import get_color_phase_diagram
 from pomsimulator.modules.text_module import Lab_to_stoich,Lab_to_Formula,Print_logo
-import re
-from configparser import ConfigParser
+
 
 def main():
     Print_logo()
-    config_file = "../inputs/config_W.pomsim"
+    config_file = pkgr.resource_filename(__name__, "../inputs/config_W.pomsim")
     config = ConfigParser()
     config.read(config_file)
     ###########################PARAMETERS############################################
-    output_path = config["Preparation"]["output_path"]
+    output_path = pkgr.resource_filename(__name__, config["Preparation"]["output_path"])
     system = config["Preparation"]["POM_system"]
     npz_info_file = output_path + "/npz_info_%s.dat" % system
     output_img = "phase_diagram_%s.png" % system
@@ -59,6 +62,6 @@ def main():
     plt.savefig(output_img_path,dpi=300)
 
     plt.show()
-
+    print("Normal termination")
 if __name__ == '__main__':
     main()
