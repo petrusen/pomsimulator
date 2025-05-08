@@ -1,5 +1,22 @@
 Changelog
 =========
+Release 2.0.1
+-------------
+
+Implemented changes:
+
+General:
+Outputs folder is now automatically generated when running simulation files if it does not exist already. Compute_isomorphism
+also generates the output folder automatically if needed.
+
+Test workflows have been updated to test more scripts:
+- compute_isomorphism.py
+- simulation_ipa.py
+- scale_constants.py
+
+Path management has been updated, "pkg_resources" library has been added. Scripts can now be run from any directory.
+This library has been implemented in all simulation files (simulation_ipa.py and simulation_hpa.py) and to all utilities.
+
 
 Release 2.0.0
 -------------
