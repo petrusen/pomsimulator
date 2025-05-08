@@ -36,7 +36,7 @@ jobs:
         cd pomsimulator
         git checkout quick-fixes
         python -m pip install -v .
-        print("fully installed")
+        echo "fully installed"
         python simulations/simulation_ipa.py
         cd ../../
         rm -rf deleteme
