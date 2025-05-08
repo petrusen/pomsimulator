@@ -6,7 +6,7 @@ output_path = ../outputs/W_data
 [Simulation]
 kf_file = logkf_W.txt
 CRN_file = W_CRN.txt
-cores = 2
+cores = 1
 batch_size = 10
 sample_perc = 100
 sample_type = random
