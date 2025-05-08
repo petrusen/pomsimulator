@@ -26,8 +26,8 @@ jobs:
       run: |
         python -m venv deleteme
         source deleteme/bin/activate
-        git clone https://github.com/petrusen/pomsimulator.git
         cd pomsimulator
+        ls
         git checkout quick-fixes
         python -m pip install .
         python simulations/simulation_ipa.py
