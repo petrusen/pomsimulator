@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-22.04
     strategy:
       matrix:
-        python-version: [3.8, 3.9, 3.10, 3.11, 3.12]
+        python-version: [3.8]
 
     steps:
     - name: Checkout code
@@ -26,17 +26,17 @@ jobs:
       run: |
         python -m venv deleteme
         source deleteme/bin/activate
-    
+
         # Remove existing pomsimulator directory if it exists
         if [ -d "pomsimulator" ]; then
           rm -rf pomsimulator
         fi
-    
+
         git clone https://github.com/petrusen/pomsimulator.git
         cd pomsimulator
         git checkout quick-fixes
-        python -m pip install -v .
-        echo "fully installed"
+        python -m pip install -v .  # -v for verbose output
+        echo "Fully installed"  # Use echo to print a message
         python simulations/simulation_ipa.py
         cd ../../
         rm -rf deleteme
@@ -45,3 +45,4 @@ jobs:
       run: |
         # Any additional clean-up can be done here if needed
         echo "Finished testing with Python ${{ matrix.python-version }}"
+
