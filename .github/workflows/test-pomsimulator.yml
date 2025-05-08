@@ -25,7 +25,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        python -m pip install .
+        python -m pip install . --timeout=1000
 
     - name: Run simulation
       run: python simulations/simulation_ipa.py
