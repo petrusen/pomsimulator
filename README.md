@@ -37,6 +37,14 @@ cd pomsimulator
 pip install -e . # we recommend installing it in editable mode
 ```
 
+If you want to work with this project using a Conda environment, follow these steps before installing the package:
+
+```console
+conda env create -f environment.yml
+conda activate pomsimulator_env 
+pip install -e .
+```
+
 ## Quickstart  
 
 The main simulation file of POMSimulator is stored in `./simulations`. The code reads the quantum mechanical outputs in `./inputs` and generates two
