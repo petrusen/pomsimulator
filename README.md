@@ -80,6 +80,8 @@ When publishing results generated with POMSimulator, we kindly request you to ci
 - Garay-Ruiz, D.; Petrus, E.; Bo, C. *Revista de la Societat Catalana de Quimica* **2023**, 22, 23-38 [DOI](http://doi.org/10.2436/20.2003.01.142)
 - Buils, J.; Garay-Ruiz, D.; Segado-Centellas, M.; Petrus, E.; Bo, C. *Chem. Sci.* **2024**, 15, 14218-14227 [DOI](https://doi.org/10.1039/D4SC03282A)
 - Buils, J.; Garay-Ruiz, D.; Petrus, E.; Segado-Centellas, M.; Bo, C. **2025**, Digital Discovery, 4, 970-978 [DOI](https://doi.org/10.1039/D4DD00358F)
+- Junkers, L. S.; Garay-Ruiz, D.; Buils, J.; Silberg, R. S.; Strapasson, G. B.; Jensen, K. M. Ø.; Bo, C. *J. Am. Chem. Soc.*, **2025**, 147, 22747–22758 [DOI](https://doi.org/10.1021/jacs.5c04696)
+
 
 ## License and Copyright Information
 
@@ -88,6 +90,6 @@ POMSimulator is distributed under the GNU AFFERO GENERAL PUBLIC LICENSE. For mor
 ## Support and Contact
 
 In case you should encounter problems or bugs, please write a short message to one of the following addresses:  
-[enricpz@icloud.com](mailto:enricpz@icloud.com), [jbuils@iciq.es](mailto:jbuils@iciq.es), [dgaray@iciq.es](mailto:dgaray@iciq.es).
+[enric.petrus@eawag.ch](mailto:enric.petrus@eawag.ch), [jbuils@iciq.es](mailto:jbuils@iciq.es), [diego.garay@csic.es](mailto:diego.garay@csic.es).
 
 
