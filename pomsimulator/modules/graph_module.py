@@ -1,4 +1,5 @@
 # Standard library imports
+import os
 import networkx as nx
 from itertools import product
 import numpy as np
@@ -535,6 +536,113 @@ def Isomorphism_to_ChemicalReactions(G1_list, np_IM, water, reference, POM, thre
         print(ignored_reactions)
     return Reac_idx, Reac_energy, Reac_type
 
+def Isomorphism_to_ChemicalReactions_gui(G1_list, np_IM, water, reference, POM, threshold, cond_dict_raw):
+    """
+    Returns a list of chemical reactions by processing a list of isomorphisms (i.e.,
+    Isomorphic Matrix). Heuristics are applied for this particular case, where only
+    acid-base, condensation and addition reactions exist. The transformation is
+    carried out based on the stoichiometric difference between to isomorphic graphs.
+
+    For example:
+
+    i)   Graph_1 (H2MO4); Graph_2(H2M2O7)
+    ii)  Graph_1 is subgraph of Graph_2, which means H2MO4 + X  -->  H2M2O7
+    iii) Substracting the atoms: Graph_1 - Graph_2 = H0, M1, O3
+    iv)  X = M1O3 which is: [MO4]2- and H2O
+
+    Final result: H2MO4 + [MO4]2-  -->  H2M2O7 + H2O
+
+
+    Args:
+        G1_list: list of networkx objects, molecular graphs
+        np_IM: list of list, isomorphic matrix
+        water: dictionary, energies for water and its derivates
+        reference: list of strings, reaction types considered in the network
+        POM: string, type of isopolyoxometalate
+        threshold: integer, energy threshold to filter out reactions
+        cond_dict: dictionary of conditions
+
+    Returns:
+        Reac_idx: list of integers, combination of chemical reaction indexes.
+        Reac_energy: list of floats, combination of chemical reaction energies.
+        Reac_type: list of strings, combination of chemical reaction types.
+
+    """
+    if "_" in POM:
+        func = Reaction_Type_HPA
+    else:
+        func = Reaction_Type_IPA
+
+    conditions_list = ["proton_numb", "restrain_addition", "restrain_condensation", "include_dimerization",
+                       "force_stoich", "adjust_protons_hydration"]
+    # Format internal conditions
+    valid_cond = {"proton_numb":int(float(cond_dict_raw["proton_numb"])),
+                 "restrain_addition":int(float(cond_dict_raw["restrain_addition"])),
+                 "restrain_condensation":int(float(cond_dict_raw["restrain_condensation"])),
+                 "include_dimerization":cond_dict_raw["include_dimerization"],
+                 "adjust_protons_hydration":cond_dict_raw["adjust_protons_hydration"],
+                 "force_stoich":[int(float(item)) if item else None for item in cond_dict_raw["force_stoich"].split(",")]
+                 }
+    for cond in cond_dict_raw.keys():
+        if cond not in conditions_list:
+            print("Condition %s is not supported. Valid conditions are %s" % (cond, ",".join(conditions_list)))
+
+    reac_e_eq, found_reactions = list(), list()
+    reac_info = list()
+    N_Graphs = len(G1_list)
+    print("IN PROCESS, PLEASE WAIT...")
+    monomolec_comb = product(range(N_Graphs),repeat=2)
+    bimolec_comb = product(range(N_Graphs),repeat=3)
+
+    # Flag hydrated species so they are not considered when applying proton_numb filter
+    Z_atoms = [Z_dict[symb] for symb in POM.split("_") + ['O', 'H']]
+    hydrated_products = {}
+    for i,j in monomolec_comb:
+        obj = func(G1_list, POM, [i, j], water, threshold, valid_cond, hydrated_species=[])
+        if obj == None or i == j:
+            continue
+        if np_IM[i][j] == 1:  # Unimolecular Reaction Found
+            reac_g, reac_type = obj
+            reac_info.append(([i, j], reac_g, reac_type))
+            # get stoich to save hydrated species
+            if reac_type in ["H2Ow1","H2Ow2"]:
+                Z_hyd = list(nx.get_node_attributes(G1_list[i], 'Z').values())
+                v_hyd = [Z_hyd.count(z) for z in Z_atoms]
+                n_water = int(reac_type.replace("H2Ow",""))
+                hydrated_products[tuple(v_hyd)] = n_water
+
+    for i,j,k in bimolec_comb:
+        obj = func(G1_list, POM, [i, j, k], water, threshold, valid_cond, hydrated_products)
+        if obj == None:
+            continue
+
+        if [i, j, k] not in found_reactions:  # Bimolecular Reaction Found
+            if np_IM[i][k] == 1 and np_IM[i][j] == 1:
+                reac_g, reac_type = obj
+                reac_info.append(([i, j, k], reac_g, reac_type))
+                found_reactions.append([i, j, k])
+                found_reactions.append([i, k, j])
+
+    num = len(reference)
+
+    Reac_idx, Reac_energy, Reac_type = [[] for _ in range(num)], [[] for _ in range(num)], [[] for _ in range(num)]
+
+    ignored_reactions = list()
+    for ind, e, t in reac_info:
+        if t not in reference:
+            ignored_reactions.append([ind,e,t])
+            continue
+        position = reference.index(t)
+        Reac_idx[position].append(ind)
+        Reac_energy[position].append(e)
+        Reac_type[position].append(t)
+    # print("Number of Reactions", list(map(len, Reac_idx)))
+    if ignored_reactions:
+        print("%d reactions were not considered, as their types were not in reference" % len(ignored_reactions))
+        print(ignored_reactions)
+
+    return Reac_idx, Reac_energy, Reac_type
+
 def _wrapper_isomorphism(G_pair):
     """
     Private function that Computes the isomorphism between a molecular graph (i) and a molecular graph (j). It 
@@ -587,7 +695,8 @@ def _create_moleculargraph_withoutprotons(Gi):
     
     return Gj
 
-def Molecular_Graphs_to_Isomorphic_Matrix(G1_list, diag, cores=1, verbose=True):
+
+def Molecular_Graphs_to_Isomorphic_Matrix(G1_list, diag, cores=1, verbose=True, stop_signal=None):
     """
     Computes the Isomorphic Matrix. To reduce the computational cost, we use the grid given by the diag matrix
     which already disregards the repeated reactions.
@@ -599,23 +708,30 @@ def Molecular_Graphs_to_Isomorphic_Matrix(G1_list, diag, cores=1, verbose=True):
         verbose: bolean, shows an important warning
 
     Returns:
-        np_IM: list of list, isomorphic matrix 
+        np_IM: list of list, isomorphic matrix
 
     """
-    
+
     if verbose:
-        print("WARNING: The bond connectivity from the QTAIM calculation might contain some artificial bonds.\n It is highly recommended to check the .mol files, and refine the connectivity if needed.")
+        print(
+            "WARNING: The bond connectivity from the QTAIM calculation might contain some artificial bonds.\n It is highly recommended to check the .mol files, and refine the connectivity if needed.")
 
     G_list = [_create_moleculargraph_withoutprotons(g) for g in G1_list]
 
     IM = list()
-    args = zip([(gi, gj) if diag[i][j] == 1 else None for i,gi in enumerate(G_list) for j,gj in enumerate(G_list)])
+    args = zip([(gi, gj) if diag[i][j] == 1 else None for i, gi in enumerate(G_list) for j, gj in enumerate(G_list)])
+    if stop_signal and os.path.exists(stop_signal):
+        print("Function stopped by user")
+        return "Stopped"
     with Pool(cores) as ThreadPool:
         IM = IM + ThreadPool.starmap(_wrapper_isomorphism, args)
+    if stop_signal and os.path.exists(stop_signal):
+        print("Function stopped by user")
+        return "Stopped"
     IM_2d, tmp, j = [], [], 0
     num_molgraph = len(G_list)
-    iterator = [diag[i][j] for i,gi in enumerate(G_list) for j,gj in enumerate(G_list)]
-    for i,iso in enumerate(iterator):
+    iterator = [diag[i][j] for i, gi in enumerate(G_list) for j, gj in enumerate(G_list)]
+    for i, iso in enumerate(iterator):
         if j < num_molgraph:
             tmp.append(IM[i])
             j += 1

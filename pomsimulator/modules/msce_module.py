@@ -34,8 +34,11 @@ def apply_args_and_kwargs(fn, args, kwargs):
     return fn(*args, **kwargs)
 
 ## Calculation of rate constants
-def Speciation_from_Equilibrium(idx_var, e_var, type_var, idx_ctt=None, e_ctt=None, type_ctt=None, z_ctt=None, v_ctt=None,
-                                ref_idx=None, pH_grid=None, init_guess=None, I=None, C=0.005, temp=298.15, solver='hybr', threshold=None):
+def Speciation_from_Equilibrium(idx_var, e_var, type_var, idx_ctt=None, e_ctt=None, type_ctt=None, z_ctt=None,
+                                v_ctt=None, ref_idx=None,
+                                pH_grid=None, init_guess=None, I=None, C=0.005, temp=298.15, solver='hybr',
+                                threshold=None, mscesolver=None,
+                                system=None):
     """
     Sets multi-species chemical equilibrium provided that the reactions are
     acid-base, condensations or addition reactions. The system of non-lineal
@@ -84,11 +87,11 @@ def Speciation_from_Equilibrium(idx_var, e_var, type_var, idx_ctt=None, e_ctt=No
     ### These strings are then precompiled as Python objects to improve performance and evaluated in the solving function
     compiled_eqs_list = list()
     for ener, idx, type in zip(reac_e_eq, reac_idx, reac_type):
-        if molecularity_dict[type] ==1:
-            eq = equation_dict[type].format(a=idx[0],b=ener,c=idx[1])
+        if molecularity_dict[type] == 1:
+            eq = equation_dict[type].format(a=idx[0], b=ener, c=idx[1])
         else:
-            eq = equation_dict[type].format(a=idx[0],b=ener,c=idx[1],d=idx[2])
-        compiled_eqs_list.append(compile(eq,'<string>', 'eval'))
+            eq = equation_dict[type].format(a=idx[0], b=ener, c=idx[1], d=idx[2])
+        compiled_eqs_list.append(compile(eq, '<string>', 'eval'))
 
     mass_eq = ''.join([str(M_ratio[i]) + " * p[" + str(i) + "] + " for i in range(len(reac_e_eq) + 1)]) + str(-C)
     compiled_eqs_list.append(compile(mass_eq, '<string>', 'eval'))
@@ -106,9 +109,9 @@ def Speciation_from_Equilibrium(idx_var, e_var, type_var, idx_ctt=None, e_ctt=No
                 sys_eq. list of floats, solution of the equations depicted in the system.
             """
             R, T, c_H, h2o = 8.314 * 0.001 * (1 / 4.18), temp, 10 ** (- pH), 1
-            sys_eq =  list()
+            sys_eq = list()
 
-            for k,eq in enumerate(compiled_eqs_list):  # sys_eq list comprehension does not work
+            for k, eq in enumerate(compiled_eqs_list):  # sys_eq list comprehension does not work
                 sys_eq.append(eval(eq))
             sys_eq = np.array(sys_eq)
             return sys_eq
@@ -128,18 +131,22 @@ def Speciation_from_Equilibrium(idx_var, e_var, type_var, idx_ctt=None, e_ctt=No
                     rmse_acc = rmse_acc + rmse
                 rmse_l.append(rmse_acc)
 
+    #################
+
     if len(solved_activity_val) > 0:
         solved_activity_val_T = np.array(solved_activity_val).T
     else:
         solved_activity_val_T = list()
 
-    Kf_dft = screen_log_Kf(solved_activity_val_T, solved_pH_val, v_ctt, ref_idx=ref_idx)
+    Kf_dft = screen_log_Kf(solved_activity_val_T, solved_pH_val, v_ctt, ref_idx=ref_idx, mscesolver=mscesolver)
 
     return Kf_dft
 
-def Speciation_from_Equilibrium_bimetal(idx_var, e_var, type_var, idx_ctt=None, e_ctt=None, type_ctt=None, z_ctt=None, v_ctt=None,
-                                ref_idx=None, pH_grid=None, init_guess=None, I=None,
-                                C_X=0.005, C_M=0.005, temp=298.15, solver='hybr', threshold=None):
+
+def Speciation_from_Equilibrium_bimetal(idx_var, e_var, type_var, idx_ctt=None, e_ctt=None, type_ctt=None, z_ctt=None,
+                                        v_ctt=None,
+                                        ref_idx=None, pH_grid=None, init_guess=None, I=None, mscesolver=None,
+                                        C_X=0.005, C_M=0.005, temp=298.15, solver='hybr', threshold=None, system=None):
     """
     Sets multi-species chemical equilibrium provided that the reactions are
     acid-base, condensations or addition reactions. The system of non-lineal
@@ -187,24 +194,24 @@ def Speciation_from_Equilibrium_bimetal(idx_var, e_var, type_var, idx_ctt=None, 
     equations_list = list()
     compiled_eqs_list = list()
     for ener, idx, type in zip(reac_e_eq, reac_idx, reac_type):
-        if type in ["P","H2Ow1","H2Ow2","H3O","HO"]:
-            eq = equation_dict[type].format(a=idx[0],b=ener,c=idx[1])
+        if type in ["P", "H2Ow1", "H2Ow2", "H3O", "HO"]:
+            eq = equation_dict[type].format(a=idx[0], b=ener, c=idx[1])
         else:
-            eq = equation_dict[type].format(a=idx[0],b=ener,c=idx[1],d=idx[2])
+            eq = equation_dict[type].format(a=idx[0], b=ener, c=idx[1], d=idx[2])
 
         equations_list.append(eq)
-        compiled_eqs_list.append(compile(eq,'<string>', 'eval'))
+        compiled_eqs_list.append(compile(eq, '<string>', 'eval'))
 
     mass_eq1 = ''.join([str(X_Ratio[i]) + " * p[" + str(i) + "] + " for i in range(len(X_Ratio))]) + str(-C_X)
     mass_eq2 = ''.join([str(M_Ratio[i]) + " * p[" + str(i) + "] + " for i in range(len(M_Ratio))]) + str(-C_M)
 
     equations_list.append(mass_eq1)
     equations_list.append(mass_eq2)
-    compiled_eqs_list.append(compile(mass_eq1,'<string>','eval'))
+    compiled_eqs_list.append(compile(mass_eq1, '<string>', 'eval'))
     compiled_eqs_list.append(compile(mass_eq2, '<string>', 'eval'))
 
     for idx, pH in enumerate(pH_grid):
-        def non_lineal_sys(p,pH=pH):
+        def non_lineal_sys(p, pH=pH):
             """
             Encapsulated function which iteratively sets and solves different systems
             of non-linear equations.
@@ -218,7 +225,7 @@ def Speciation_from_Equilibrium_bimetal(idx_var, e_var, type_var, idx_ctt=None, 
 
             R, T, c_H, h2o = 8.314 * 0.001 * (1 / 4.18), temp, 10 ** (- pH), 1
             sys_eq = np.zeros(len(compiled_eqs_list))
-            for k,eq in enumerate(compiled_eqs_list):  # sys_eq list comprehension does not work
+            for k, eq in enumerate(compiled_eqs_list):  # sys_eq list comprehension does not work
                 sys_eq[k] = eval(eq)
             return sys_eq
 
@@ -230,10 +237,10 @@ def Speciation_from_Equilibrium_bimetal(idx_var, e_var, type_var, idx_ctt=None, 
                 pass
             else:
                 r2_i, rmse, mae, y_ls_values = Least_Squared(non_lineal_sys, init_guess, activities)
-                if rmse < ((C_X+C_M) * threshold):
+                if rmse < ((C_X + C_M) * threshold):
                     solved_activity_val.append(activities)
                     solved_pH_val.append(pH)
-                    rmse_l.append(1/rmse)
+                    rmse_l.append(1 / rmse)
 
     if len(solved_activity_val) > 0:
         solved_activity_val_T = np.array(solved_activity_val).T

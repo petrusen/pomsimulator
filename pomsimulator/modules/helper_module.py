@@ -6,7 +6,7 @@ from itertools import repeat,compress,islice,product
 import random
 import pandas as pd
 # Local imports
-from pomsimulator.modules.text_module import Print_logo,Read_csv,Lab_to_stoich,write_speciationparameters,Bader_Parser
+from pomsimulator.modules.text_module import Print_logo,Read_csv,Lab_to_stoich,write_speciation_parameters,Bader_Parser
 from pomsimulator.modules.msce_module import *
 from pomsimulator.modules.DataBase import *
 from pomsimulator.modules.graph_module import *
@@ -77,7 +77,7 @@ def get_C0(C_ref,m_idx):
     return C0
 
 def compute_lgkf_loop(R_idx, R_ene, R_type, mod_idx_vals, number_models, kwargs,
-                      batch_size=1, cores=1):
+                      batch_size=1, cores=1,stop_signal=None):
     '''Wrapper function for the calculation of formation constants for a set of speciation models.
     Args:
         R_idx: list of lists of integers, chemical reaction indexes organized by nuclearity
@@ -102,6 +102,7 @@ def compute_lgkf_loop(R_idx, R_ene, R_type, mod_idx_vals, number_models, kwargs,
     models_to_explore = set(mod_idx_vals)
     n_batches = int(len(mod_idx_vals) / batch_size)
     print("Number of batches = %d" % n_batches)
+
     _idx_var, _e_var, _type_var = product(*R_idx), product(*R_ene), product(*R_type)
     bool_sample = (idx in models_to_explore for idx in range(number_models))
     models_to_calculate = compress(zip(_idx_var, _e_var, _type_var), bool_sample)
@@ -117,6 +118,9 @@ def compute_lgkf_loop(R_idx, R_ene, R_type, mod_idx_vals, number_models, kwargs,
     print("Enter formation constant calculation")
 
     for idx in range(n_batches + 1):
+        if stop_signal and os.path.exists(stop_signal):
+            print("Function stopped by user")
+            return "Stopped"
         t0 = time.time()
 
         low_lim = batch_size * idx
@@ -139,6 +143,7 @@ def compute_lgkf_loop(R_idx, R_ene, R_type, mod_idx_vals, number_models, kwargs,
                   ['#' if i < progress else " " for i in range(0, 100, 2)]) + "]" + " progress=%6.3f" % progress,
               "time of batch = %.2f s" % (t1 - t0))
     return data
+
 
 def load_array(path_npz):
     '''Reads a NPZ-formatted array containing speciation information, as produced by
@@ -257,7 +262,7 @@ def apply_lgkf_scaling(lgkf_df, scaling_params, speciation_labels):
     return lgkf_df
 
 def compute_speciation_loop(lgkf_df,speciation_labels,pH,C_ref,ref_stoich,path_to_output=None,
-                            batch_size=1,cores=1,show_progress=True):
+                            batch_size=1,cores=1,show_progress=True,stop_signal=None):
     '''Wrapper function for the calculation of speciation diagrams for a set of speciation models.
     Args:
         lgkf_df: DataFrame containing scaled, selected log(Kf) values
@@ -281,6 +286,10 @@ def compute_speciation_loop(lgkf_df,speciation_labels,pH,C_ref,ref_stoich,path_t
     else:
         add_kwargs = {"C_ref": C_ref, "ref_stoich": ref_stoich}
 
+    if stop_signal and os.path.exists(stop_signal):
+        print("Function stopped by user")
+        return "Stopped"
+
     filt_sel_idxs = list(lgkf_df.index)
     Nidx = len(filt_sel_idxs)
     ### Array initialization
@@ -302,6 +311,10 @@ def compute_speciation_loop(lgkf_df,speciation_labels,pH,C_ref,ref_stoich,path_t
             batch = filt_sel_idxs[batch_size * idx:]
         else:
             batch = filt_sel_idxs[batch_size * idx:batch_size * (idx + 1)]
+
+        if stop_signal and os.path.exists(stop_signal):
+            print("Function stopped by user")
+            return "Stopped"
 
         args_iter = [[item] for item in batch]
         kwargs_iter = repeat(kwargs)
@@ -673,3 +686,13 @@ def generate_CRN(G_list,stoich,reac_idx,reac_ener,reac_type,sorted_reac_idx,sort
                                                          All_models=False, ploting_details_dict=plot_dict_details)
                     return fig, ax
             acc += 1
+
+def get_config_to_dict(config_file_path):
+    config = ConfigParser()
+    config.optionxform = str
+    config.read(config_file_path)
+    config_dict = dict(config._sections)
+    config_dict["Simulation"]["use_isomorphism"] = config.getboolean("Simulation","use_isomorphism")
+    config_dict["Clustering"]["normalize_feats"] = config.getboolean("Clustering","normalize_feats")
+
+    return config_dict

@@ -362,7 +362,7 @@ def Print_logo():
     print(banner)
     return None
                                                                                                                                                                                                                                                                                                                                                                   
-def write_simulationparameters(kwargs):
+def write_simulation_parameters(kwargs):
     """
     Generates an output file with the variables and parameters chosen for a given simulation
     """
@@ -389,7 +389,7 @@ def write_simulationparameters(kwargs):
         for s in l_paths:
             outfile.write(s+": "+kwargs[s]+"\n")
         outfile.write("CPU cores: "+str(kwargs['Cores'])+"\n")
-        outfile.write("Starting Time: " + str(datetime.datetime.now()) +"\n")
+        outfile.write("Starting Time: " + kwargs['Start date'] +"\n")
         outfile.write("\n==========================\n")
         outfile.write("Chemical Reaction Network:\n")
         outfile.write("==========================\n")
@@ -409,8 +409,11 @@ def write_simulationparameters(kwargs):
         outfile.write("System Labels:\n")
         outfile.write("==================\n")
         outfile.write(str(kwargs["Labels"])+"\n")
+        outfile.write("\n==================\n")
+        outfile.write("Finishing Time: " + kwargs['End date'] + "\n")
+        outfile.write("Execution time: " + str(round(kwargs['Execution time'],4)) + " Seconds" + "\n")
 
-def write_speciationparameters(kwargs):
+def write_speciation_parameters(kwargs):
     """
     Generates an output file with the variables and parameters chosen for a given simulation
     """
@@ -438,9 +441,10 @@ def write_speciationparameters(kwargs):
         outfile.write("Slope = %.4f Intercept = %.4f \n"%(kwargs["Scaling Slope"],kwargs["Scaling Intercept"]))
         outfile.write("Scaling type: %s \n"%kwargs["Scaling Type"])
         outfile.write("CPU cores: "+str(kwargs['Cores'])+"\n")
-        outfile.write("Starting Time: " + str(datetime.datetime.now()) +"\n")
+        outfile.write("Starting Time: " + kwargs['Start date'] +"\n")
+        outfile.write("Finishing Time: " + kwargs['End date'] + "\n")
+        outfile.write("Execution time: " + str(round(kwargs['Execution time'],4)) + " Seconds" + "\n")
         outfile.write("\n==========================\n")
-
 
         l_spe = ["Initial Concentration (mol/L)", "Range of pH", "Step of pH","Number of Calculated Models", "Formation Constants Referred to"]
         for s in l_spe:

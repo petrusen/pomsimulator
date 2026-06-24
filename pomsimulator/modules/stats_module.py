@@ -98,7 +98,7 @@ def get_features(model,pH):
     height = model[range(model.shape[0]),peak_idx]
     log_height = -np.log10(height)
     log_height2 = np.nan_to_num(log_height,nan=30,neginf=30,posinf=30)
-    area = np.abs(np.trapz(model, x=pH, axis=1))
+    area = np.abs(np.trapezoid(model, x=pH, axis=1))
     out_array = np.concatenate([width,pos,log_height2,area])
     return out_array
 
