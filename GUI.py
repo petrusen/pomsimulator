@@ -1015,11 +1015,12 @@ class POMSimulatorGUI(QMainWindow):
 
     def open_image_file(self, file_path):
         """
-        Open an image file in a viewer dialog.
+        Open an image file in a viewer dialog with zoom and navigation controls.
 
         This method creates a dialog window to display an image file. The dialog
-        includes the file name in its title and shows the image in a label widget
-        that's sized appropriately for viewing.
+        includes the file name in its title, shows the image in a scrollable label
+        widget, and provides zoom in, zoom out, reset zoom, previous image, and
+        next image buttons for navigating through images in the same folder.
 
         Parameters:
             file_path (str): The full path to the image file to be opened.
@@ -1028,34 +1029,165 @@ class POMSimulatorGUI(QMainWindow):
             None: This method displays a dialog but doesn't return a value.
         """
         try:
+            # Collect all image files in the same folder, sorted alphabetically
+            image_extensions = {'.png', '.jpg', '.jpeg', '.gif', '.bmp', '.tiff', '.svg'}
+            folder = os.path.dirname(os.path.abspath(file_path))
+            all_images = sorted([
+                os.path.join(folder, f) for f in os.listdir(folder)
+                if os.path.splitext(f)[1].lower() in image_extensions
+            ])
+            current_index = [all_images.index(os.path.abspath(file_path)) if os.path.abspath(file_path) in all_images else 0]
+
             # Create dialog
             dialog = QDialog(self)
-            dialog.setWindowTitle(f"Image Viewer - {os.path.basename(file_path)}")
             dialog.resize(800, 800)
 
             # Create layout
             layout = QVBoxLayout(dialog)
 
+            # Mutable state containers for closures
+            zoom_factor = [1.0]
+            current_pixmap = [QPixmap(all_images[current_index[0]])]
+
             # Create scroll area for the image
             scroll_area = QScrollArea()
-            scroll_area.setWidgetResizable(True)
+            scroll_area.setWidgetResizable(False)
+            scroll_area.setAlignment(Qt.AlignCenter)
 
             # Create image label
             image_label = QLabel()
-            pixmap = QPixmap(file_path)
-            image_label.setPixmap(pixmap)
+            image_label.setPixmap(current_pixmap[0])
             image_label.setAlignment(Qt.AlignCenter)
+            image_label.setCursor(Qt.OpenHandCursor)
+
+            # Drag-to-pan state
+            drag_state = {"active": False, "last_pos": None}
+
+            def on_mouse_press(event):
+                if event.button() == Qt.LeftButton:
+                    drag_state["active"] = True
+                    drag_state["last_pos"] = event.globalPos()
+                    image_label.setCursor(Qt.ClosedHandCursor)
+
+            def on_mouse_move(event):
+                if drag_state["active"] and drag_state["last_pos"] is not None:
+                    delta = event.globalPos() - drag_state["last_pos"]
+                    drag_state["last_pos"] = event.globalPos()
+                    h_bar = scroll_area.horizontalScrollBar()
+                    v_bar = scroll_area.verticalScrollBar()
+                    h_bar.setValue(h_bar.value() - delta.x())
+                    v_bar.setValue(v_bar.value() - delta.y())
+
+            def on_mouse_release(event):
+                if event.button() == Qt.LeftButton:
+                    drag_state["active"] = False
+                    drag_state["last_pos"] = None
+                    image_label.setCursor(Qt.OpenHandCursor)
+
+            image_label.mousePressEvent = on_mouse_press
+            image_label.mouseMoveEvent = on_mouse_move
+            image_label.mouseReleaseEvent = on_mouse_release
+            image_label.setMouseTracking(True)
 
             # Add image to scroll area
             scroll_area.setWidget(image_label)
             layout.addWidget(scroll_area)
 
-            # Add close button
+            # Status bar: image name + zoom level
+            status_label = QLabel()
+            status_label.setAlignment(Qt.AlignCenter)
+            layout.addWidget(status_label)
+
+            def update_display():
+                """Redraw the image label at the current zoom level."""
+                pix = current_pixmap[0]
+                new_width = int(pix.width() * zoom_factor[0])
+                new_height = int(pix.height() * zoom_factor[0])
+                scaled = pix.scaled(
+                    new_width, new_height,
+                    Qt.KeepAspectRatio,
+                    Qt.SmoothTransformation
+                )
+                image_label.setPixmap(scaled)
+                image_label.resize(scaled.width(), scaled.height())
+                idx = current_index[0]
+                name = os.path.basename(all_images[idx])
+                status_label.setText(
+                    f"{name}  |  {idx + 1} / {len(all_images)}  |  Zoom: {int(zoom_factor[0] * 100)}%"
+                )
+                dialog.setWindowTitle(f"Image Viewer - {name}")
+
+            def load_image(index):
+                """Load the image at *index* and reset zoom."""
+                current_index[0] = index
+                current_pixmap[0] = QPixmap(all_images[index])
+                zoom_factor[0] = 1.0
+                update_display()
+
+            def zoom_in():
+                zoom_factor[0] = min(zoom_factor[0] * 1.25, 10.0)
+                update_display()
+
+            def zoom_out():
+                zoom_factor[0] = max(zoom_factor[0] / 1.25, 0.05)
+                update_display()
+
+            def reset_zoom():
+                zoom_factor[0] = 1.0
+                update_display()
+
+            def prev_image():
+                if len(all_images) > 1:
+                    load_image((current_index[0] - 1) % len(all_images))
+
+            def next_image():
+                if len(all_images) > 1:
+                    load_image((current_index[0] + 1) % len(all_images))
+
+            # Navigation row
+            nav_row = QHBoxLayout()
+            prev_btn = QPushButton("◀ Previous")
+            prev_btn.setToolTip("Show the previous image in the folder")
+            prev_btn.clicked.connect(prev_image)
+            prev_btn.setEnabled(len(all_images) > 1)
+            nav_row.addWidget(prev_btn)
+
+            next_btn = QPushButton("Next ▶")
+            next_btn.setToolTip("Show the next image in the folder")
+            next_btn.clicked.connect(next_image)
+            next_btn.setEnabled(len(all_images) > 1)
+            nav_row.addWidget(next_btn)
+
+            layout.addLayout(nav_row)
+
+            # Zoom controls row
+            zoom_row = QHBoxLayout()
+            zoom_in_btn = QPushButton("🔍 Zoom In (+)")
+            zoom_in_btn.setToolTip("Zoom in (increase image size by 25%)")
+            zoom_in_btn.clicked.connect(zoom_in)
+            zoom_row.addWidget(zoom_in_btn)
+
+            zoom_out_btn = QPushButton("🔍 Zoom Out (-)")
+            zoom_out_btn.setToolTip("Zoom out (decrease image size by 25%)")
+            zoom_out_btn.clicked.connect(zoom_out)
+            zoom_row.addWidget(zoom_out_btn)
+
+            reset_btn = QPushButton("↺ Reset Zoom")
+            reset_btn.setToolTip("Reset to original image size (100%)")
+            reset_btn.clicked.connect(reset_zoom)
+            zoom_row.addWidget(reset_btn)
+
             close_btn = QPushButton("Close")
             close_btn.clicked.connect(dialog.close)
-            layout.addWidget(close_btn)
+            zoom_row.addWidget(close_btn)
+
+            layout.addLayout(zoom_row)
 
             dialog.setLayout(layout)
+
+            # Initial display
+            update_display()
+
             dialog.exec_()
 
         except Exception as e:
@@ -1481,7 +1613,7 @@ class POMSimulatorGUI(QMainWindow):
                 'step_pH': str(self.spec_step_ph.value()) if hasattr(self, 'spec_step_ph') else "0.1",
                 'cores': str(self.spec_cores.value()) if hasattr(self, 'spec_cores') else "1",
                 'batch_size': str(self.spec_batch_size.value()) if hasattr(self, 'spec_batch_size') else "1",
-                'm_idx': self.m_idx.currentText() if hasattr(self, 'm_idx') else "0",
+                'm_idx': str(self.shared_data.get('m_idx', '0')) if hasattr(self, 'shared_data') and 'm_idx' in self.shared_data else (self.filtering_m_idx.currentText() if hasattr(self, 'filtering_m_idx') else '0'),
                 'npz_file': self.npz_file.text() if hasattr(self, 'npz_file') else "",
                 'phase_dir': self.phase_dir.text() if hasattr(self, 'phase_dir') else "phase_diagram_%s" % system_name,
                 'model_subset_file': self.model_subset_file.text() if hasattr(self, 'model_subset_file') else "",
@@ -4815,10 +4947,11 @@ class POMSimulatorGUI(QMainWindow):
         if include_m_idx:
             m_idx_row = QHBoxLayout()
             m_idx_row.addWidget(QLabel("m_idx:"))
-            self.m_idx = QComboBox()
-            self.m_idx.addItems(["0", "1"])
-            m_idx_row.addWidget(self.m_idx)
+            self.filtering_m_idx = QComboBox()
+            self.filtering_m_idx.addItems(["0", "1"])
+            m_idx_row.addWidget(self.filtering_m_idx)
             system_layout.addLayout(m_idx_row)
+            self.register_ui_element(self.filtering_m_idx, "m_idx")
 
         system_group.setLayout(system_layout)
         layout.addWidget(system_group)
@@ -5382,16 +5515,14 @@ class POMSimulatorGUI(QMainWindow):
         # m_idx row (metal index for plotting)
         m_idx_row = QHBoxLayout()
         m_idx_row.addWidget(QLabel("Metal Index (m_idx):"))
-        self.m_idx = self.get_or_create_widget('m_idx', QComboBox)
+        self.plot_spec_m_idx = QComboBox()
         if pom_type == "IPA":
-            self.m_idx.clear()
-            self.m_idx.addItems(["0"])
+            self.plot_spec_m_idx.addItems(["0"])
         else:  # HPA
-            self.m_idx.clear()
-            self.m_idx.addItems(["0", "1"])
-        m_idx_row.addWidget(self.m_idx)
+            self.plot_spec_m_idx.addItems(["0", "1"])
+        m_idx_row.addWidget(self.plot_spec_m_idx)
         system_layout.addLayout(m_idx_row)
-        self.register_ui_element(self.m_idx, "m_idx")
+        self.register_ui_element(self.plot_spec_m_idx, "m_idx")
 
         system_group.setLayout(system_layout)
         scroll_layout.addWidget(system_group)
@@ -6354,31 +6485,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-
-
-
-
-
-
-
-
-
-    sys.exit(app.exec_())
-
-
-if __name__ == "__main__":
-    main()
-
-
-
-
-
-
-
-
-
-
-
-
