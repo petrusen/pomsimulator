@@ -19,8 +19,21 @@ Pettersson_3I = {"P00Mo01O04-0H":0,
                  "P02Mo05O23-1H": 67.07,
                  "P02Mo05O23-2H": 70.86}
 
+google_AI_01I_As = {"As01O04-0H":0.0,
+                "As01O04-1H":10.96,
+                "As01O04-2H":17.58,
+                "As01O04-3H":19.66,}
+
+google_AI_01I_C = {"C01O03-0H":0.0,
+                   "C01O03-1H":9.57,
+                   "C01O03-2H":15.59}
+
 experimental_constants = {"W12_Rosantsev_I01_05":Rosantsev_W12_I01_05I,
-    "PMo12_Petterson_I3":Pettersson_3I}
+                          "PMo12_Petterson_I3":Pettersson_3I,
+                          "As_googleAI_01I":google_AI_01I_As,
+                          "C_googleAI_01I":google_AI_01I_C}
+
+
 
 # COLORS FOR THE PLOTS
 
@@ -134,7 +147,7 @@ Z_dict_inv = {1: 'H', 2: 'He', 3: 'Li', 4: 'Be', 5: 'B', 6: 'C', 7: 'N', 8: 'O',
               111: 'Rg ', 112: 'Cn ', 113: 'Nh', 114: 'Fl', 115: 'Mc', 116: 'Lv', 117: 'Ts', 118: 'Og'}
 
 # Oxidation states for common atoms present in polyoxometalates
-valence_dict = {'W': 6, 'O': -2, 'H':1, 'Mo':6, 'P':5}
+valence_dict = {'W': 6, 'O': -2, 'H':1, 'Mo':6, 'P':5, 'As':5, 'C':4}
 
 # Dictionary for mapping reaction type to its proper written from
 stringreac_dict = {'P' : 'Acid Base: {R1} + H+ --> {P}    G={G}\n',

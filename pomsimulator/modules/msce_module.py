@@ -37,7 +37,7 @@ def apply_args_and_kwargs(fn, args, kwargs):
 def Speciation_from_Equilibrium(idx_var, e_var, type_var, idx_ctt=None, e_ctt=None, type_ctt=None, z_ctt=None,
                                 v_ctt=None, ref_idx=None,
                                 pH_grid=None, init_guess=None, I=None, C=0.005, temp=298.15, solver='hybr',
-                                threshold=None, mscesolver=None,
+                                threshold=None,
                                 system=None):
     """
     Sets multi-species chemical equilibrium provided that the reactions are
@@ -138,14 +138,14 @@ def Speciation_from_Equilibrium(idx_var, e_var, type_var, idx_ctt=None, e_ctt=No
     else:
         solved_activity_val_T = list()
 
-    Kf_dft = screen_log_Kf(solved_activity_val_T, solved_pH_val, v_ctt, ref_idx=ref_idx, mscesolver=mscesolver)
+    Kf_dft = screen_log_Kf(solved_activity_val_T, solved_pH_val, v_ctt, ref_idx=ref_idx)
 
     return Kf_dft
 
 
 def Speciation_from_Equilibrium_bimetal(idx_var, e_var, type_var, idx_ctt=None, e_ctt=None, type_ctt=None, z_ctt=None,
                                         v_ctt=None,
-                                        ref_idx=None, pH_grid=None, init_guess=None, I=None, mscesolver=None,
+                                        ref_idx=None, pH_grid=None, init_guess=None, I=None,
                                         C_X=0.005, C_M=0.005, temp=298.15, solver='hybr', threshold=None, system=None):
     """
     Sets multi-species chemical equilibrium provided that the reactions are

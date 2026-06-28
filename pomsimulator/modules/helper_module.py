@@ -99,6 +99,7 @@ def compute_lgkf_loop(R_idx, R_ene, R_type, mod_idx_vals, number_models, kwargs,
         speciation_func = Speciation_from_Equilibrium
     data = list()
     # Set up speciation models
+    number_models = int(number_models)
     models_to_explore = set(mod_idx_vals)
     n_batches = int(len(mod_idx_vals) / batch_size)
     print("Number of batches = %d" % n_batches)
@@ -174,10 +175,11 @@ def models_sampling(sampling_type,number_models,sample_perc=10):
     Returns:
         mod_idx_vals: list of integers, speciation model numbers to be solved
     '''
+    number_models = int(number_models)
     if sampling_type == "random":
         mod_to_calc = int(number_models*sample_perc/100)
         print("Calculated speciation models number %d"%mod_to_calc)
-        mod_idx_vals = random.sample(range(0, int(number_models)), mod_to_calc)  # Apply randomizer
+        mod_idx_vals = random.sample(range(0, number_models), mod_to_calc)  # Apply randomizer
         mod_idx_vals.sort()
     else:
         mod_idx_vals = list(range(0, number_models))

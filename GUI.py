@@ -1298,7 +1298,6 @@ class POMSimulatorGUI(QMainWindow):
                     'min_pH': 'sim_min_ph',
                     'max_pH': 'sim_max_ph',
                     'step_pH': 'sim_step_ph',
-                    'mscesolver': 'msce_solver',
                     'ref_compound': 'ref_compound',
                     'CM': 'sim_CM',
                     'CX': 'sim_CX'
@@ -1427,12 +1426,20 @@ class POMSimulatorGUI(QMainWindow):
         system_name = self.POM_system.text() if hasattr(self, 'POM_system') else ""
         is_ipa = "_" not in system_name
 
+        def get_shared_line_text(attribute_name, shared_key):
+            """Return synchronized QLineEdit text, preferring shared_data over stale tab attributes."""
+            shared_value = self.shared_data.get(shared_key, "") if hasattr(self, 'shared_data') else ""
+            if shared_value not in (None, ""):
+                return str(shared_value)
+            widget = getattr(self, attribute_name, None)
+            return widget.text() if isinstance(widget, QLineEdit) else ""
+
         config_dict = {
             "Preparation": {
-                'POM_system': self.POM_system.text() if hasattr(self, 'POM_system') else "",
-                'adf_inputs_dir': self.adf_inputs_dir.text() if hasattr(self, 'adf_inputs_dir') else "",
-                'mol_folder': self.mol_folder.text() if hasattr(self, 'mol_folder') else "",
-                'output_path': self.output_path.text() if hasattr(self, 'output_path') else "",
+                'POM_system': get_shared_line_text('POM_system', 'POM_system'),
+                'adf_inputs_dir': get_shared_line_text('adf_inputs_dir', 'adf_inputs_dir'),
+                'mol_folder': get_shared_line_text('mol_folder', 'mol_folder'),
+                'output_path': get_shared_line_text('output_path', 'output_path'),
             },
             "Isomorphism": {
                 'cores': str(self.iso_cores.value()) if hasattr(self, 'iso_cores') else "1",
@@ -1451,7 +1458,6 @@ class POMSimulatorGUI(QMainWindow):
                 'min_pH': str(self.sim_min_ph.value()) if hasattr(self, 'sim_min_ph') else "0",
                 'max_pH': str(self.sim_max_ph.value()) if hasattr(self, 'sim_max_ph') else "35",
                 'step_pH': str(self.sim_step_ph.value()) if hasattr(self, 'sim_step_ph') else "0.5",
-                'mscesolver': self.msce_solver.currentText() if hasattr(self, 'msce_solver') else "nonlinear",
             },
             "CRN": {
                 'Full_CRN': self.full_crn.currentText() if hasattr(self, 'full_crn') else "False",
@@ -1519,7 +1525,7 @@ class POMSimulatorGUI(QMainWindow):
         # Mode-specific concentration and reference compound fields
         if is_ipa:
             config_dict['Simulation'].update({
-                'C0': str(self.c0.value()) if hasattr(self, 'c0') else "0.1",
+                'C0': str(self.sim_c0.value()) if hasattr(self, 'sim_c0') else "0.1",
                 'ref_compound': self.ref_compound.text() if hasattr(self, 'ref_compound') else "",
             })
             config_dict['Speciation'].update({
@@ -3391,13 +3397,6 @@ class POMSimulatorGUI(QMainWindow):
         ph_group.setLayout(ph_layout)
         adv_settings_layout.addWidget(ph_group)
 
-        # MSCE Solver
-        solver_row = QHBoxLayout()
-        solver_row.addWidget(QLabel("MSCE Solver:"))
-        self.msce_solver = QComboBox()
-        self.msce_solver.addItems(["nonlinear"])
-        solver_row.addWidget(self.msce_solver)
-        adv_settings_layout.addLayout(solver_row)
 
         # Return the group and its layout so callers can append mode-specific fields
         return adv_settings_group, adv_settings_layout

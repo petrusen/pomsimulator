@@ -151,6 +151,9 @@ def simulation_ipa(config_dict):
         number_models = np.prod([len(item) for item in R_type])
 
         print("4.1) Total number of models: ", number_models)
+        if number_models <= 0:
+            print("No speciation models were generated. Check the selected reference reaction types and input structures.")
+            return "Error"
 
         mod_idx_vals = models_sampling(sample_type, number_models, sample_perc=sample_perc)
 
@@ -335,6 +338,9 @@ def simulation_hpa(config_dict):
         number_models = np.prod([len(item) for item in R_type])
 
         print("4.1) Total number of models: ", number_models)
+        if number_models <= 0:
+            print("No speciation models were generated. Check the selected reference reaction types and input structures.")
+            return "Error"
 
         mod_idx_vals = models_sampling(sample_type, number_models, sample_perc=sample_perc)
 
