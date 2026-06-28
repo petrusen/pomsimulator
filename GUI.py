@@ -87,6 +87,7 @@ class POMSimulatorGUI(QMainWindow):
         self.create_scaling_tab()
         self.create_speciation_tab()
         self.create_clustering_tab()
+        self.create_plotting_tab()
         # self.create_visualization_tab()
 
         self.tab_status = {
@@ -106,6 +107,10 @@ class POMSimulatorGUI(QMainWindow):
                 'clustering': 'idle',
                 'selection': 'idle',
                 'filtering': 'idle'
+            },
+            'plotting': {
+                'plot_spec': 'idle',
+                'plot_phase': 'idle'
             }
         }
 
@@ -1469,6 +1474,7 @@ class POMSimulatorGUI(QMainWindow):
                 'experimental_set': self.exp_set.currentText() if hasattr(self, 'exp_set') else "",
             },
             "Speciation": {
+                'labels_file': self.labels_file.text() if hasattr(self, 'labels_file') else "",
                 'speciation_labels': self.spec_labels.text() if hasattr(self, 'spec_labels') else "all",
                 'min_pH': str(self.spec_min_ph.value()) if hasattr(self, 'spec_min_ph') else "0",
                 'max_pH': str(self.spec_max_ph.value()) if hasattr(self, 'spec_max_ph') else "14",
@@ -2049,6 +2055,10 @@ class POMSimulatorGUI(QMainWindow):
                 self.update_speciation_parameters()
             if hasattr(self, 'phase_params_layout'):
                 self.update_phase_parameters()
+            if hasattr(self, 'plot_spec_params_layout'):
+                self.update_plot_speciation_parameters()
+            if hasattr(self, 'plot_phase_params_layout'):
+                self.update_plot_phase_parameters()
 
             # After rebuilding mode-dependent tabs, refresh all UI elements
             self.refresh_all_ui_elements()
@@ -2594,6 +2604,24 @@ class POMSimulatorGUI(QMainWindow):
                 'console_ctx': 'clustering',
                 'stop_msg': 'Stopping filtering...',
             },
+            {
+                'runner_attr': 'plot_spec_runner',
+                'run_btn_attr': 'plot_spec_run_btn',
+                'stop_btn_attr': 'plot_spec_stop_btn',
+                'tab_name': 'plotting',
+                'subtab_name': 'plot_spec',
+                'console_ctx': 'plotting',
+                'stop_msg': 'Stopping speciation plot...',
+            },
+            {
+                'runner_attr': 'plot_phase_runner',
+                'run_btn_attr': 'plot_phase_run_btn',
+                'stop_btn_attr': 'plot_phase_stop_btn',
+                'tab_name': 'plotting',
+                'subtab_name': 'plot_phase',
+                'console_ctx': 'plotting',
+                'stop_msg': 'Stopping phase plot...',
+            },
         ]
 
     def _resolve_btn(self, btn_attr):
@@ -2725,6 +2753,10 @@ class POMSimulatorGUI(QMainWindow):
                 'clustering': ('Clustering', 0),
                 'selection': ('Model Selection', 1),
                 'filtering': ('Boxplot Filtering', 2)
+            },
+            'plotting': {
+                'plot_spec': ('Plot Speciation Diagram', 0),
+                'plot_phase': ('Plot Phase Diagram', 1)
             }
         }
 
@@ -2775,7 +2807,8 @@ class POMSimulatorGUI(QMainWindow):
             'simulation': ('Simulation', 1),
             'scaling': ('Scaling', 2),
             'speciation': ('Speciation', 3),
-            'clustering': ('Clustering', 4)
+            'clustering': ('Clustering', 4),
+            'plotting': ('Plotting', 5)
         }
 
         for tab_key, (display_name, index) in tab_mapping.items():
@@ -3953,7 +3986,7 @@ class POMSimulatorGUI(QMainWindow):
         self.output_path = QLineEdit()
         output_row.addWidget(self.output_path)
         browse_btn = QPushButton("Browse")
-        browse_btn.clicked.connect(lambda: self.browse_file(self.output_path))
+        browse_btn.clicked.connect(lambda: self.browse_directory(self.output_path))
         output_row.addWidget(browse_btn)
         system_layout.addLayout(output_row)
         self.register_ui_element(self.output_path, "output_path")
@@ -4258,7 +4291,7 @@ class POMSimulatorGUI(QMainWindow):
         self.output_path = QLineEdit()
         output_row.addWidget(self.output_path)
         browse_btn = QPushButton("Browse")
-        browse_btn.clicked.connect(lambda: self.browse_file(self.output_path))
+        browse_btn.clicked.connect(lambda: self.browse_directory(self.output_path))
         output_row.addWidget(browse_btn)
         system_layout.addLayout(output_row)
         self.register_ui_element(self.output_path, "output_path")
@@ -4267,7 +4300,11 @@ class POMSimulatorGUI(QMainWindow):
         phase_dir_row.addWidget(QLabel("Phase Diagram Directory Name:"))
         self.phase_dir = QLineEdit()
         phase_dir_row.addWidget(self.phase_dir)
+        browse_btn_3 = QPushButton("Browse")
+        browse_btn_3.clicked.connect(lambda: self.browse_directory(self.phase_dir))
+        phase_dir_row.addWidget(browse_btn_3)
         system_layout.addLayout(phase_dir_row)
+        self.register_ui_element(self.phase_dir, "phase_dir")
 
         model_subset_file_row = QHBoxLayout()
         model_subset_file_row.addWidget(QLabel("Model Subset File:"))
@@ -4280,6 +4317,113 @@ class POMSimulatorGUI(QMainWindow):
 
         system_group.setLayout(system_layout)
         layout.addWidget(system_group)
+
+    def _build_phase_ph_group(self, ph_attr_prefix="phase"):
+        """Build a pH Range QGroupBox with min/max/step spinboxes for phase diagrams.
+
+        Stores the created widgets as ``self.<ph_attr_prefix>_min_ph``,
+        ``self.<ph_attr_prefix>_max_ph``, and ``self.<ph_attr_prefix>_step_ph``.
+
+        Returns the configured QGroupBox.
+        """
+        ph_group = QGroupBox("pH Range")
+        ph_layout = QVBoxLayout()
+
+        min_ph_row = QHBoxLayout()
+        min_ph_row.addWidget(QLabel("Min pH:"))
+        min_ph = CustomDoubleSpinBox()
+        min_ph.setRange(-10, 100)
+        min_ph.setValue(0)
+        min_ph_row.addWidget(min_ph)
+        ph_layout.addLayout(min_ph_row)
+        setattr(self, f"{ph_attr_prefix}_min_ph", min_ph)
+
+        max_ph_row = QHBoxLayout()
+        max_ph_row.addWidget(QLabel("Max pH:"))
+        max_ph = CustomDoubleSpinBox()
+        max_ph.setRange(-10, 100)
+        max_ph.setValue(14)
+        max_ph_row.addWidget(max_ph)
+        ph_layout.addLayout(max_ph_row)
+        setattr(self, f"{ph_attr_prefix}_max_ph", max_ph)
+
+        step_ph_row = QHBoxLayout()
+        step_ph_row.addWidget(QLabel("step pH:"))
+        step_ph = CustomDoubleSpinBox()
+        step_ph.setRange(0.01, 1)
+        step_ph.setValue(0.5)
+        step_ph.setDecimals(2)
+        step_ph.setSingleStep(0.1)
+        step_ph_row.addWidget(step_ph)
+        ph_layout.addLayout(step_ph_row)
+        setattr(self, f"{ph_attr_prefix}_step_ph", step_ph)
+
+        ph_group.setLayout(ph_layout)
+        return ph_group
+
+    def _build_phase_labels_group(self, layout, labels_attr="phase_labels"):
+        """Build the Species to Plot group with Labels File and Selected Labels fields for phase diagrams.
+
+        Stores the labels file widget as ``self.labels_file`` and the selected labels
+        widget as ``self.<labels_attr>``. Registers both as shared UI elements.
+        Adds the resulting QGroupBox to *layout*.
+        """
+        plot_list_group = QGroupBox("Species to Plot")
+        plot_list_layout = QVBoxLayout()
+        plot_list_group.setLayout(plot_list_layout)
+
+        labels_file_row = QHBoxLayout()
+        labels_file_row.addWidget(QLabel("Labels File:"))
+        self.labels_file = QLineEdit()
+        labels_file_row.addWidget(self.labels_file)
+        labels_file_browse_btn = QPushButton("Browse")
+        labels_file_browse_btn.clicked.connect(lambda: self.browse_file(self.labels_file))
+        self.register_ui_element(self.labels_file, "labels_file")
+        labels_file_row.addWidget(labels_file_browse_btn)
+        plot_list_layout.addLayout(labels_file_row)
+
+        selected_labels_row = QHBoxLayout()
+        selected_labels_row.addWidget(QLabel("Selected Labels:"))
+        selected_labels = QLineEdit()
+        selected_labels.setText("all")
+        selected_labels.setReadOnly(False)
+        selected_labels_row.addWidget(selected_labels)
+        setattr(self, labels_attr, selected_labels)
+        select_labels_btn = QPushButton("Select Labels")
+        select_labels_btn.clicked.connect(
+            lambda: self.load_and_select_labels(self.labels_file, getattr(self, labels_attr))
+        )
+        self.register_ui_element(selected_labels, labels_attr)
+        selected_labels_row.addWidget(select_labels_btn)
+        plot_list_layout.addLayout(selected_labels_row)
+
+        layout.addWidget(plot_list_group)
+
+    def _build_phase_operation_group(self, layout):
+        """Build the Operation Parameters group with Cores and Batch Size spinboxes for phase diagrams.
+
+        Stores widgets as ``self.phase_cores`` and ``self.phase_batch_size`` and
+        registers them as shared UI elements. Adds the QGroupBox to *layout*.
+        """
+        params_group = QGroupBox("Operation Parameters")
+        params_layout = QGridLayout()
+
+        params_layout.addWidget(QLabel("Cores:"), 1, 0)
+        self.phase_cores = QSpinBox()
+        self.phase_cores.setRange(1, cpu_count() - 1)
+        self.phase_cores.setValue(4)
+        params_layout.addWidget(self.phase_cores, 1, 1)
+        self.register_ui_element(self.phase_cores, "phase_cores")
+
+        params_layout.addWidget(QLabel("Batch Size:"), 2, 0)
+        self.phase_batch_size = QSpinBox()
+        self.phase_batch_size.setRange(1, 1000)
+        self.phase_batch_size.setValue(100)
+        params_layout.addWidget(self.phase_batch_size, 2, 1)
+        self.register_ui_element(self.phase_batch_size, "phase_batch_size")
+
+        params_group.setLayout(params_layout)
+        layout.addWidget(params_group)
 
     def update_phase_parameters(self):
         """
@@ -4298,73 +4442,72 @@ class POMSimulatorGUI(QMainWindow):
         scroll_widget = QWidget()
         scroll_layout = QVBoxLayout(scroll_widget)
 
-        # --- Shared: I/O group (System, Output Path, Phase Dir, Model Subset File) ---
+        # --- Shared: I/O group ---
         self._build_phase_io_group(scroll_layout)
 
-        # --- Chemical Parameters (mode-specific) ---
+        # --- Chemical Parameters (mode-specific concentration + shared pH range) ---
         chem_group = QGroupBox("Chemical Parameters")
         chem_layout = QVBoxLayout()
 
         if pom_type == "IPA":
-            c_group = QGroupBox("Initial Concentration (mol/L)")
-            c_layout = QVBoxLayout()
-
             min_c_row = QHBoxLayout()
             min_c_row.addWidget(QLabel("Min Concentration (mol/L):"))
             self.phase_min_c = CustomDoubleSpinBox()
-            self.phase_min_c.setRange(0, 5)
+            self.phase_min_c.setDecimals(6)
+            self.phase_min_c.setRange(0.000001, 10)
             self.phase_min_c.setValue(0.001)
             self.phase_min_c.setSingleStep(0.1)
             min_c_row.addWidget(self.phase_min_c)
-            c_layout.addLayout(min_c_row)
+            chem_layout.addLayout(min_c_row)
 
             max_c_row = QHBoxLayout()
             max_c_row.addWidget(QLabel("Max Concentration (mol/L):"))
             self.phase_max_c = CustomDoubleSpinBox()
-            self.phase_max_c.setRange(0, 5)
+            self.phase_max_c.setDecimals(6)
+            self.phase_max_c.setRange(0.000001, 10)
             self.phase_max_c.setValue(1.0)
             self.phase_max_c.setSingleStep(0.1)
             max_c_row.addWidget(self.phase_max_c)
-            c_layout.addLayout(max_c_row)
+            chem_layout.addLayout(max_c_row)
 
             num_c_row = QHBoxLayout()
             num_c_row.addWidget(QLabel("Number of Concentration points:"))
-            self.phase_num_c = CustomDoubleSpinBox()
+            self.phase_num_c = QSpinBox()
             self.phase_num_c.setMinimum(2)
+            self.phase_num_c.setMaximum(1000)
+            self.phase_num_c.setValue(10)
             num_c_row.addWidget(self.phase_num_c)
-            c_layout.addLayout(num_c_row)
-
-            c_group.setLayout(c_layout)
-            chem_layout.addWidget(c_group)
+            chem_layout.addLayout(num_c_row)
 
         else:  # HPA
-            c_group = QGroupBox("Concentration Ratios")
-            c_layout = QVBoxLayout()
+            min_ratio_row = QHBoxLayout()
+            min_ratio_row.addWidget(QLabel("Min Metal/Heteroatom Ratio:"))
+            self.phase_min_ratio = CustomDoubleSpinBox()
+            self.phase_min_ratio.setDecimals(6)
+            self.phase_min_ratio.setRange(0.000001, 500)
+            self.phase_min_ratio.setValue(1.0)
+            self.phase_min_ratio.setSingleStep(0.5)
+            min_ratio_row.addWidget(self.phase_min_ratio)
+            chem_layout.addLayout(min_ratio_row)
 
-            min_metal_ratio_row = QHBoxLayout()
-            min_metal_ratio_row.addWidget(QLabel("Min Metal/Heteroatom Ratio:"))
-            self.min_metal_ratio = CustomDoubleSpinBox()
-            self.min_metal_ratio.setRange(0.0000000001, 500)
-            self.min_metal_ratio.setValue(1)
-            self.min_metal_ratio.setSingleStep(0.5)
-            min_metal_ratio_row.addWidget(self.min_metal_ratio)
-            c_layout.addLayout(min_metal_ratio_row)
+            max_ratio_row = QHBoxLayout()
+            max_ratio_row.addWidget(QLabel("Max Metal/Heteroatom Ratio:"))
+            self.phase_max_ratio = CustomDoubleSpinBox()
+            self.phase_max_ratio.setDecimals(6)
+            self.phase_max_ratio.setRange(0.000001, 500)
+            self.phase_max_ratio.setValue(5.0)
+            self.phase_max_ratio.setSingleStep(0.5)
+            max_ratio_row.addWidget(self.phase_max_ratio)
+            chem_layout.addLayout(max_ratio_row)
 
-            max_metal_ratio_row = QHBoxLayout()
-            max_metal_ratio_row.addWidget(QLabel("Max Metal/Heteroatom Ratio:"))
-            self.max_metal_ratio = CustomDoubleSpinBox()
-            self.max_metal_ratio.setRange(0.0000000001, 500)
-            self.max_metal_ratio.setValue(5)
-            self.max_metal_ratio.setSingleStep(0.5)
-            max_metal_ratio_row.addWidget(self.max_metal_ratio)
-            c_layout.addLayout(max_metal_ratio_row)
-
-            num_metal_ratio_row = QHBoxLayout()
-            num_metal_ratio_row.addWidget(QLabel("Number of Metal/Heteroatom Ratio points:"))
-            self.num_metal_ratio = CustomDoubleSpinBox()
-            self.num_metal_ratio.setMinimum(2)
-            num_metal_ratio_row.addWidget(self.num_metal_ratio)
-            c_layout.addLayout(num_metal_ratio_row)
+            num_ratio_row = QHBoxLayout()
+            num_ratio_row.addWidget(QLabel("Number of Ratio points:"))
+            self.phase_num_ratio = QSpinBox()
+            self.phase_num_ratio.setMinimum(2)
+            self.phase_num_ratio.setMaximum(1000)
+            self.phase_num_ratio.setValue(10)
+            num_ratio_row.addWidget(self.phase_num_ratio)
+            chem_layout.addLayout(num_ratio_row)
 
             CX_row = QHBoxLayout()
             CX_row.addWidget(QLabel("Initial Heteroatom Concentration (mol/L):"))
@@ -4374,12 +4517,8 @@ class POMSimulatorGUI(QMainWindow):
             self.phase_CX.setValue(0.1)
             self.phase_CX.setSingleStep(0.1)
             CX_row.addWidget(self.phase_CX)
-            c_layout.addLayout(CX_row)
+            chem_layout.addLayout(CX_row)
 
-            c_group.setLayout(c_layout)
-            chem_layout.addWidget(c_group)
-
-        # Shared pH range
         chem_layout.addWidget(self._build_spec_ph_group("phase"))
         chem_group.setLayout(chem_layout)
         scroll_layout.addWidget(chem_group)
@@ -5141,120 +5280,441 @@ class POMSimulatorGUI(QMainWindow):
             self.filtering_run_btn.setEnabled(True)
             self.filtering_stop_btn.setEnabled(False)
 
-    def create_visualization_tab(self):
+    def create_plotting_tab(self):
         """
-        Create the Visualization tab with two subtabs for different visualization types.
+        Create the Plotting tab with two subtabs for different plotting types.
 
-        This method initializes the Visualization tab in the GUI, which allows users to
-        generate different types of visualizations for simulation results. The tab includes
-        a dropdown for selecting between IPA (Isopolyanion) and HPA (Heteropolyanion)
-        visualization types, two subtabs for different visualization formats (Speciation
-        Diagrams and Phase Diagrams), and a console output area for displaying execution logs.
+        This method initializes the Plotting tab in the GUI, which contains two subtabs:
+        1. Plot Speciation Diagram: For plotting speciation diagrams from NPZ files
+        2. Plot Phase Diagram: For plotting phase diagrams from phase calculation results
 
-        Each subtab contains specific parameters relevant to its visualization type and
-        is created by calling create_visualization_subtab() with the appropriate parameters.
-
-        Parameters:
-            self: The POMSimulatorGUI instance containing the tab widget where
-                  this tab will be added.
-
-        Returns:
-            None: This method doesn't return a value but modifies the GUI by adding
-                  a new tab to the main tab widget.
+        The tab includes a tabbed interface for the two plotting types and uses the
+        standard threaded execution infrastructure for non-blocking operations.
         """
         tab = QWidget()
-        self.tabs.addTab(tab, "Visualization")
+        self.tabs.addTab(tab, "Plotting")
         layout = QVBoxLayout(tab)
-
-        # Visualization type selection
-        type_layout = QHBoxLayout()
-        type_layout.addWidget(QLabel("Visualization Type:"))
-        self.vis_type = QComboBox()
-        self.vis_type.addItems(["IPA", "HPA"])
-        type_layout.addWidget(self.vis_type)
-        layout.addLayout(type_layout)
 
         # Create subtabs
         subtabs = QTabWidget()
         layout.addWidget(subtabs)
 
-        # Subtabs: Speciation Diagrams and Phase Diagrams
-        for subtab_name in ["Speciation Diagrams", "Phase Diagrams"]:
-            widget = QWidget()
-            sub_layout = QVBoxLayout(widget)
-            self.create_visualization_subtab(sub_layout, subtab_name)
-            subtabs.addTab(widget, subtab_name)
+        # Plot Speciation Diagram subtab
+        self.plot_spec_widget = QWidget()
+        self.plot_spec_layout = QVBoxLayout(self.plot_spec_widget)
+        self.create_plot_speciation_subtab(self.plot_spec_layout)
+        subtabs.addTab(self.plot_spec_widget, "Plot Speciation Diagram")
 
-        # Add console at bottom
+        # Plot Phase Diagram subtab
+        self.plot_phase_widget = QWidget()
+        self.plot_phase_layout = QVBoxLayout(self.plot_phase_widget)
+        self.create_plot_phase_subtab(self.plot_phase_layout)
+        subtabs.addTab(self.plot_phase_widget, "Plot Phase Diagram")
 
-    def create_visualization_subtab(self, layout, subtab_name):
+    def create_plot_speciation_subtab(self, layout):
         """
-        Create a visualization subtab with parameters specific to the visualization type.
+        Create the Plot Speciation Diagram subtab with parameters for plotting speciation diagrams.
 
-        This method builds the UI components for a visualization subtab, which allows users
-        to configure and run different types of visualizations for simulation results. It
-        creates input fields for output file selection and adds type-specific parameters
-        based on the subtab name (either Speciation Diagrams or Phase Diagrams). The method
-        also adds a run button configured to execute the appropriate visualization script.
-
-        Parameters:
-            layout (QVBoxLayout): The parent layout where this subtab's components
-                             will be added. All UI elements created by this method
-                             will be organized within this layout.
-            subtab_name (str): The name of the subtab to create, which determines the
-                          specific parameters to include. Must be one of:
-                          "Speciation Diagrams" or "Phase Diagrams".
-
-        Returns:
-            None: This method modifies the provided layout in-place by adding
-              UI components to it and doesn't return a value.
+        Args:
+            layout (QVBoxLayout): The parent layout to add components to
         """
-        group = QGroupBox(f"{subtab_name} Parameters")
-        form_layout = QVBoxLayout()
+        # Parameters container
+        self.plot_spec_params_container = QWidget()
+        self.plot_spec_params_layout = QVBoxLayout(self.plot_spec_params_container)
+        layout.addWidget(self.plot_spec_params_container)
 
-        # Common parameters
-        output_layout = QHBoxLayout()
-        output_layout.addWidget(QLabel("Output File:"))
-        self.vis_output = QLineEdit()
-        output_layout.addWidget(self.vis_output)
+        # Initialize parameters for Plot Speciation
+        self.update_plot_speciation_parameters()
+
+    def update_plot_speciation_parameters(self):
+        """
+        Update the plot speciation parameters UI based on the selected simulation type.
+        """
+        # Clear all existing widgets from the layout
+        while self.plot_spec_params_layout.count():
+            child = self.plot_spec_params_layout.takeAt(0)
+            if child.widget():
+                child.widget().deleteLater()
+
+        pom_type = getattr(self, "global_mode", "IPA")
+
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_widget = QWidget()
+        scroll_layout = QVBoxLayout(scroll_widget)
+
+        # --- Input/Output File Management ---
+        system_group = QGroupBox("Input/Output File Management")
+        system_layout = QVBoxLayout()
+
+        # System row
+        system_row = QHBoxLayout()
+        system_row.addWidget(QLabel("System:"))
+        self.plot_spec_POM_system = QLineEdit()
+        self.plot_spec_POM_system.setPlaceholderText("Enter POM system (e.g., As, W, PMo)")
+        system_row.addWidget(self.plot_spec_POM_system)
+        system_layout.addLayout(system_row)
+        self.register_ui_element(self.plot_spec_POM_system, "POM_system")
+
+        # Output path row
+        output_row = QHBoxLayout()
+        output_row.addWidget(QLabel("Output Path:"))
+        self.plot_spec_output_path = QLineEdit()
+        self.plot_spec_output_path.setPlaceholderText("Select output directory")
+        output_row.addWidget(self.plot_spec_output_path)
         browse_btn = QPushButton("Browse")
-        browse_btn.clicked.connect(lambda: self.browse_file(self.vis_output, "PNG Files (*.png)"))
-        output_layout.addWidget(browse_btn)
-        form_layout.addLayout(output_layout)
+        browse_btn.clicked.connect(lambda: self.browse_directory(self.plot_spec_output_path))
+        output_row.addWidget(browse_btn)
+        system_layout.addLayout(output_row)
+        self.register_ui_element(self.plot_spec_output_path, "output_path")
 
-        # Subtab-specific parameters
-        if subtab_name == "Speciation Diagrams":
-            # Parameters from plot_phase.py
-            species_layout = QHBoxLayout()
-            species_layout.addWidget(QLabel("Species to Plot:"))
-            self.species_list = QLineEdit()
-            species_layout.addWidget(self.species_list)
-            form_layout.addLayout(species_layout)
-        else:  # Phase Diagrams
-            # Parameters from plot_phase_diagram_*.py
-            conc_layout = QHBoxLayout()
-            conc_layout.addWidget(QLabel("Concentration Range:"))
-            self.conc_min = CustomDoubleSpinBox()
-            self.conc_min.setRange(0.0, 1.0)
-            self.conc_min.setValue(0.001)
-            conc_layout.addWidget(self.conc_min)
-            conc_layout.addWidget(QLabel("to"))
-            self.conc_max = CustomDoubleSpinBox()
-            self.conc_max.setRange(0.0, 1.0)
-            self.conc_max.setValue(0.1)
-            conc_layout.addWidget(self.conc_max)
-            form_layout.addLayout(conc_layout)
+        # NPZ file row
+        npz_row = QHBoxLayout()
+        npz_row.addWidget(QLabel("NPZ File:"))
+        self.npz_file = self.get_or_create_widget('npz_file', QLineEdit)
+        npz_row.addWidget(self.npz_file)
+        npz_browse_btn = QPushButton("Browse")
+        npz_browse_btn.clicked.connect(lambda: self.browse_file(self.npz_file, "NPZ Files (*.npz)"))
+        npz_row.addWidget(npz_browse_btn)
+        system_layout.addLayout(npz_row)
+        self.register_ui_element(self.npz_file, "npz_file")
 
-        group.setLayout(form_layout)
-        layout.addWidget(group)
+        # m_idx row (metal index for plotting)
+        m_idx_row = QHBoxLayout()
+        m_idx_row.addWidget(QLabel("Metal Index (m_idx):"))
+        self.m_idx = self.get_or_create_widget('m_idx', QComboBox)
+        if pom_type == "IPA":
+            self.m_idx.clear()
+            self.m_idx.addItems(["0"])
+        else:  # HPA
+            self.m_idx.clear()
+            self.m_idx.addItems(["0", "1"])
+        m_idx_row.addWidget(self.m_idx)
+        system_layout.addLayout(m_idx_row)
+        self.register_ui_element(self.m_idx, "m_idx")
 
-        # Run button
-        vis_type = self.vis_type.currentText().lower()
-        script_name = "plot_speciation" if subtab_name == "Speciation Diagrams" else f"plot_phase_diagram_{vis_type}"
-        run_btn = QPushButton(f"Generate {subtab_name}")
-        run_btn.clicked.connect(lambda: self.run_visualization(subtab_name, vis_type))
-        layout.addWidget(run_btn)
+        system_group.setLayout(system_layout)
+        scroll_layout.addWidget(system_group)
 
+        # --- Species to Plot ---
+        plot_list_group = QGroupBox("Species to Plot")
+        plot_list_layout = QVBoxLayout()
+        plot_list_group.setLayout(plot_list_layout)
+
+        # Labels file row
+        labels_file_row = QHBoxLayout()
+        labels_file_row.addWidget(QLabel("Labels File:"))
+        # Create separate widget for speciation subtab
+        if not hasattr(self, 'spec_labels_file'):
+            self.spec_labels_file = QLineEdit()
+            self.register_ui_element(self.spec_labels_file, "labels_file")
+        labels_file_row.addWidget(self.spec_labels_file)
+        labels_file_browse_btn = QPushButton("Browse")
+        labels_file_browse_btn.clicked.connect(lambda: self.browse_file(self.spec_labels_file))
+        labels_file_row.addWidget(labels_file_browse_btn)
+        plot_list_layout.addLayout(labels_file_row)
+
+        # Selected labels row
+        selected_labels_row = QHBoxLayout()
+        selected_labels_row.addWidget(QLabel("Selected Labels:"))
+        # Create separate widget for speciation subtab
+        if not hasattr(self, 'spec_plot_list'):
+            self.spec_plot_list = QLineEdit()
+            self.spec_plot_list.setText("all")
+            self.spec_plot_list.setReadOnly(False)
+            self.register_ui_element(self.spec_plot_list, "plot_list")
+        selected_labels_row.addWidget(self.spec_plot_list)
+        select_labels_btn = QPushButton("Select Labels")
+        select_labels_btn.clicked.connect(
+            lambda: self.load_and_select_labels(self.spec_labels_file, self.spec_plot_list)
+        )
+        selected_labels_row.addWidget(select_labels_btn)
+        plot_list_layout.addLayout(selected_labels_row)
+
+        scroll_layout.addWidget(plot_list_group)
+
+        # --- Color Dictionary ---
+        color_dict_group = QGroupBox("Color Dictionary")
+        color_dict_layout = QVBoxLayout()
+        
+        # Create or get existing color dict selector
+        if not hasattr(self, 'plot_spec_col_dict'):
+            self.plot_spec_col_dict = ColorDictSelector()
+            self.register_ui_element(self.plot_spec_col_dict, "col_dict")
+        
+        color_dict_layout.addWidget(self.plot_spec_col_dict)
+        color_dict_group.setLayout(color_dict_layout)
+        scroll_layout.addWidget(color_dict_group)
+
+        scroll_area.setWidget(scroll_widget)
+        self.plot_spec_params_layout.addWidget(scroll_area)
+
+        # Run / Stop buttons
+        run_btn = QPushButton("▶ Generate Speciation Plot")
+        run_btn.setToolTip("Generate the Speciation Diagram Plot")
+        run_btn.setStyleSheet(ButtonStylesheets.RUN_BUTTON)
+        run_btn.clicked.connect(self.run_plot_speciation)
+
+        stop_button = QPushButton("⏹ Stop")
+        stop_button.setToolTip("Stop the current operation.")
+        stop_button.setStyleSheet(ButtonStylesheets.STOP_BUTTON)
+        stop_button.setEnabled(False)
+        stop_button.clicked.connect(self.stop_function)
+
+        self.plot_spec_run_btn = run_btn
+        self.plot_spec_stop_btn = stop_button
+
+        self.plot_spec_params_layout.addWidget(run_btn)
+        self.plot_spec_params_layout.addWidget(stop_button)
+
+    def create_plot_phase_subtab(self, layout):
+        """
+        Create the Plot Phase Diagram subtab with parameters for plotting phase diagrams.
+
+        Args:
+            layout (QVBoxLayout): The parent layout to add components to
+        """
+        # Parameters container
+        self.plot_phase_params_container = QWidget()
+        self.plot_phase_params_layout = QVBoxLayout(self.plot_phase_params_container)
+        layout.addWidget(self.plot_phase_params_container)
+
+        # Initialize parameters for Plot Phase
+        self.update_plot_phase_parameters()
+
+    def update_plot_phase_parameters(self):
+        """
+        Update the plot phase parameters UI based on the selected simulation type.
+        """
+        # Clear all existing widgets from the layout
+        while self.plot_phase_params_layout.count():
+            child = self.plot_phase_params_layout.takeAt(0)
+            if child.widget():
+                child.widget().deleteLater()
+
+        pom_type = getattr(self, "global_mode", "IPA")
+
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_widget = QWidget()
+        scroll_layout = QVBoxLayout(scroll_widget)
+
+        # --- Input/Output File Management ---
+        system_group = QGroupBox("Input/Output File Management")
+        system_layout = QVBoxLayout()
+
+        # System row
+        system_row = QHBoxLayout()
+        system_row.addWidget(QLabel("System:"))
+        self.plot_phase_POM_system = QLineEdit()
+        self.plot_phase_POM_system.setPlaceholderText("Enter POM system (e.g., As, W, PMo)")
+        system_row.addWidget(self.plot_phase_POM_system)
+        system_layout.addLayout(system_row)
+        self.register_ui_element(self.plot_phase_POM_system, "POM_system")
+
+        # Output path row
+        output_row = QHBoxLayout()
+        output_row.addWidget(QLabel("Output Path:"))
+        self.plot_phase_output_path = QLineEdit()
+        self.plot_phase_output_path.setPlaceholderText("Select output directory")
+        output_row.addWidget(self.plot_phase_output_path)
+        browse_btn = QPushButton("Browse")
+        browse_btn.clicked.connect(lambda: self.browse_directory(self.plot_phase_output_path))
+        output_row.addWidget(browse_btn)
+        system_layout.addLayout(output_row)
+        self.register_ui_element(self.plot_phase_output_path, "output_path")
+
+        # Phase diagram directory row
+        plot_phase_dir_row = QHBoxLayout()
+        plot_phase_dir_row.addWidget(QLabel("Phase Diagram Directory Name:"))
+        self.plot_phase_dir = QLineEdit()
+        plot_phase_dir_row.addWidget(self.plot_phase_dir)
+        system_layout.addLayout(plot_phase_dir_row)
+        self.register_ui_element(self.plot_phase_dir, "phase_dir")
+
+        system_group.setLayout(system_layout)
+        scroll_layout.addWidget(system_group)
+
+        # --- Species to Plot ---
+        plot_list_group = QGroupBox("Species to Plot")
+        plot_list_layout = QVBoxLayout()
+        plot_list_group.setLayout(plot_list_layout)
+
+        # Labels file row
+        labels_file_row = QHBoxLayout()
+        labels_file_row.addWidget(QLabel("Labels File:"))
+        # Create separate widget for phase subtab
+        if not hasattr(self, 'phase_labels_file'):
+            self.phase_labels_file = QLineEdit()
+            self.register_ui_element(self.phase_labels_file, "labels_file")
+        labels_file_row.addWidget(self.phase_labels_file)
+        labels_file_browse_btn = QPushButton("Browse")
+        labels_file_browse_btn.clicked.connect(lambda: self.browse_file(self.phase_labels_file))
+        labels_file_row.addWidget(labels_file_browse_btn)
+        plot_list_layout.addLayout(labels_file_row)
+
+        # Selected labels row
+        selected_labels_row = QHBoxLayout()
+        selected_labels_row.addWidget(QLabel("Selected Labels:"))
+        # Create separate widget for phase subtab
+        if not hasattr(self, 'phase_plot_list'):
+            self.phase_plot_list = QLineEdit()
+            self.phase_plot_list.setText("all")
+            self.phase_plot_list.setReadOnly(False)
+            self.register_ui_element(self.phase_plot_list, "plot_list")
+        selected_labels_row.addWidget(self.phase_plot_list)
+        select_labels_btn = QPushButton("Select Labels")
+        select_labels_btn.clicked.connect(
+            lambda: self.load_and_select_labels(self.phase_labels_file, self.phase_plot_list)
+        )
+        selected_labels_row.addWidget(select_labels_btn)
+        plot_list_layout.addLayout(selected_labels_row)
+
+        scroll_layout.addWidget(plot_list_group)
+
+        # --- Color Dictionary ---
+        color_dict_group = QGroupBox("Color Dictionary")
+        color_dict_layout = QVBoxLayout()
+        
+        # Create or get existing color dict selector
+        if not hasattr(self, 'plot_phase_col_dict'):
+            self.plot_phase_col_dict = ColorDictSelector()
+            self.register_ui_element(self.plot_phase_col_dict, "col_dict")
+            
+            # For HPA, pre-select Col_Dict_PMo if available
+            if pom_type == "HPA":
+                combo = self.plot_phase_col_dict.col_dict_combo
+                for i in range(combo.count()):
+                    if combo.itemText(i) == "Col_Dict_PMo":
+                        combo.setCurrentIndex(i)
+                        break
+        
+        color_dict_layout.addWidget(self.plot_phase_col_dict)
+        color_dict_group.setLayout(color_dict_layout)
+        scroll_layout.addWidget(color_dict_group)
+
+        scroll_area.setWidget(scroll_widget)
+        self.plot_phase_params_layout.addWidget(scroll_area)
+
+        # Run / Stop buttons
+        run_btn = QPushButton("▶ Generate Phase Plot")
+        run_btn.setToolTip("Generate the Phase Diagram Plot")
+        run_btn.setStyleSheet(ButtonStylesheets.RUN_BUTTON)
+        run_btn.clicked.connect(self.run_plot_phase)
+
+        stop_button = QPushButton("⏹ Stop")
+        stop_button.setToolTip("Stop the current operation.")
+        stop_button.setStyleSheet(ButtonStylesheets.STOP_BUTTON)
+        stop_button.setEnabled(False)
+        stop_button.clicked.connect(self.stop_function)
+
+        self.plot_phase_run_btn = run_btn
+        self.plot_phase_stop_btn = stop_button
+
+        self.plot_phase_params_layout.addWidget(run_btn)
+        self.plot_phase_params_layout.addWidget(stop_button)
+
+    def run_plot_speciation(self):
+        """Run the plot speciation diagram function"""
+        self.clear_console()
+
+        try:
+            from utilities.plotting_gui import plot_speciation_run
+            plot_function = plot_speciation_run
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to import plotting function: {str(e)}")
+            self.set_tab_error('plotting', 'plot_spec')
+            return
+
+        try:
+            config_dict = self.get_gui_params()
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to get GUI parameters: {str(e)}")
+            self.set_tab_error('plotting', 'plot_spec')
+            return
+
+        # Validate required inputs
+        if not config_dict['Preparation']['output_path'] or not config_dict['Preparation']['POM_system']:
+            QMessageBox.critical(self, "Error", "Output path or POM system not selected.")
+            self.set_tab_error('plotting', 'plot_spec')
+            return
+
+        try:
+            self.update_console("Started plot speciation diagram", "plotting")
+            self.set_tab_running('plotting', 'plot_spec')
+
+            # Create and start function runner
+            self.plot_spec_runner = POMSim_func_runner(plot_function, config_dict)
+            self.plot_spec_runner.finished.connect(self.on_function_finished)
+            self.plot_spec_runner.error.connect(self.on_function_error)
+            self.plot_spec_runner.stopped.connect(self.on_function_stopped)
+            # Connect console output to update console
+            self.plot_spec_runner.console_output.connect(lambda text: self.update_console(text, "plotting"))
+            
+            self.plot_spec_run_btn.setEnabled(False)
+            self.plot_spec_stop_btn.setEnabled(True)
+            self.plot_spec_runner.start()
+
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to start plotting function: {str(e)}")
+            self.set_tab_error('plotting', 'plot_spec')
+            self.plot_spec_run_btn.setEnabled(True)
+            self.plot_spec_stop_btn.setEnabled(False)
+
+    def run_plot_phase(self):
+        """Run the plot phase diagram function"""
+        self.clear_console()
+
+        try:
+            if self.pom_type == "IPA":
+                from utilities.plotting_gui import plot_phase_ipa_run
+                plot_function = plot_phase_ipa_run
+            elif self.pom_type == "HPA":
+                from utilities.plotting_gui import plot_phase_hpa_run
+                plot_function = plot_phase_hpa_run
+            else:
+                QMessageBox.critical(self, "Error", "Invalid phase type selected.")
+                self.set_tab_error('plotting', 'plot_phase')
+                return
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to import plotting function: {str(e)}")
+            self.set_tab_error('plotting', 'plot_phase')
+            return
+
+        try:
+            config_dict = self.get_gui_params()
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to get GUI parameters: {str(e)}")
+            self.set_tab_error('plotting', 'plot_phase')
+            return
+
+        # Validate required inputs
+        if not config_dict['Preparation']['output_path'] or not config_dict['Preparation']['POM_system']:
+            QMessageBox.critical(self, "Error", "Output path or POM system not selected.")
+            self.set_tab_error('plotting', 'plot_phase')
+            return
+
+        try:
+            self.update_console("Started plot phase diagram", "plotting")
+            self.set_tab_running('plotting', 'plot_phase')
+
+            # Create and start function runner
+            self.plot_phase_runner = POMSim_func_runner(plot_function, config_dict)
+            self.plot_phase_runner.finished.connect(self.on_function_finished)
+            self.plot_phase_runner.error.connect(self.on_function_error)
+            self.plot_phase_runner.stopped.connect(self.on_function_stopped)
+            # Connect console output to update console
+            self.plot_phase_runner.console_output.connect(lambda text: self.update_console(text, "plotting"))
+            
+            self.plot_phase_run_btn.setEnabled(False)
+            self.plot_phase_stop_btn.setEnabled(True)
+            self.plot_phase_runner.start()
+
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to start plotting function: {str(e)}")
+            self.set_tab_error('plotting', 'plot_phase')
+            self.plot_phase_run_btn.setEnabled(True)
+            self.plot_phase_stop_btn.setEnabled(False)
 
 class ButtonStylesheets:
     """
@@ -5894,3 +6354,31 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+
+
+
+
+
+
+
+
+
+    sys.exit(app.exec_())
+
+
+if __name__ == "__main__":
+    main()
+
+
+
+
+
+
+
+
+
+
+
+

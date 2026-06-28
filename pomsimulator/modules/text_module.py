@@ -32,7 +32,8 @@ def Lab_to_Formula(Label):
     Returns:
         out_str: string, LaTeX-formatted formula for plotting
     '''
-    charges = {"O": -2, "H": 1, "V": 5, "Nb": 5, "Ta": 5, "Mo": 6, "W": 6, "P": 5}
+    from pomsimulator.modules.DataBase import valence_dict
+
     param = "([A-z]{1,2})([0-9]{1,2})"
     paramH = "([-])([0-9]{1,2})([H])"
     # ([A-z]{1,2})([0-9]{1,2})([A-Z])([0-9]{1,2})([-][H])([0-9]{1,2})"
@@ -42,7 +43,7 @@ def Lab_to_Formula(Label):
     elements = [item[2] for item in proton_info] + [item[0] for item in metal_info]
     coefs = [int(item[1]) for item in (proton_info + metal_info)]
 
-    total_charge = sum([charges[elem] * cx for cx, elem in zip(coefs, elements)])
+    total_charge = sum([valence_dict[elem] * cx for cx, elem in zip(coefs, elements)])
 
     out_str = r"$\mathrm{["
     for cx, elem in zip(coefs, elements):

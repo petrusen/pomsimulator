@@ -5,6 +5,7 @@ import time
 from itertools import repeat,compress,islice,product
 import random
 import pandas as pd
+from configparser import ConfigParser
 # Local imports
 from pomsimulator.modules.text_module import Print_logo,Read_csv,Lab_to_stoich,write_speciation_parameters,Bader_Parser
 from pomsimulator.modules.msce_module import *

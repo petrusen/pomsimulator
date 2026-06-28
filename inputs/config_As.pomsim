@@ -1,0 +1,72 @@
+[Preparation]
+POM_system = As
+adf_inputs_dir = ../inputs/As_Set
+mol_folder = ../inputs/As_Set_molfiles
+output_path = ../outputs/As_data
+
+[Isomorphism]
+cores = 1.0
+
+[Simulation]
+cores = 1
+batch_size = 1
+sample_perc = 100.0
+sample_type = all
+use_isomorphism = True
+energy_threshold = 20.0
+proton_numb = 0
+I = 0.1
+temp = 298.15
+min_pH = 0.0
+max_pH = 35.0
+step_pH = 0.5
+reference_types = P,H2Ow1,H2Ow2,Cw1,Cw2,Cw3,Cw4,A,HO,H3O
+C0 = 0.01
+ref_compound = As01O04-0H
+
+[CRN]
+Full_CRN = False
+Selected_model = 0
+Plot_3D = False
+
+[Scaling]
+scaling_mode = best_rmse
+experimental_set = As_googleAI_01I
+
+[Speciation]
+speciation_labels = all
+min_pH = 0.0
+max_pH = 14.0
+step_pH = 0.5
+cores = 1
+batch_size = 1
+m_idx = 0
+npz_file = 
+phase_dir = 
+model_subset_file = 
+C = 0.1
+min_logC = 0.0
+max_logC = 1.0
+num_logC = 2.0
+
+[InternalConditions]
+restrain_addition = 1.0
+restrain_condensation = 1.0
+include_dimerization = True
+force_stoich = 
+adjust_protons_hydration = True
+
+[Clustering]
+cluster_dir = 
+npz_cluster_file = 
+features_file = 
+n_clusters = 2.0
+normalize_feats = True
+feats_list = width,height,pos,area
+sel_groups = 
+
+[Visualization]
+col_dict = 
+plot_list = all
+boxplot_list = all
+
