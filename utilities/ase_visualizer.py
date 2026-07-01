@@ -390,6 +390,9 @@ def launch_visualizer(mol_file=None, standalone=True):
     
     # Only create a QApplication if running standalone or if one doesn't exist
     if standalone and not QApplication.instance():
+        # Enable High-DPI support before creating QApplication
+        from pomsimulator.dpi_utils import enable_high_dpi_support
+        enable_high_dpi_support()
         app = QApplication(sys.argv)
     
     visualizer = MoleculeVisualizer()
@@ -411,6 +414,10 @@ if __name__ == "__main__":
     # Only run this code if the script is executed directly
     from PyQt5.QtWidgets import QApplication
     import sys
+    
+    # Enable High-DPI support before creating QApplication
+    from pomsimulator.dpi_utils import enable_high_dpi_support
+    enable_high_dpi_support()
     
     app = QApplication(sys.argv)
     visualizer = MoleculeVisualizer()

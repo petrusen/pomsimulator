@@ -14,7 +14,7 @@ from PyQt5.QtWidgets import (QApplication, QMainWindow, QTabWidget, QWidget, QVB
                              QHBoxLayout, QGridLayout, QLineEdit, QComboBox, QFileDialog, QCheckBox, QSpinBox,
                              QDoubleSpinBox, QGroupBox, QRadioButton, QMessageBox, QTreeView, QFileSystemModel,
                              QDockWidget, QDialog, QToolBar, QButtonGroup, QPlainTextEdit, QSlider, QProgressBar,
-                             QTextEdit, QLabel, QAction, QPushButton, QScrollArea, QShortcut, QFrame)
+                             QTextEdit, QLabel, QAction, QPushButton, QScrollArea, QShortcut, QFrame, QSplitter)
 
 from pomsimulator.modules.DataBase import experimental_constants, allowed_scaling_modes, reaction_references, \
     clustering_features
@@ -22,6 +22,220 @@ from pomsimulator.modules.DataBase import experimental_constants, allowed_scalin
 # Set the script directory for relative imports
 script_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(script_dir)
+
+# Import DPI utilities after setting up the path
+from dpi_utils import scale, scale_size, scale_font, scale_monospace_font, get_scale_factor, scale_css_font_size
+
+
+class ImageViewerWidget(QWidget):
+    """
+    A reusable image viewer widget that can be embedded in other widgets.
+    
+    This widget encapsulates all the functionality from the original image viewer dialog,
+    including zoom controls, navigation, and drag-to-pan functionality.
+    """
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.all_images = []
+        self.current_index = 0
+        self.zoom_factor = 1.0
+        self.current_pixmap = None
+        self.drag_state = {"active": False, "last_pos": None}
+        
+        self.setup_ui()
+        
+    def setup_ui(self):
+        """Initialize the UI components."""
+        layout = QVBoxLayout(self)
+        
+        # Create scroll area for the image
+        self.scroll_area = QScrollArea()
+        self.scroll_area.setWidgetResizable(False)
+        self.scroll_area.setAlignment(Qt.AlignCenter)
+        
+        # Create image label
+        self.image_label = QLabel()
+        self.image_label.setAlignment(Qt.AlignCenter)
+        self.image_label.setCursor(Qt.OpenHandCursor)
+        self.image_label.setStyleSheet("border: 1px solid gray;")
+        
+        # Set up mouse events for drag-to-pan
+        self.image_label.mousePressEvent = self.on_mouse_press
+        self.image_label.mouseMoveEvent = self.on_mouse_move
+        self.image_label.mouseReleaseEvent = self.on_mouse_release
+        self.image_label.setMouseTracking(True)
+        
+        # Add image to scroll area
+        self.scroll_area.setWidget(self.image_label)
+        layout.addWidget(self.scroll_area)
+        
+        # Status bar: image name + zoom level
+        self.status_label = QLabel()
+        self.status_label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(self.status_label)
+        
+        # Navigation row
+        nav_row = QHBoxLayout()
+        self.prev_btn = QPushButton("◀ Previous")
+        self.prev_btn.setToolTip("Show the previous image in the folder")
+        self.prev_btn.clicked.connect(self.prev_image)
+        nav_row.addWidget(self.prev_btn)
+        
+        self.next_btn = QPushButton("Next ▶")
+        self.next_btn.setToolTip("Show the next image in the folder")
+        self.next_btn.clicked.connect(self.next_image)
+        nav_row.addWidget(self.next_btn)
+        
+        layout.addLayout(nav_row)
+        
+        # Zoom controls row
+        zoom_row = QHBoxLayout()
+        zoom_in_btn = QPushButton("🔍 Zoom In (+)")
+        zoom_in_btn.setToolTip("Zoom in (increase image size by 25%)")
+        zoom_in_btn.clicked.connect(self.zoom_in)
+        zoom_row.addWidget(zoom_in_btn)
+        
+        zoom_out_btn = QPushButton("🔍 Zoom Out (-)")
+        zoom_out_btn.setToolTip("Zoom out (decrease image size by 25%)")
+        zoom_out_btn.clicked.connect(self.zoom_out)
+        zoom_row.addWidget(zoom_out_btn)
+        
+        reset_btn = QPushButton("↺ Reset Zoom")
+        reset_btn.setToolTip("Reset to original image size (100%)")
+        reset_btn.clicked.connect(self.reset_zoom)
+        zoom_row.addWidget(reset_btn)
+        
+        close_btn = QPushButton("Close")
+        close_btn.clicked.connect(self.close_viewer)
+        zoom_row.addWidget(close_btn)
+        
+        layout.addLayout(zoom_row)
+        
+        # Initially hide the widget
+        self.hide()
+        
+    def load_image(self, file_path):
+        """Load an image file and set up navigation for images in the same folder."""
+        try:
+            # Collect all image files in the same folder, sorted alphabetically
+            image_extensions = {'.png', '.jpg', '.jpeg', '.gif', '.bmp', '.tiff', '.svg'}
+            folder = os.path.dirname(os.path.abspath(file_path))
+            self.all_images = sorted([
+                os.path.join(folder, f) for f in os.listdir(folder)
+                if os.path.splitext(f)[1].lower() in image_extensions
+            ])
+            
+            # Find current image index
+            abs_path = os.path.abspath(file_path)
+            if abs_path in self.all_images:
+                self.current_index = self.all_images.index(abs_path)
+            else:
+                self.current_index = 0
+                
+            # Load the image
+            self.current_pixmap = QPixmap(self.all_images[self.current_index])
+            self.zoom_factor = 1.0
+            
+            # Update navigation buttons
+            self.prev_btn.setEnabled(len(self.all_images) > 1)
+            self.next_btn.setEnabled(len(self.all_images) > 1)
+            
+            # Show the widget and update display
+            self.show()
+            self.update_display()
+            
+        except Exception as e:
+            QMessageBox.warning(self, "Error Loading Image", f"Could not load image: {str(e)}")
+            
+    def update_display(self):
+        """Redraw the image label at the current zoom level."""
+        if self.current_pixmap is None:
+            return
+            
+        pix = self.current_pixmap
+        new_width = int(pix.width() * self.zoom_factor)
+        new_height = int(pix.height() * self.zoom_factor)
+        scaled = pix.scaled(
+            new_width, new_height,
+            Qt.KeepAspectRatio,
+            Qt.SmoothTransformation
+        )
+        self.image_label.setPixmap(scaled)
+        self.image_label.resize(scaled.width(), scaled.height())
+        
+        # Update status
+        name = os.path.basename(self.all_images[self.current_index])
+        self.status_label.setText(
+            f"{name}  |  {self.current_index + 1} / {len(self.all_images)}  |  Zoom: {int(self.zoom_factor * 100)}%"
+        )
+        
+    def load_image_at_index(self, index):
+        """Load the image at the specified index and reset zoom."""
+        if 0 <= index < len(self.all_images):
+            self.current_index = index
+            self.current_pixmap = QPixmap(self.all_images[index])
+            self.zoom_factor = 1.0
+            self.update_display()
+            
+    def zoom_in(self):
+        """Zoom in by 25%."""
+        self.zoom_factor = min(self.zoom_factor * 1.25, 10.0)
+        self.update_display()
+        
+    def zoom_out(self):
+        """Zoom out by 25%."""
+        self.zoom_factor = max(self.zoom_factor / 1.25, 0.05)
+        self.update_display()
+        
+    def reset_zoom(self):
+        """Reset zoom to 100%."""
+        self.zoom_factor = 1.0
+        self.update_display()
+        
+    def prev_image(self):
+        """Navigate to the previous image."""
+        if len(self.all_images) > 1:
+            self.load_image_at_index((self.current_index - 1) % len(self.all_images))
+            
+    def next_image(self):
+        """Navigate to the next image."""
+        if len(self.all_images) > 1:
+            self.load_image_at_index((self.current_index + 1) % len(self.all_images))
+            
+    def close_viewer(self):
+        """Close the image viewer and collapse the splitter section."""
+        self.hide()
+        # Get the parent splitter and collapse this section
+        parent = self.parent()
+        if isinstance(parent, QSplitter):
+            # Set sizes to give all space to the file navigator (first widget)
+            total_height = parent.height() if parent.height() > 0 else 800
+            parent.setSizes([total_height, 0])
+        
+    def on_mouse_press(self, event):
+        """Handle mouse press for drag-to-pan."""
+        if event.button() == Qt.LeftButton:
+            self.drag_state["active"] = True
+            self.drag_state["last_pos"] = event.globalPos()
+            self.image_label.setCursor(Qt.ClosedHandCursor)
+            
+    def on_mouse_move(self, event):
+        """Handle mouse move for drag-to-pan."""
+        if self.drag_state["active"] and self.drag_state["last_pos"] is not None:
+            delta = event.globalPos() - self.drag_state["last_pos"]
+            self.drag_state["last_pos"] = event.globalPos()
+            h_bar = self.scroll_area.horizontalScrollBar()
+            v_bar = self.scroll_area.verticalScrollBar()
+            h_bar.setValue(h_bar.value() - delta.x())
+            v_bar.setValue(v_bar.value() - delta.y())
+            
+    def on_mouse_release(self, event):
+        """Handle mouse release for drag-to-pan."""
+        if event.button() == Qt.LeftButton:
+            self.drag_state["active"] = False
+            self.drag_state["last_pos"] = None
+            self.image_label.setCursor(Qt.OpenHandCursor)
 
 
 class POMSimulatorGUI(QMainWindow):
@@ -47,7 +261,8 @@ class POMSimulatorGUI(QMainWindow):
         """
         super().__init__()
         self.setWindowTitle("POMSimulator")
-        self.setGeometry(300, 200, 2048, 1152)
+        # Use scaled dimensions for the main window
+        self.setGeometry(scale(300), scale(200), scale(2048), scale(1152))
 
         # Set application logo
         logo_path = os.path.join(script_dir, "docs", ".img", "pomsimulator_logo.png")
@@ -278,34 +493,34 @@ class POMSimulatorGUI(QMainWindow):
         app = QApplication.instance()
 
         # Common stylesheet for both themes - tab sizing and font adjustments
-        common_stylesheet = """
-            QTabWidget::pane {
+        common_stylesheet = f"""
+            QTabWidget::pane {{
                 border: 1px solid #c0c0c0;
-                padding: 5px;
-            }
+                padding: {scale(5)}px;
+            }}
 
-            QTabBar::tab {
-                font-size: 12pt;
+            QTabBar::tab {{
+                font-size: {max(6, int(round(12 * get_scale_factor())))}pt;
                 font-weight: bold;
-                min-width: 200px;
-                min-height: 30px;
-                padding: 8px 12px;
-                margin-right: 2px;
-            }
+                min-width: {scale(200)}px;
+                min-height: {scale(30)}px;
+                padding: {scale(8)}px {scale(12)}px;
+                margin-right: {scale(2)}px;
+            }}
 
             /* Style for nested tabs (smaller than parent tabs) */
-            QTabWidget QTabWidget QTabBar::tab {
-                font-size: 10pt;
-                min-width: 250px;
-                padding: 6px 10px;
-            }
+            QTabWidget QTabWidget QTabBar::tab {{
+                font-size: {max(6, int(round(10 * get_scale_factor())))}pt;
+                min-width: {scale(250)}px;
+                padding: {scale(6)}px {scale(10)}px;
+            }}
 
             /* Style for deeply nested tabs (even smaller) */
-            QTabWidget QTabWidget QTabWidget QTabBar::tab {
-                font-size: 8pt;
-                min-width: 150px;
-                padding: 4px 8px;
-            }
+            QTabWidget QTabWidget QTabWidget QTabBar::tab {{
+                font-size: {max(6, int(round(8 * get_scale_factor())))}pt;
+                min-width: {scale(150)}px;
+                padding: {scale(4)}px {scale(8)}px;
+            }}
         """
 
         if self.dark_theme:
@@ -442,7 +657,7 @@ class POMSimulatorGUI(QMainWindow):
         msg_box.setText(about_text)
         msg_box.setIcon(QMessageBox.Information)
         msg_box.setStandardButtons(QMessageBox.Ok)
-        msg_box.resize(600, 300)
+        msg_box.resize(scale(600), scale(300))
         msg_box.exec_()
 
     def show_keybindings(self):
@@ -587,7 +802,7 @@ class POMSimulatorGUI(QMainWindow):
             msg_box.setStandardButtons(QMessageBox.Ok)
 
             # Make the dialog larger to accommodate the table
-            msg_box.resize(700, 700)
+            msg_box.resize(scale(700), scale(700))
 
             # Show the dialog
             msg_box.exec_()
@@ -822,6 +1037,9 @@ class POMSimulatorGUI(QMainWindow):
         dock = QDockWidget("File System", self)
         dock.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
 
+        # Create a vertical splitter to hold the file navigator and image viewer
+        self.file_dock_splitter = QSplitter(Qt.Vertical)
+        
         # Determine the correct root path for both development and compiled environments
         def get_project_root():
             """Get the project root directory, handling both development and PyInstaller environments."""
@@ -870,7 +1088,18 @@ class POMSimulatorGUI(QMainWindow):
         # Connect double-click event to file opening function
         self.tree.doubleClicked.connect(self.open_file_from_browser)
 
-        dock.setWidget(self.tree)
+        # Create the embedded image viewer widget
+        self.embedded_image_viewer = ImageViewerWidget()
+        
+        # Add both widgets to the splitter
+        self.file_dock_splitter.addWidget(self.tree)
+        self.file_dock_splitter.addWidget(self.embedded_image_viewer)
+        
+        # Set initial splitter proportions (file navigator takes most space initially)
+        self.file_dock_splitter.setSizes([scale(600), scale(200)])
+        
+        # Set the splitter as the dock widget
+        dock.setWidget(self.file_dock_splitter)
         self.addDockWidget(Qt.LeftDockWidgetArea, dock)
 
     def open_file_from_browser(self, index):
@@ -949,7 +1178,7 @@ class POMSimulatorGUI(QMainWindow):
             # Create dialog
             dialog = QDialog(self)
             dialog.setWindowTitle(f"Text Viewer - {os.path.basename(file_path)}")
-            dialog.resize(800, 800)
+            dialog.resize(scale(800), scale(800))
 
             # Create layout
             layout = QVBoxLayout(dialog)
@@ -961,11 +1190,8 @@ class POMSimulatorGUI(QMainWindow):
                 text_edit.setReadOnly(True)
             text_edit.setPlainText(content)
 
-            # Set monospace font
-            monospace_font = QFont("Monospace")
-            monospace_font.setStyleHint(QFont.Monospace)
-            monospace_font.setPointSize(10)
-            text_edit.setFont(monospace_font)
+            # Set scaled monospace font
+            text_edit.setFont(scale_monospace_font(10))
 
             layout.addWidget(text_edit)
 
@@ -1015,181 +1241,32 @@ class POMSimulatorGUI(QMainWindow):
 
     def open_image_file(self, file_path):
         """
-        Open an image file in a viewer dialog with zoom and navigation controls.
+        Open an image file in the embedded image viewer within the file dock.
 
-        This method creates a dialog window to display an image file. The dialog
-        includes the file name in its title, shows the image in a scrollable label
-        widget, and provides zoom in, zoom out, reset zoom, previous image, and
-        next image buttons for navigating through images in the same folder.
+        This method loads an image file into the embedded image viewer widget that
+        is part of the file dock's splitter layout. The image viewer provides zoom
+        controls, navigation between images in the same folder, and drag-to-pan
+        functionality.
 
         Parameters:
             file_path (str): The full path to the image file to be opened.
 
         Returns:
-            None: This method displays a dialog but doesn't return a value.
+            None: This method loads an image into the embedded viewer.
         """
         try:
-            # Collect all image files in the same folder, sorted alphabetically
-            image_extensions = {'.png', '.jpg', '.jpeg', '.gif', '.bmp', '.tiff', '.svg'}
-            folder = os.path.dirname(os.path.abspath(file_path))
-            all_images = sorted([
-                os.path.join(folder, f) for f in os.listdir(folder)
-                if os.path.splitext(f)[1].lower() in image_extensions
-            ])
-            current_index = [all_images.index(os.path.abspath(file_path)) if os.path.abspath(file_path) in all_images else 0]
-
-            # Create dialog
-            dialog = QDialog(self)
-            dialog.resize(800, 800)
-
-            # Create layout
-            layout = QVBoxLayout(dialog)
-
-            # Mutable state containers for closures
-            zoom_factor = [1.0]
-            current_pixmap = [QPixmap(all_images[current_index[0]])]
-
-            # Create scroll area for the image
-            scroll_area = QScrollArea()
-            scroll_area.setWidgetResizable(False)
-            scroll_area.setAlignment(Qt.AlignCenter)
-
-            # Create image label
-            image_label = QLabel()
-            image_label.setPixmap(current_pixmap[0])
-            image_label.setAlignment(Qt.AlignCenter)
-            image_label.setCursor(Qt.OpenHandCursor)
-
-            # Drag-to-pan state
-            drag_state = {"active": False, "last_pos": None}
-
-            def on_mouse_press(event):
-                if event.button() == Qt.LeftButton:
-                    drag_state["active"] = True
-                    drag_state["last_pos"] = event.globalPos()
-                    image_label.setCursor(Qt.ClosedHandCursor)
-
-            def on_mouse_move(event):
-                if drag_state["active"] and drag_state["last_pos"] is not None:
-                    delta = event.globalPos() - drag_state["last_pos"]
-                    drag_state["last_pos"] = event.globalPos()
-                    h_bar = scroll_area.horizontalScrollBar()
-                    v_bar = scroll_area.verticalScrollBar()
-                    h_bar.setValue(h_bar.value() - delta.x())
-                    v_bar.setValue(v_bar.value() - delta.y())
-
-            def on_mouse_release(event):
-                if event.button() == Qt.LeftButton:
-                    drag_state["active"] = False
-                    drag_state["last_pos"] = None
-                    image_label.setCursor(Qt.OpenHandCursor)
-
-            image_label.mousePressEvent = on_mouse_press
-            image_label.mouseMoveEvent = on_mouse_move
-            image_label.mouseReleaseEvent = on_mouse_release
-            image_label.setMouseTracking(True)
-
-            # Add image to scroll area
-            scroll_area.setWidget(image_label)
-            layout.addWidget(scroll_area)
-
-            # Status bar: image name + zoom level
-            status_label = QLabel()
-            status_label.setAlignment(Qt.AlignCenter)
-            layout.addWidget(status_label)
-
-            def update_display():
-                """Redraw the image label at the current zoom level."""
-                pix = current_pixmap[0]
-                new_width = int(pix.width() * zoom_factor[0])
-                new_height = int(pix.height() * zoom_factor[0])
-                scaled = pix.scaled(
-                    new_width, new_height,
-                    Qt.KeepAspectRatio,
-                    Qt.SmoothTransformation
-                )
-                image_label.setPixmap(scaled)
-                image_label.resize(scaled.width(), scaled.height())
-                idx = current_index[0]
-                name = os.path.basename(all_images[idx])
-                status_label.setText(
-                    f"{name}  |  {idx + 1} / {len(all_images)}  |  Zoom: {int(zoom_factor[0] * 100)}%"
-                )
-                dialog.setWindowTitle(f"Image Viewer - {name}")
-
-            def load_image(index):
-                """Load the image at *index* and reset zoom."""
-                current_index[0] = index
-                current_pixmap[0] = QPixmap(all_images[index])
-                zoom_factor[0] = 1.0
-                update_display()
-
-            def zoom_in():
-                zoom_factor[0] = min(zoom_factor[0] * 1.25, 10.0)
-                update_display()
-
-            def zoom_out():
-                zoom_factor[0] = max(zoom_factor[0] / 1.25, 0.05)
-                update_display()
-
-            def reset_zoom():
-                zoom_factor[0] = 1.0
-                update_display()
-
-            def prev_image():
-                if len(all_images) > 1:
-                    load_image((current_index[0] - 1) % len(all_images))
-
-            def next_image():
-                if len(all_images) > 1:
-                    load_image((current_index[0] + 1) % len(all_images))
-
-            # Navigation row
-            nav_row = QHBoxLayout()
-            prev_btn = QPushButton("◀ Previous")
-            prev_btn.setToolTip("Show the previous image in the folder")
-            prev_btn.clicked.connect(prev_image)
-            prev_btn.setEnabled(len(all_images) > 1)
-            nav_row.addWidget(prev_btn)
-
-            next_btn = QPushButton("Next ▶")
-            next_btn.setToolTip("Show the next image in the folder")
-            next_btn.clicked.connect(next_image)
-            next_btn.setEnabled(len(all_images) > 1)
-            nav_row.addWidget(next_btn)
-
-            layout.addLayout(nav_row)
-
-            # Zoom controls row
-            zoom_row = QHBoxLayout()
-            zoom_in_btn = QPushButton("🔍 Zoom In (+)")
-            zoom_in_btn.setToolTip("Zoom in (increase image size by 25%)")
-            zoom_in_btn.clicked.connect(zoom_in)
-            zoom_row.addWidget(zoom_in_btn)
-
-            zoom_out_btn = QPushButton("🔍 Zoom Out (-)")
-            zoom_out_btn.setToolTip("Zoom out (decrease image size by 25%)")
-            zoom_out_btn.clicked.connect(zoom_out)
-            zoom_row.addWidget(zoom_out_btn)
-
-            reset_btn = QPushButton("↺ Reset Zoom")
-            reset_btn.setToolTip("Reset to original image size (100%)")
-            reset_btn.clicked.connect(reset_zoom)
-            zoom_row.addWidget(reset_btn)
-
-            close_btn = QPushButton("Close")
-            close_btn.clicked.connect(dialog.close)
-            zoom_row.addWidget(close_btn)
-
-            layout.addLayout(zoom_row)
-
-            dialog.setLayout(layout)
-
-            # Initial display
-            update_display()
-
-            dialog.exec_()
-
+            # Load the image in the embedded viewer
+            self.embedded_image_viewer.load_image(file_path)
+            
+            # Adjust splitter sizes to show both file navigator and image viewer
+            # Give more space to the image viewer when an image is loaded
+            total_height = self.file_dock_splitter.height()
+            if total_height > 0:
+                self.file_dock_splitter.setSizes([int(total_height * 0.4), int(total_height * 0.6)])
+            else:
+                # Fallback if height is not available yet
+                self.file_dock_splitter.setSizes([scale(300), scale(500)])
+                
         except Exception as e:
             QMessageBox.warning(self, "Error Opening Image File",
                                 f"Could not open image file: {str(e)}")
@@ -2544,7 +2621,7 @@ class POMSimulatorGUI(QMainWindow):
         # Create console controls
         controls_layout = QHBoxLayout()
         clear_btn = QPushButton("Clear")
-        clear_btn.setMaximumWidth(80)
+        clear_btn.setMaximumWidth(scale(80))
         clear_btn.clicked.connect(self.clear_console)
         controls_layout.addWidget(clear_btn)
         # controls_layout.addStretch()  # Push clear button to the left
@@ -2554,14 +2631,11 @@ class POMSimulatorGUI(QMainWindow):
         # Create the shared console
         self.shared_console = QTextEdit()
         self.shared_console.setReadOnly(True)
-        # self.shared_console.setMaximumHeight(200)  # Limit height so it doesn't dominate the UI
-        self.shared_console.setMinimumHeight(200)  # Ensure it's always visible
+        # self.shared_console.setMaximumHeight(scale(200))  # Limit height so it doesn't dominate the UI
+        self.shared_console.setMinimumHeight(scale(200))  # Ensure it's always visible
 
-        # Set monospace font for better readability
-        monospace_font = QFont("Monospace")
-        monospace_font.setStyleHint(QFont.Monospace)
-        monospace_font.setPointSize(11)
-        self.shared_console.setFont(monospace_font)
+        # Set scaled monospace font for better readability
+        self.shared_console.setFont(scale_monospace_font(11))
 
         # Apply initial theme-based styling
         self.update_console_theme()
@@ -6045,7 +6119,7 @@ class ColorDictSelector(QWidget):
 
             # Color swatch
             swatch = QFrame()
-            swatch.setFixedSize(100, 100)
+            swatch.setFixedSize(scale(100), scale(100))
             # Use the 6-character hex code for the stylesheet
             swatch.setStyleSheet(f"background-color: {display_color}; border: 2px solid #cccccc; border-radius: 5px;")
             item_layout.addWidget(swatch)
@@ -6055,14 +6129,14 @@ class ColorDictSelector(QWidget):
             label_widget.setWordWrap(True)
             label_widget.setAlignment(Qt.AlignmentFlag.AlignCenter)
             label_widget.setStyleSheet("font-size: 10pt; font-weight: bold;")
-            label_widget.setMaximumWidth(130)
+            label_widget.setMaximumWidth(scale(130))
             item_layout.addWidget(label_widget)
 
             # Color value (hex code) - show the original color code
             color_value = QLabel(str(color))
             color_value.setStyleSheet("color: #666666; font-family: monospace; font-size: 8pt;")
             color_value.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            color_value.setMaximumWidth(130)
+            color_value.setMaximumWidth(scale(130))
             item_layout.addWidget(color_value)
 
             # Create container widget
@@ -6114,7 +6188,7 @@ class LabelSelectionDialog(QDialog):
     def init_ui(self):
         """Initialize the dialog UI"""
         self.setWindowTitle("Select Labels")
-        self.setGeometry(100, 100, 600, 500)
+        self.setGeometry(scale(100), scale(100), scale(600), scale(500))
 
         layout = QVBoxLayout()
 
@@ -6455,10 +6529,11 @@ def main():
     Initialize and run the POM Simulator GUI application.
 
     This function serves as the entry point for the POM Simulator GUI application.
-    It creates a QApplication instance, initializes the main window of the
-    application (POMSimulatorGUI), displays it, and starts the application's
-    event loop. The function will only return when the application is closed,
-    at which point it ensures proper termination with the appropriate exit code.
+    It enables High-DPI support, creates a QApplication instance, initializes the
+    main window of the application (POMSimulatorGUI), displays it, and starts the
+    application's event loop. The function will only return when the application
+    is closed, at which point it ensures proper termination with the appropriate
+    exit code.
 
     Parameters:
         None
@@ -6467,6 +6542,10 @@ def main():
         None: This function doesn't return as it calls sys.exit() to terminate
               the program with the exit code from app.exec_().
     """
+    # Enable High-DPI support BEFORE creating QApplication
+    from dpi_utils import enable_high_dpi_support
+    enable_high_dpi_support()
+    
     app = QApplication(sys.argv)
 
     # Set application style for better appearance
@@ -6474,7 +6553,7 @@ def main():
 
     # Create and show the main window
     window = POMSimulatorGUI()
-    window.show()
+    window.showMaximized()
 
     # Process events to ensure the window is displayed
     app.processEvents()

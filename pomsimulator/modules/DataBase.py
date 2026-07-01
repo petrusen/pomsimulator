@@ -19,19 +19,19 @@ Pettersson_3I = {"P00Mo01O04-0H":0,
                  "P02Mo05O23-1H": 67.07,
                  "P02Mo05O23-2H": 70.86}
 
-google_AI_01I_As = {"As01O04-0H":0.0,
+As_01I = {"As01O04-0H":0.0,
                 "As01O04-1H":10.96,
                 "As01O04-2H":17.58,
                 "As01O04-3H":19.66,}
 
-google_AI_01I_C = {"C01O03-0H":0.0,
+C_01I = {"C01O03-0H":0.0,
                    "C01O03-1H":9.57,
                    "C01O03-2H":15.59}
 
 experimental_constants = {"W12_Rosantsev_I01_05":Rosantsev_W12_I01_05I,
                           "PMo12_Petterson_I3":Pettersson_3I,
-                          "As_googleAI_01I":google_AI_01I_As,
-                          "C_googleAI_01I":google_AI_01I_C}
+                          "As_01I":As_01I,
+                          "C_01I":C_01I}
 
 
 
