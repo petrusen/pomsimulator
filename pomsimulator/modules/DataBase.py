@@ -28,10 +28,16 @@ C_01I = {"C01O03-0H":0.0,
                    "C01O03-1H":9.57,
                    "C01O03-2H":15.59}
 
+P_01I = {"P01O04-0H":0.0,
+         "P01O04-1H":11.66,
+         "P01O04-2H":18.40,
+         "P01O04-3H":20.48,}
+
 experimental_constants = {"W12_Rosantsev_I01_05":Rosantsev_W12_I01_05I,
                           "PMo12_Petterson_I3":Pettersson_3I,
                           "As_01I":As_01I,
-                          "C_01I":C_01I}
+                          "C_01I":C_01I,
+                          "P_01I":P_01I,}
 
 
 

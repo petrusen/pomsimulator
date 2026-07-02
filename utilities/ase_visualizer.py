@@ -340,16 +340,21 @@ class MoleculeVisualizer(QWidget):
             
     def close_viewer(self):
         """Close the molecule viewer."""
-        # Find the PreviewManager parent and close the preview
+        # Walk up the parent chain looking for a PreviewManager-like widget.
+        # We avoid importing PreviewManager directly from GUI.py because that
+        # module may have been loaded under a different module name/path
+        # (e.g. "GUI" vs "pomsimulator.GUI"), which caused a ModuleNotFoundError
+        # (and an unhandled exception/crash) when the Close button was clicked.
+        # Instead, duck-type: any parent that exposes a callable
+        # "close_preview" method is treated as the preview manager.
         parent = self.parent()
         while parent is not None:
-            # Import here to avoid circular imports
-            from pomsimulator.GUI import PreviewManager
-            if isinstance(parent, PreviewManager):
-                parent.close_preview()
+            close_preview = getattr(parent, "close_preview", None)
+            if callable(close_preview):
+                close_preview()
                 return
             parent = parent.parent()
-        
+
         # Fallback: hide this widget directly
         self.hide()
         

@@ -69,8 +69,7 @@ Users should have:
 - **Operating System**: Windows 10/11, macOS 10.14+, or Linux (Ubuntu 18.04+)
 - **Memory**: 4 GB RAM minimum, 8 GB recommended
 - **Storage**: 2 GB available disk space
-- **Display**: 1280x800 resolution minimum, 1920x1080 recommended
-- **Python**: Python 3.7 or higher
+- **Python**: Python 3.10, 3.11 or 3.12
 
 ### 2.2 Required Dependencies
 

@@ -8,13 +8,14 @@ import traceback
 import tempfile
 from datetime import datetime
 
-from PyQt5.QtCore import Qt, QModelIndex, QLocale, QThread, pyqtSignal, QTimer, QUrl
+from PyQt5.QtCore import Qt, QModelIndex, QLocale, QThread, pyqtSignal, QTimer, QUrl, QDir, QSettings
 from PyQt5.QtGui import QFont, QIcon, QPixmap, QDesktopServices, QValidator, QPalette, QColor, QKeySequence
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QTabWidget, QWidget, QVBoxLayout,
                              QHBoxLayout, QGridLayout, QLineEdit, QComboBox, QFileDialog, QCheckBox, QSpinBox,
                              QDoubleSpinBox, QGroupBox, QRadioButton, QMessageBox, QTreeView, QFileSystemModel,
                              QDockWidget, QDialog, QToolBar, QButtonGroup, QPlainTextEdit, QSlider, QProgressBar,
-                             QTextEdit, QLabel, QAction, QPushButton, QScrollArea, QShortcut, QFrame, QSplitter)
+                             QTextEdit, QLabel, QAction, QPushButton, QScrollArea, QShortcut, QFrame, QSplitter,
+                             QListWidget, QTextBrowser)
 
 from pomsimulator.modules.DataBase import experimental_constants, allowed_scaling_modes, reaction_references, \
     clustering_features
@@ -35,6 +36,9 @@ class PreviewManager(QWidget):
     ensuring that only one preview is active at a time. It provides a unified interface for
     managing different preview types and handles the switching between them.
     """
+    
+    # Class variable to track if an instance is already open
+    _instance = None
     
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -111,6 +115,9 @@ class ImageViewerWidget(QWidget):
     This widget encapsulates all the functionality from the original image viewer dialog,
     including zoom controls, navigation, and drag-to-pan functionality.
     """
+    
+    # Class variable to track if an instance is already open
+    _instance = None
     
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -318,6 +325,364 @@ class ImageViewerWidget(QWidget):
             self.image_label.setCursor(Qt.OpenHandCursor)
 
 
+class UserManualDialog(QDialog):
+    """
+    A dialog window that displays the application's user manual with Markdown rendering.
+    
+    This dialog provides a professional documentation viewer with:
+    - Navigation panel for multiple documentation files
+    - Markdown rendering with proper formatting
+    - Support for images, links, tables, code blocks, etc.
+    - Read-only display
+    - Theme-aware styling
+    """
+    
+    # Class variable to track if an instance is already open
+    _instance = None
+    
+    def __init__(self, parent=None):
+        """
+        Initialize the User Manual dialog.
+        
+        Args:
+            parent: The parent widget (typically the main window)
+        """
+        super().__init__(parent)
+        self.parent_window = parent
+        self.setWindowTitle("POMSimulator User Manual")
+        self.setMinimumSize(scale(1200), scale(800))
+        
+        # Store the docs directory path
+        self.docs_dir = os.path.join(script_dir, "docs")
+        
+        # Define available documentation files
+        self.doc_files = {
+            "GUI Manual": "GUI_manual.md",
+            "Installation Guide": "INSTALLATION_PROTOCOL.md",
+            "User Manual": "manual.md"
+        }
+        
+        # Setup the UI
+        self.setup_ui()
+        
+        # Load the first document by default
+        self.load_document("GUI Manual")
+        
+        # Set this as the current instance
+        UserManualDialog._instance = self
+    
+    def closeEvent(self, event):
+        """Handle dialog close event to clear the instance reference."""
+        UserManualDialog._instance = None
+        super().closeEvent(event)
+        
+    def setup_ui(self):
+        """Create and configure the dialog's user interface."""
+        # Main layout
+        main_layout = QVBoxLayout(self)
+        
+        # Create a splitter for navigation and content
+        splitter = QSplitter(Qt.Horizontal)
+        
+        # Left panel: Navigation
+        nav_widget = QWidget()
+        nav_layout = QVBoxLayout(nav_widget)
+        nav_layout.setContentsMargins(0, 0, 0, 0)
+        
+        # Navigation label
+        nav_label = QLabel("Documentation")
+        nav_label.setStyleSheet(f"font-weight: bold; font-size: 12pt; padding: {scale(5)}px;")
+        nav_layout.addWidget(nav_label)
+        
+        # Navigation list
+        self.nav_list = QListWidget()
+        self.nav_list.addItems(self.doc_files.keys())
+        self.nav_list.currentItemChanged.connect(self.on_nav_selection_changed)
+        self.nav_list.setMaximumWidth(scale(250))
+        nav_layout.addWidget(self.nav_list)
+        
+        splitter.addWidget(nav_widget)
+        
+        # Right panel: Content viewer
+        content_widget = QWidget()
+        content_layout = QVBoxLayout(content_widget)
+        content_layout.setContentsMargins(0, 0, 0, 0)
+        
+        # Document title
+        self.doc_title = QLabel()
+        self.doc_title.setStyleSheet(f"font-weight: bold; font-size: 14pt; padding: {scale(10)}px;")
+        self.doc_title.setWordWrap(True)
+        content_layout.addWidget(self.doc_title)
+        
+        # Text browser for displaying Markdown
+        self.text_browser = QTextBrowser()
+        self.text_browser.setReadOnly(True)
+        self.text_browser.setOpenExternalLinks(False)  # Handle links manually
+        self.text_browser.anchorClicked.connect(self.on_link_clicked)
+        
+        # Set a reasonable font size
+        font = self.text_browser.font()
+        font.setPointSize(int(10 * get_scale_factor()))
+        self.text_browser.setFont(font)
+        
+        content_layout.addWidget(self.text_browser)
+        
+        splitter.addWidget(content_widget)
+        
+        # Set splitter proportions (1:4 ratio)
+        splitter.setSizes([scale(250), scale(950)])
+        
+        main_layout.addWidget(splitter)
+        
+        # Button box at the bottom
+        button_layout = QHBoxLayout()
+        button_layout.addStretch()
+        
+        close_button = QPushButton("Close")
+        close_button.clicked.connect(self.accept)
+        close_button.setMinimumWidth(scale(100))
+        button_layout.addWidget(close_button)
+        
+        main_layout.addLayout(button_layout)
+        
+    def on_nav_selection_changed(self, current, previous):
+        """Handle navigation list selection changes."""
+        if current:
+            doc_name = current.text()
+            self.load_document(doc_name)
+            
+    def load_document(self, doc_name):
+        """
+        Load and display a documentation file.
+        
+        Args:
+            doc_name: The name of the document to load (key in self.doc_files)
+        """
+        if doc_name not in self.doc_files:
+            return
+            
+        # Update title
+        self.doc_title.setText(doc_name)
+        
+        # Get file path
+        file_path = os.path.join(self.docs_dir, self.doc_files[doc_name])
+        
+        # Check if file exists
+        if not os.path.exists(file_path):
+            self.text_browser.setPlainText(f"Documentation file not found: {file_path}")
+            return
+            
+        # Read the Markdown file
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                markdown_content = f.read()
+        except Exception as e:
+            self.text_browser.setPlainText(f"Error reading file: {str(e)}")
+            return
+            
+        # Render the Markdown
+        self.render_markdown(markdown_content, file_path)
+        
+    def render_markdown(self, markdown_text, source_file_path):
+        """
+        Render Markdown content as formatted HTML.
+        
+        This method tries to use Qt's native setMarkdown() if available (Qt >= 5.14),
+        otherwise falls back to converting Markdown to HTML using the markdown package.
+        
+        Args:
+            markdown_text: The Markdown content to render
+            source_file_path: Path to the source file (for resolving relative image paths)
+        """
+        # Try using Qt's native Markdown support (Qt >= 5.14)
+        try:
+            # Set the search paths for images relative to the docs directory
+            self.text_browser.setSearchPaths([self.docs_dir])
+            self.text_browser.setMarkdown(markdown_text)
+            return
+        except AttributeError:
+            # setMarkdown not available, fall back to HTML conversion
+            pass
+            
+        # Fallback: Convert Markdown to HTML using the markdown package
+        try:
+            import markdown
+            from markdown.extensions.tables import TableExtension
+            from markdown.extensions.fenced_code import FencedCodeExtension
+            from markdown.extensions.codehilite import CodeHiliteExtension
+            
+            # Convert Markdown to HTML with extensions
+            html_content = markdown.markdown(
+                markdown_text,
+                extensions=[
+                    'extra',  # Includes tables, fenced code, etc.
+                    'codehilite',
+                    'toc',
+                    'nl2br'
+                ]
+            )
+            
+            # Wrap in a styled HTML document
+            styled_html = self.wrap_html_with_style(html_content)
+            
+            # Set search paths for images
+            self.text_browser.setSearchPaths([self.docs_dir])
+            
+            # Display the HTML
+            self.text_browser.setHtml(styled_html)
+            
+        except ImportError:
+            # markdown package not available, display as plain text with a warning
+            warning = ("Note: The 'markdown' package is not installed. "
+                      "Displaying raw Markdown text.\n"
+                      "Install it with: pip install markdown\n\n")
+            self.text_browser.setPlainText(warning + markdown_text)
+            
+    def wrap_html_with_style(self, html_content):
+        """
+        Wrap HTML content with CSS styling for better appearance.
+        
+        Args:
+            html_content: The HTML content to wrap
+            
+        Returns:
+            Complete HTML document with styling
+        """
+        # Determine colors based on theme
+        if self.parent_window and hasattr(self.parent_window, 'dark_theme') and self.parent_window.dark_theme:
+            bg_color = "#2b2b2b"
+            text_color = "#ffffff"
+            code_bg = "#1e1e1e"
+            border_color = "#555555"
+            link_color = "#2a82da"
+        else:
+            bg_color = "#ffffff"
+            text_color = "#000000"
+            code_bg = "#f5f5f5"
+            border_color = "#cccccc"
+            link_color = "#0066cc"
+            
+        styled_html = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <style>
+                body {{
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+                    line-height: 1.6;
+                    color: {text_color};
+                    background-color: {bg_color};
+                    padding: 20px;
+                    max-width: 900px;
+                }}
+                h1, h2, h3, h4, h5, h6 {{
+                    margin-top: 24px;
+                    margin-bottom: 16px;
+                    font-weight: 600;
+                    line-height: 1.25;
+                }}
+                h1 {{ font-size: 2em; border-bottom: 1px solid {border_color}; padding-bottom: 0.3em; }}
+                h2 {{ font-size: 1.5em; border-bottom: 1px solid {border_color}; padding-bottom: 0.3em; }}
+                h3 {{ font-size: 1.25em; }}
+                h4 {{ font-size: 1em; }}
+                code {{
+                    background-color: {code_bg};
+                    padding: 2px 6px;
+                    border-radius: 3px;
+                    font-family: 'Courier New', Courier, monospace;
+                    font-size: 0.9em;
+                }}
+                pre {{
+                    background-color: {code_bg};
+                    padding: 16px;
+                    border-radius: 6px;
+                    overflow-x: auto;
+                    border: 1px solid {border_color};
+                }}
+                pre code {{
+                    background-color: transparent;
+                    padding: 0;
+                }}
+                table {{
+                    border-collapse: collapse;
+                    width: 100%;
+                    margin: 16px 0;
+                }}
+                th, td {{
+                    border: 1px solid {border_color};
+                    padding: 8px 12px;
+                    text-align: left;
+                }}
+                th {{
+                    background-color: {code_bg};
+                    font-weight: 600;
+                }}
+                blockquote {{
+                    border-left: 4px solid {border_color};
+                    padding-left: 16px;
+                    margin-left: 0;
+                    color: {text_color};
+                    opacity: 0.8;
+                }}
+                a {{
+                    color: {link_color};
+                    text-decoration: none;
+                }}
+                a:hover {{
+                    text-decoration: underline;
+                }}
+                img {{
+                    max-width: 100%;
+                    height: auto;
+                }}
+                ul, ol {{
+                    padding-left: 2em;
+                }}
+                hr {{
+                    border: none;
+                    border-top: 1px solid {border_color};
+                    margin: 24px 0;
+                }}
+            </style>
+        </head>
+        <body>
+            {html_content}
+        </body>
+        </html>
+        """
+        return styled_html
+        
+    def on_link_clicked(self, url):
+        """
+        Handle link clicks in the documentation.
+        
+        Supports:
+        - Internal anchors (#section-name) for same-page navigation
+        - External URLs (http://, https://) open in browser
+        - Relative file links for cross-document navigation
+        
+        Args:
+            url: The QUrl that was clicked
+        """
+        url_string = url.toString()
+        
+        # Handle internal anchors (same-page navigation)
+        if url_string.startswith('#'):
+            # Use scrollToAnchor for smooth navigation to section
+            anchor = url_string[1:]  # Remove the '#' prefix
+            self.text_browser.scrollToAnchor(anchor)
+            return
+            
+        # Handle external URLs (open in browser)
+        if url_string.startswith('http://') or url_string.startswith('https://'):
+            QDesktopServices.openUrl(url)
+            return
+            
+        # Handle relative file links (other documentation files)
+        # This could be extended to support cross-document navigation
+        QDesktopServices.openUrl(url)
+
+
 class POMSimulatorGUI(QMainWindow):
 
     def __init__(self):
@@ -352,6 +717,11 @@ class POMSimulatorGUI(QMainWindow):
         # Initialize theme
         self.dark_theme = False
         self.font_size = 10.0
+
+        # Application settings persistence (QSettings), used e.g. to remember
+        # whether hidden files should be shown in the File Navigator.
+        self.settings = QSettings("POMSimulator", "POMSimulator")
+        self.show_hidden_files = self.settings.value("file_navigator/show_hidden_files", True, type=bool)
 
         # Initialize shared data dictionary for synchronization between tabs
         self.shared_data = {}
@@ -508,6 +878,20 @@ class POMSimulatorGUI(QMainWindow):
         exit_action.triggered.connect(self.close)
         file_menu.addAction(exit_action)
 
+        # View menu
+        view_menu = menubar.addMenu('View')
+
+        # Add "Show Hidden Files" toggle to the View menu. This controls the
+        # QDir.Hidden filter flag on the File Navigator's QFileSystemModel,
+        # without touching any of the other existing filter flags.
+        self.show_hidden_files_action = QAction('Show Hidden Files', self)
+        self.show_hidden_files_action.setCheckable(True)
+        self.show_hidden_files_action.setChecked(self.show_hidden_files)
+        self.show_hidden_files_action.setStatusTip("Show or hide hidden files and folders in the File Navigator")
+        self.show_hidden_files_action.setToolTip("Show or hide hidden files and folders in the File Navigator")
+        self.show_hidden_files_action.triggered.connect(self.toggle_show_hidden_files)
+        view_menu.addAction(self.show_hidden_files_action)
+
         # Tools menu
         tools_menu = menubar.addMenu('Tools')
 
@@ -540,10 +924,21 @@ class POMSimulatorGUI(QMainWindow):
         # Help menu
         help_menu = menubar.addMenu('Help')
 
-        docs_action = QAction('Documentation', self)
+        # User Manual (embedded documentation)
+        manual_action = QAction('User Manual', self)
+        manual_action.setShortcut('F1')
+        manual_action.setStatusTip("Open the embedded user manual")
+        manual_action.triggered.connect(self.open_user_manual)
+        help_menu.addAction(manual_action)
+
+        # Online Documentation
+        docs_action = QAction('Online Documentation', self)
         docs_action.setShortcut('F2')
-        docs_action.triggered.connect(self.open_documentation)
+        docs_action.setStatusTip("Open online documentation in web browser")
+        docs_action.triggered.connect(self.open_online_documentation)
         help_menu.addAction(docs_action)
+
+        help_menu.addSeparator()
 
         about_action = QAction('About', self)
         about_action.setShortcut('Ctrl+A')
@@ -911,9 +1306,60 @@ class POMSimulatorGUI(QMainWindow):
                 "Ctrl+F5: Refresh interface"
             )
 
-    def open_documentation(self):
+    def open_user_manual(self):
         """
-        Open the POMSimulator documentation in the default web browser.
+        Open the embedded User Manual dialog.
+
+        This method displays the built-in documentation viewer that renders
+        Markdown files as formatted documentation within the application.
+        Users can navigate between different documentation files and view
+        them with proper formatting including headings, lists, tables, images,
+        code blocks, and hyperlinks.
+        
+        If the manual is already open, it brings it to the front instead of
+        creating a new instance.
+
+        Returns:
+            None: This method opens a dialog but doesn't return a value.
+        """
+        try:
+            # Check if an instance is already open
+            if UserManualDialog._instance is not None:
+                # Bring existing dialog to front
+                UserManualDialog._instance.raise_()
+                UserManualDialog._instance.activateWindow()
+                return
+            
+            # Create and show the User Manual dialog
+            manual_dialog = UserManualDialog(self)
+            manual_dialog.show()  # Use show() instead of exec_() for non-modal dialog
+        except Exception as e:
+            QMessageBox.warning(self, "Error Opening User Manual",
+                                f"Could not open user manual: {str(e)}")
+
+    def open_online_documentation(self):
+        """
+        Open the POMSimulator online documentation in the default web browser.
+
+        This method uses QDesktopServices to open the documentation URL in the user's
+        default web browser. The browser is launched asynchronously, so the GUI is not
+        blocked while the browser starts.
+
+        Returns:
+            None: This method opens a web browser but doesn't return a value.
+        """
+        # URL to online documentation
+        doc_url = "https://pomsimulator.readthedocs.io/en/latest/"
+
+        try:
+            QDesktopServices.openUrl(QUrl(doc_url))
+        except Exception as e:
+            QMessageBox.warning(self, "Error Opening Online Documentation",
+                                f"Could not open online documentation: {str(e)}")
+
+    def open_online_documentation(self):
+        """
+        Open the POMSimulator online documentation in the default web browser.
 
         This method uses QDesktopServices to open the documentation URL in the user's
         default web browser. If the operation fails, it displays an error message.
@@ -921,16 +1367,14 @@ class POMSimulatorGUI(QMainWindow):
         Returns:
             None: This method opens a web browser but doesn't return a value.
         """
-        from PyQt5.QtCore import QUrl
-
-        # URL to documentation
+        # URL to online documentation
         doc_url = "https://pomsimulator.readthedocs.io/en/latest/"
 
         try:
             QDesktopServices.openUrl(QUrl(doc_url))
         except Exception as e:
-            QMessageBox.warning(self, "Error Opening Documentation",
-                                f"Could not open documentation: {str(e)}")
+            QMessageBox.warning(self, "Error Opening Online Documentation",
+                                f"Could not open online documentation: {str(e)}")
 
     def open_settings(self):
         """
@@ -1148,9 +1592,14 @@ class POMSimulatorGUI(QMainWindow):
         parent_path = root_path
         if "pomsimulator" not in root_path:
             parent_path = os.path.dirname(root_path)
-
         # Create file system model
         self.model = QFileSystemModel()
+
+        # Apply the file navigator's filter, honoring the persisted
+        # "Show Hidden Files" preference without altering any of the other
+        # default filter flags (AllEntries excludes "." and "..").
+        self.apply_file_navigator_filter()
+
         self.model.setRootPath(os.path.join(parent_path))
 
         # Create tree view
@@ -1182,6 +1631,65 @@ class POMSimulatorGUI(QMainWindow):
         # Set the splitter as the dock widget
         dock.setWidget(self.file_dock_splitter)
         self.addDockWidget(Qt.LeftDockWidgetArea, dock)
+
+    def apply_file_navigator_filter(self):
+        """
+        Apply the File Navigator's directory filter to the current
+        QFileSystemModel, based on the persisted "Show Hidden Files"
+        preference (self.show_hidden_files).
+
+        The base filter (directories, files, and no "." / ".." entries) is
+        preserved exactly as before; only the QDir.Hidden flag is added or
+        removed. This uses Qt's native QDir filter flags, so hidden file
+        detection works correctly on Windows, Linux, and macOS.
+
+        Returns:
+            None
+        """
+        base_filter = QDir.AllDirs | QDir.Files | QDir.NoDotAndDotDot
+        if self.show_hidden_files:
+            base_filter |= QDir.Hidden
+        self.model.setFilter(base_filter)
+
+    def toggle_show_hidden_files(self, checked):
+        """
+        Toggle whether hidden files and directories are shown in the
+        File Navigator.
+
+        This updates the QFileSystemModel's filter (adding/removing the
+        QDir.Hidden flag) so the tree view refreshes immediately, persists
+        the new preference via QSettings, and attempts to preserve the
+        current root directory and selection.
+
+        Parameters:
+            checked (bool): The new checked state of the "Show Hidden Files" action.
+
+        Returns:
+            None
+        """
+        # Preserve current root path and selection so the user's context
+        # is not lost when the model filter changes.
+        current_root_path = self.model.filePath(self.tree.rootIndex())
+        current_selected_path = None
+        selected_indexes = self.tree.selectionModel().selectedIndexes() if self.tree.selectionModel() else []
+        if selected_indexes:
+            current_selected_path = self.model.filePath(selected_indexes[0])
+
+        self.show_hidden_files = bool(checked)
+
+        # Persist the preference for future sessions.
+        self.settings.setValue("file_navigator/show_hidden_files", self.show_hidden_files)
+
+        # Update the model filter; QFileSystemModel refreshes automatically.
+        self.apply_file_navigator_filter()
+
+        # Restore the root path and selection whenever possible.
+        if current_root_path:
+            self.tree.setRootIndex(self.model.index(current_root_path))
+        if current_selected_path:
+            restored_index = self.model.index(current_selected_path)
+            if restored_index.isValid():
+                self.tree.setCurrentIndex(restored_index)
 
     def open_file_from_browser(self, index):
         """
@@ -6659,3 +7167,17 @@ def main():
 
 if __name__ == "__main__":
     main()
+    app = QApplication(sys.argv)
+
+    # Set application style for better appearance
+    app.setStyle('Fusion')
+
+    # Create and show the main window
+    window = POMSimulatorGUI()
+    window.showMaximized()
+
+    # Process events to ensure the window is displayed
+    app.processEvents()
+
+    # Start the event loop
+    sys.exit(app.exec_())
