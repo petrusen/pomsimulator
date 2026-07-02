@@ -27,6 +27,83 @@ sys.path.append(script_dir)
 from dpi_utils import scale, scale_size, scale_font, scale_monospace_font, get_scale_factor, scale_css_font_size
 
 
+class PreviewManager(QWidget):
+    """
+    A manager widget that handles the shared preview area for different types of content.
+    
+    This widget acts as a container that can display either an image viewer or a molecule viewer,
+    ensuring that only one preview is active at a time. It provides a unified interface for
+    managing different preview types and handles the switching between them.
+    """
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.current_preview = None
+        self.current_preview_type = None
+        
+        # Create the layout for the preview area
+        self.layout = QVBoxLayout(self)
+        self.layout.setContentsMargins(0, 0, 0, 0)
+        
+        # Initially hide the preview manager
+        self.hide()
+        
+    def show_image_preview(self, image_viewer_widget):
+        """Show the image viewer in the preview area."""
+        self._clear_current_preview()
+        
+        self.current_preview = image_viewer_widget
+        self.current_preview_type = "image"
+        
+        # Add the image viewer to our layout
+        self.layout.addWidget(image_viewer_widget)
+        image_viewer_widget.show()
+        
+        # Show the preview manager
+        self.show()
+        
+    def show_molecule_preview(self, molecule_viewer_widget):
+        """Show the molecule viewer in the preview area."""
+        self._clear_current_preview()
+        
+        self.current_preview = molecule_viewer_widget
+        self.current_preview_type = "molecule"
+        
+        # Add the molecule viewer to our layout
+        self.layout.addWidget(molecule_viewer_widget)
+        molecule_viewer_widget.show()
+        
+        # Show the preview manager
+        self.show()
+        
+    def close_preview(self):
+        """Close the current preview and hide the preview area."""
+        self._clear_current_preview()
+        self.hide()
+        
+        # Notify parent splitter to collapse this section
+        parent = self.parent()
+        if isinstance(parent, QSplitter):
+            total_height = parent.height() if parent.height() > 0 else 800
+            parent.setSizes([total_height, 0])
+            
+    def _clear_current_preview(self):
+        """Remove the current preview widget from the layout."""
+        if self.current_preview is not None:
+            # Remove from layout
+            self.layout.removeWidget(self.current_preview)
+            # Hide the widget but don't delete it (it might be reused)
+            self.current_preview.hide()
+            # Don't set parent to None as it might break the widget
+            
+        self.current_preview = None
+        self.current_preview_type = None
+        
+    def get_current_preview_type(self):
+        """Get the type of the currently displayed preview."""
+        return self.current_preview_type
+
+
 class ImageViewerWidget(QWidget):
     """
     A reusable image viewer widget that can be embedded in other widgets.
@@ -205,13 +282,16 @@ class ImageViewerWidget(QWidget):
             
     def close_viewer(self):
         """Close the image viewer and collapse the splitter section."""
-        self.hide()
-        # Get the parent splitter and collapse this section
+        # Find the PreviewManager parent and close the preview
         parent = self.parent()
-        if isinstance(parent, QSplitter):
-            # Set sizes to give all space to the file navigator (first widget)
-            total_height = parent.height() if parent.height() > 0 else 800
-            parent.setSizes([total_height, 0])
+        while parent is not None:
+            if isinstance(parent, PreviewManager):
+                parent.close_preview()
+                return
+            parent = parent.parent()
+        
+        # Fallback: hide this widget directly
+        self.hide()
         
     def on_mouse_press(self, event):
         """Handle mouse press for drag-to-pan."""
@@ -1088,12 +1168,13 @@ class POMSimulatorGUI(QMainWindow):
         # Connect double-click event to file opening function
         self.tree.doubleClicked.connect(self.open_file_from_browser)
 
-        # Create the embedded image viewer widget
+        # Create the preview manager and image viewer widget
+        self.preview_manager = PreviewManager()
         self.embedded_image_viewer = ImageViewerWidget()
         
         # Add both widgets to the splitter
         self.file_dock_splitter.addWidget(self.tree)
-        self.file_dock_splitter.addWidget(self.embedded_image_viewer)
+        self.file_dock_splitter.addWidget(self.preview_manager)
         
         # Set initial splitter proportions (file navigator takes most space initially)
         self.file_dock_splitter.setSizes([scale(600), scale(200)])
@@ -1244,9 +1325,8 @@ class POMSimulatorGUI(QMainWindow):
         Open an image file in the embedded image viewer within the file dock.
 
         This method loads an image file into the embedded image viewer widget that
-        is part of the file dock's splitter layout. The image viewer provides zoom
-        controls, navigation between images in the same folder, and drag-to-pan
-        functionality.
+        is managed by the PreviewManager. The image viewer provides zoom controls,
+        navigation between images in the same folder, and drag-to-pan functionality.
 
         Parameters:
             file_path (str): The full path to the image file to be opened.
@@ -1258,8 +1338,11 @@ class POMSimulatorGUI(QMainWindow):
             # Load the image in the embedded viewer
             self.embedded_image_viewer.load_image(file_path)
             
-            # Adjust splitter sizes to show both file navigator and image viewer
-            # Give more space to the image viewer when an image is loaded
+            # Show the image viewer in the preview manager
+            self.preview_manager.show_image_preview(self.embedded_image_viewer)
+            
+            # Adjust splitter sizes to show both file navigator and preview area
+            # Give more space to the preview area when content is loaded
             total_height = self.file_dock_splitter.height()
             if total_height > 0:
                 self.file_dock_splitter.setSizes([int(total_height * 0.4), int(total_height * 0.6)])
@@ -1273,32 +1356,44 @@ class POMSimulatorGUI(QMainWindow):
 
     def open_mol_file(self, file_path):
         """
-        Open a .mol file in the molecule visualizer.
+        Open a .mol file in the embedded molecule visualizer within the file dock.
 
-        This method launches the molecule visualizer and loads the specified .mol file.
+        This method loads a molecule file into the embedded molecule viewer widget that
+        is managed by the PreviewManager. The molecule viewer provides 3D visualization,
+        rotation controls, and element color customization.
 
         Parameters:
             file_path (str): The full path to the .mol file to be opened.
 
         Returns:
-            None: This method displays a visualizer window but doesn't return a value.
+            None: This method loads a molecule into the embedded viewer.
         """
         try:
             from utilities.ase_visualizer import MoleculeVisualizer
 
-            # Create the visualizer
-            self.visualizer = MoleculeVisualizer()
+            # Create or reuse the embedded molecule visualizer
+            if not hasattr(self, 'embedded_molecule_viewer') or self.embedded_molecule_viewer is None:
+                self.embedded_molecule_viewer = MoleculeVisualizer()
 
             # Load the molecule file
-            self.visualizer.file_path.setText(file_path)
-            success = self.visualizer.canvas.load_molecule(file_path)
+            self.embedded_molecule_viewer.set_file_path(file_path)
+            success = self.embedded_molecule_viewer.canvas.load_molecule(file_path)
 
             if not success:
                 QMessageBox.warning(self, "Error Loading Molecule",
                                     "Could not load the molecule file. It may be in an unsupported format.")
             else:
-                # Only show the visualizer if the molecule was loaded successfully
-                self.visualizer.show()
+                # Show the molecule viewer in the preview manager
+                self.preview_manager.show_molecule_preview(self.embedded_molecule_viewer)
+                
+                # Adjust splitter sizes to show both file navigator and preview area
+                # Give more space to the preview area when content is loaded
+                total_height = self.file_dock_splitter.height()
+                if total_height > 0:
+                    self.file_dock_splitter.setSizes([int(total_height * 0.4), int(total_height * 0.6)])
+                else:
+                    # Fallback if height is not available yet
+                    self.file_dock_splitter.setSizes([scale(300), scale(500)])
 
         except ImportError as e:
             QMessageBox.warning(self, "Import Error",

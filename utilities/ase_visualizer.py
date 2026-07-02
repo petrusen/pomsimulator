@@ -13,9 +13,49 @@ from ase.visualize import view
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
-from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, 
+from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
                             QComboBox, QFileDialog, QCheckBox, QSlider, QColorDialog, QMessageBox)
 from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QFontMetrics
+from pathlib import Path
+
+
+class ElidedLabel(QLabel):
+    """A QLabel that automatically elides text when it doesn't fit."""
+    
+    def __init__(self, text="", parent=None):
+        super().__init__(text, parent)
+        self._full_text = text
+        
+    def setText(self, text):
+        """Set the text and store the full version for elision."""
+        self._full_text = text
+        self._update_elided_text()
+        
+    def _update_elided_text(self):
+        """Update the displayed text with elision if necessary."""
+        if not self._full_text:
+            super().setText("")
+            return
+            
+        # Get available width
+        available_width = self.width() - 10  # Leave some margin
+        if available_width <= 0:
+            available_width = 200  # Default reasonable width
+            
+        # Use font metrics to elide text
+        font_metrics = QFontMetrics(self.font())
+        elided_text = font_metrics.elidedText(self._full_text, Qt.ElideMiddle, available_width)
+        super().setText(elided_text)
+        
+    def resizeEvent(self, event):
+        """Handle resize events to update elided text."""
+        super().resizeEvent(event)
+        self._update_elided_text()
+        
+    def get_full_text(self):
+        """Get the full, non-elided text."""
+        return self._full_text
 
 class MoleculeCanvas(FigureCanvas):
     """
@@ -150,6 +190,7 @@ class MoleculeVisualizer(QWidget):
     """
     def __init__(self, parent=None):
         super(MoleculeVisualizer, self).__init__(parent)
+        self._full_file_path = None  # Store the complete file path internally
         self.init_ui()
         
     def init_ui(self):
@@ -187,7 +228,15 @@ class MoleculeVisualizer(QWidget):
         file_layout.addWidget(file_label)
         
         file_select_layout = QHBoxLayout()
-        self.file_path = QLabel("No file selected")
+        self.file_path = ElidedLabel("No file selected")
+        # Configure the label to handle long paths gracefully
+        self.file_path.setWordWrap(False)
+        self.file_path.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        # Set a reasonable minimum width and allow shrinking
+        self.file_path.setMinimumWidth(100)
+        self.file_path.setMaximumWidth(300)  # Prevent excessive expansion
+        self.file_path.setSizePolicy(self.file_path.sizePolicy().horizontalPolicy(),
+                                   self.file_path.sizePolicy().verticalPolicy())
         file_select_layout.addWidget(self.file_path)
         
         browse_btn = QPushButton("Browse")
@@ -242,6 +291,17 @@ class MoleculeVisualizer(QWidget):
         color_layout.addLayout(element_layout)
         controls_layout.addLayout(color_layout)
         
+        # Add close button
+        close_layout = QVBoxLayout()
+        close_label = QLabel("Actions:")
+        close_layout.addWidget(close_label)
+        
+        close_btn = QPushButton("Close")
+        close_btn.clicked.connect(self.close_viewer)
+        close_layout.addWidget(close_btn)
+        
+        controls_layout.addLayout(close_layout)
+        
         layout.addLayout(controls_layout)
         
         self.setLayout(layout)
@@ -254,12 +314,14 @@ class MoleculeVisualizer(QWidget):
         options=QFileDialog.DontUseNativeDialog)
         
         if file_path:
-            self.file_path.setText(file_path)
+            self.set_file_path(file_path)
             success = self.canvas.load_molecule(file_path)
             if success:
                 self.update_view()
             else:
                 self.file_path.setText("Error loading file")
+                self.file_path.setToolTip("Failed to load the selected molecule file")
+                self._full_file_path = None
                 
     def update_view(self):
         """Update the view based on slider values"""
@@ -275,6 +337,66 @@ class MoleculeVisualizer(QWidget):
         color = QColorDialog.getColor()
         if color.isValid():
             self.canvas.set_atom_color(element, color.name())
+            
+    def close_viewer(self):
+        """Close the molecule viewer."""
+        # Find the PreviewManager parent and close the preview
+        parent = self.parent()
+        while parent is not None:
+            # Import here to avoid circular imports
+            from pomsimulator.GUI import PreviewManager
+            if isinstance(parent, PreviewManager):
+                parent.close_preview()
+                return
+            parent = parent.parent()
+        
+        # Fallback: hide this widget directly
+        self.hide()
+        
+    def set_file_path(self, file_path):
+        """
+        Set the file path, storing the full path internally and displaying a shortened version.
+        
+        Parameters:
+            file_path (str): The full path to the molecule file.
+        """
+        if not file_path:
+            self._full_file_path = None
+            self.file_path.setText("No file selected")
+            self.file_path.setToolTip("")
+            return
+            
+        # Store the full path internally
+        self._full_file_path = file_path
+        
+        # Create a shortened display version
+        path_obj = Path(file_path)
+        
+        # Try to show parent directory + filename for context, or just filename if too long
+        try:
+            parent_name = path_obj.parent.name
+            filename = path_obj.name
+            
+            if parent_name and len(parent_name) < 20:  # Reasonable parent directory name length
+                display_text = f"{parent_name}/{filename}"
+            else:
+                display_text = filename
+        except:
+            # Fallback to just filename if path operations fail
+            display_text = path_obj.name if hasattr(path_obj, 'name') else os.path.basename(file_path)
+        
+        # Set the display text and tooltip
+        self.file_path.setText(display_text)
+        self.file_path.setToolTip(f"Full path: {file_path}")
+        
+    def get_file_path(self):
+        """
+        Get the full file path.
+        
+        Returns:
+            str: The complete file path, or None if no file is loaded.
+        """
+        return self._full_file_path
 
     def open_mol_file(self, file_path):
         """
