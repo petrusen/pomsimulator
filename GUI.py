@@ -1,6 +1,7 @@
 import os
 import subprocess
 import sys
+import html as html_lib
 from configparser import ConfigParser
 from multiprocessing import cpu_count
 from io import StringIO
@@ -483,60 +484,330 @@ class UserManualDialog(QDialog):
         # Render the Markdown
         self.render_markdown(markdown_content, file_path)
         
+    @staticmethod
+    def github_slugify(text, used_slugs=None):
+        """
+        Generate a GitHub-compatible anchor slug from a heading text.
+
+        This mirrors the algorithm GitHub (and most Markdown TOC generators) use,
+        which is what the Table of Contents links in the documentation rely on:
+        - Lowercase the text.
+        - Strip out characters that are not letters, digits, spaces or hyphens
+          (this removes '&', '/', '.', etc. WITHOUT collapsing surrounding spaces).
+        - Replace spaces with hyphens.
+        - De-duplicate repeated slugs by appending '-1', '-2', ... (like GitHub).
+
+        The key difference from Python-Markdown's default slugify is that GitHub
+        keeps the spaces around removed punctuation, so "Layout & UI" becomes
+        "layout--ui" (double hyphen) rather than "layout-ui".
+
+        Args:
+            text: The heading text (already stripped of Markdown/HTML markup).
+            used_slugs: Optional dict tracking previously used slugs for de-duplication.
+
+        Returns:
+            A GitHub-style slug string.
+        """
+        import re
+
+        slug = text.strip().lower()
+        # Remove any characters that are not word chars, spaces or hyphens.
+        slug = re.sub(r'[^\w\s-]', '', slug, flags=re.UNICODE)
+        # Convert whitespace to hyphens (spaces around removed punctuation are kept,
+        # which produces GitHub's characteristic double hyphens).
+        slug = re.sub(r'\s', '-', slug)
+
+        if used_slugs is not None:
+            base = slug
+            counter = used_slugs.get(base, 0)
+            if counter:
+                slug = f"{base}-{counter}"
+            used_slugs[base] = counter + 1
+
+        return slug
+
     def render_markdown(self, markdown_text, source_file_path):
         """
         Render Markdown content as formatted HTML.
-        
-        This method tries to use Qt's native setMarkdown() if available (Qt >= 5.14),
-        otherwise falls back to converting Markdown to HTML using the markdown package.
-        
+
+        Prefer Python-Markdown conversion so that headings receive id attributes and
+        intra-document links (Table of Contents) work reliably. When the markdown
+        package is unavailable, fall back to a lightweight built-in converter that
+        still assigns GitHub-style anchor ids to headings so the Table of Contents
+        keeps working. Qt's native setMarkdown is only used as a last resort.
+
         Args:
             markdown_text: The Markdown content to render
             source_file_path: Path to the source file (for resolving relative image paths)
         """
-        # Try using Qt's native Markdown support (Qt >= 5.14)
-        try:
-            # Set the search paths for images relative to the docs directory
-            self.text_browser.setSearchPaths([self.docs_dir])
-            self.text_browser.setMarkdown(markdown_text)
-            return
-        except AttributeError:
-            # setMarkdown not available, fall back to HTML conversion
-            pass
-            
-        # Fallback: Convert Markdown to HTML using the markdown package
+        # Preferred: Convert Markdown to HTML using the markdown package
         try:
             import markdown
-            from markdown.extensions.tables import TableExtension
-            from markdown.extensions.fenced_code import FencedCodeExtension
-            from markdown.extensions.codehilite import CodeHiliteExtension
-            
-            # Convert Markdown to HTML with extensions
+            from markdown.extensions.toc import TocExtension
+
+            # Use a GitHub-compatible slugify so the generated heading ids match the
+            # anchors used by the Table of Contents links (e.g. "#3-...--ui-basics").
+            def _slugify(value, separator):
+                return self.github_slugify(value)
+
             html_content = markdown.markdown(
                 markdown_text,
                 extensions=[
-                    'extra',  # Includes tables, fenced code, etc.
+                    'extra',   # tables, fenced code, etc.
                     'codehilite',
-                    'toc',
+                    TocExtension(slugify=_slugify),  # GitHub-style heading ids
                     'nl2br'
                 ]
             )
-            
-            # Wrap in a styled HTML document
+
+            # Wrap in a styled HTML document and display
             styled_html = self.wrap_html_with_style(html_content)
-            
-            # Set search paths for images
             self.text_browser.setSearchPaths([self.docs_dir])
-            
-            # Display the HTML
             self.text_browser.setHtml(styled_html)
-            
+            return
         except ImportError:
-            # markdown package not available, display as plain text with a warning
-            warning = ("Note: The 'markdown' package is not installed. "
-                      "Displaying raw Markdown text.\n"
-                      "Install it with: pip install markdown\n\n")
-            self.text_browser.setPlainText(warning + markdown_text)
+            # markdown package not available; use the built-in fallback converter.
+            pass
+        except Exception as e:
+            # If conversion fails for any reason, use the built-in fallback converter.
+            print(f"Markdown HTML conversion failed, using built-in converter: {e}")
+
+        # Fallback: built-in lightweight Markdown -> HTML converter. This keeps the
+        # Table of Contents working (correct heading anchors) without any external
+        # dependency, unlike Qt's setMarkdown which uses incompatible anchor ids.
+        try:
+            html_content = self.basic_markdown_to_html(markdown_text)
+            styled_html = self.wrap_html_with_style(html_content)
+            self.text_browser.setSearchPaths([self.docs_dir])
+            self.text_browser.setHtml(styled_html)
+            return
+        except Exception as e:
+            print(f"Built-in Markdown conversion failed, falling back to Qt renderer: {e}")
+
+        # Last resort: Qt's native Markdown support (anchors may not match the TOC).
+        try:
+            self.text_browser.setSearchPaths([self.docs_dir])
+            self.text_browser.setMarkdown(markdown_text)
+        except AttributeError:
+            self.text_browser.setPlainText(markdown_text)
+
+    def basic_markdown_to_html(self, markdown_text):
+        """
+        Minimal, dependency-free Markdown -> HTML converter.
+
+        This is used when the optional 'markdown' package is not installed. It is
+        intentionally small but covers the constructs used by the bundled manuals:
+        headings (with GitHub-style anchor ids), bold/italic/inline-code, links,
+        images, unordered/ordered lists (with nesting via indentation), fenced code
+        blocks, blockquotes, horizontal rules, GitHub-style tables and paragraphs.
+
+        The most important behaviour for this project is that headings get the same
+        anchor ids that the Table of Contents links point to, so intra-document
+        navigation works reliably.
+
+        Args:
+            markdown_text: The raw Markdown content.
+
+        Returns:
+            An HTML string (body content, to be wrapped by wrap_html_with_style).
+        """
+        import re
+
+        used_slugs = {}
+
+        def esc(text):
+            return html_lib.escape(text, quote=False)
+
+        def inline(text):
+            """Apply inline formatting (images, links, code, bold, italic)."""
+            # Protect inline code spans first so their contents aren't further parsed.
+            code_spans = []
+
+            def _stash_code(m):
+                code_spans.append(m.group(1))
+                return f"\x00CODE{len(code_spans) - 1}\x00"
+
+            text = re.sub(r'`([^`]+)`', _stash_code, text)
+
+            # Escape any remaining raw HTML-significant characters.
+            text = esc(text)
+
+            # Images: ![alt](src)
+            text = re.sub(
+                r'!\[([^\]]*)\]\(([^)]+)\)',
+                lambda m: f'<img src="{m.group(2).strip()}" alt="{m.group(1)}" />',
+                text,
+            )
+            # Links: [text](href)
+            text = re.sub(
+                r'\[([^\]]+)\]\(([^)]+)\)',
+                lambda m: f'<a href="{m.group(2).strip()}">{m.group(1)}</a>',
+                text,
+            )
+            # Bold then italic.
+            text = re.sub(r'\*\*([^*]+)\*\*', r'<strong>\1</strong>', text)
+            text = re.sub(r'__([^_]+)__', r'<strong>\1</strong>', text)
+            text = re.sub(r'(?<!\*)\*([^*]+)\*(?!\*)', r'<em>\1</em>', text)
+            text = re.sub(r'(?<!_)_([^_]+)_(?!_)', r'<em>\1</em>', text)
+
+            # Restore inline code spans.
+            def _restore_code(m):
+                idx = int(m.group(1))
+                return f'<code>{esc(code_spans[idx])}</code>'
+
+            text = re.sub(r'\x00CODE(\d+)\x00', _restore_code, text)
+            return text
+
+        lines = markdown_text.split('\n')
+        html_parts = []
+        i = 0
+        n = len(lines)
+
+        # Track open list stack as list of ('ul'|'ol', indent_level).
+        list_stack = []
+
+        def close_lists(to_indent=-1):
+            while list_stack and list_stack[-1][1] > to_indent:
+                tag, _ = list_stack.pop()
+                html_parts.append(f'</{tag}>')
+
+        def close_all_lists():
+            while list_stack:
+                tag, _ = list_stack.pop()
+                html_parts.append(f'</{tag}>')
+
+        while i < n:
+            line = lines[i]
+            stripped = line.strip()
+
+            # Fenced code block.
+            fence = re.match(r'^\s*```(.*)$', line)
+            if fence:
+                close_all_lists()
+                code_lines = []
+                i += 1
+                while i < n and not re.match(r'^\s*```\s*$', lines[i]):
+                    code_lines.append(lines[i])
+                    i += 1
+                i += 1  # skip closing fence
+                code_html = esc('\n'.join(code_lines))
+                html_parts.append(f'<pre><code>{code_html}</code></pre>')
+                continue
+
+            # Blank line: close paragraphs / lists as appropriate.
+            if stripped == '':
+                close_all_lists()
+                i += 1
+                continue
+
+            # Horizontal rule.
+            if re.match(r'^\s*([-*_])\s*(\1\s*){2,}$', line):
+                close_all_lists()
+                html_parts.append('<hr />')
+                i += 1
+                continue
+
+            # Heading.
+            heading = re.match(r'^(#{1,6})\s+(.*?)\s*#*\s*$', line)
+            if heading:
+                close_all_lists()
+                level = len(heading.group(1))
+                raw_text = heading.group(2).strip()
+                # Slug is computed from the plain text (strip inline markup markers).
+                plain = re.sub(r'[*_`]', '', raw_text)
+                plain = re.sub(r'!\?\[([^\]]*)\]\([^)]+\)', r'\1', plain)
+                plain = re.sub(r'\[([^\]]+)\]\([^)]+\)', r'\1', plain)
+                slug = self.github_slugify(plain, used_slugs)
+                html_parts.append(
+                    f'<h{level} id="{slug}"><a name="{slug}"></a>{inline(raw_text)}</h{level}>'
+                )
+                i += 1
+                continue
+
+            # Blockquote.
+            if re.match(r'^\s*>', line):
+                close_all_lists()
+                quote_lines = []
+                while i < n and re.match(r'^\s*>', lines[i]):
+                    quote_lines.append(re.sub(r'^\s*>\s?', '', lines[i]))
+                    i += 1
+                quote_html = inline(' '.join(l.strip() for l in quote_lines if l.strip()))
+                html_parts.append(f'<blockquote>{quote_html}</blockquote>')
+                continue
+
+            # Table (GitHub-style): header row followed by a separator row.
+            if '|' in line and i + 1 < n and re.match(r'^\s*\|?[\s:|-]+\|?\s*$', lines[i + 1]) \
+                    and '-' in lines[i + 1]:
+                close_all_lists()
+
+                def split_row(row):
+                    row = row.strip()
+                    if row.startswith('|'):
+                        row = row[1:]
+                    if row.endswith('|'):
+                        row = row[:-1]
+                    return [c.strip() for c in row.split('|')]
+
+                header_cells = split_row(line)
+                i += 2  # skip header + separator
+                table_html = ['<table>', '<thead><tr>']
+                for cell in header_cells:
+                    table_html.append(f'<th>{inline(cell)}</th>')
+                table_html.append('</tr></thead><tbody>')
+                while i < n and '|' in lines[i] and lines[i].strip():
+                    cells = split_row(lines[i])
+                    table_html.append('<tr>')
+                    for cell in cells:
+                        table_html.append(f'<td>{inline(cell)}</td>')
+                    table_html.append('</tr>')
+                    i += 1
+                table_html.append('</tbody></table>')
+                html_parts.append(''.join(table_html))
+                continue
+
+            # List item (unordered or ordered), supports nesting by indentation.
+            list_match = re.match(r'^(\s*)([-*+]|\d+\.)\s+(.*)$', line)
+            if list_match:
+                indent = len(list_match.group(1).replace('\t', '    '))
+                marker = list_match.group(2)
+                content = list_match.group(3)
+                is_ordered = bool(re.match(r'\d+\.', marker))
+                tag = 'ol' if is_ordered else 'ul'
+
+                # Adjust the open-list stack to the current indentation.
+                if not list_stack:
+                    list_stack.append((tag, indent))
+                    html_parts.append(f'<{tag}>')
+                elif indent > list_stack[-1][1]:
+                    list_stack.append((tag, indent))
+                    html_parts.append(f'<{tag}>')
+                elif indent < list_stack[-1][1]:
+                    close_lists(indent)
+                    if not list_stack or list_stack[-1][1] < indent:
+                        list_stack.append((tag, indent))
+                        html_parts.append(f'<{tag}>')
+
+                html_parts.append(f'<li>{inline(content)}</li>')
+                i += 1
+                continue
+
+            # Default: a paragraph (gather consecutive non-blank, non-special lines).
+            close_all_lists()
+            para_lines = [line]
+            i += 1
+            while i < n and lines[i].strip() != '' \
+                    and not re.match(r'^(#{1,6})\s+', lines[i]) \
+                    and not re.match(r'^\s*```', lines[i]) \
+                    and not re.match(r'^\s*>', lines[i]) \
+                    and not re.match(r'^(\s*)([-*+]|\d+\.)\s+', lines[i]) \
+                    and not re.match(r'^\s*([-*_])\s*(\1\s*){2,}$', lines[i]):
+                para_lines.append(lines[i])
+                i += 1
+            paragraph = '<br />'.join(inline(pl.strip()) for pl in para_lines)
+            html_parts.append(f'<p>{paragraph}</p>')
+
+        close_all_lists()
+        return '\n'.join(html_parts)
             
     def wrap_html_with_style(self, html_content):
         """
@@ -7181,3 +7452,1369 @@ if __name__ == "__main__":
 
     # Start the event loop
     sys.exit(app.exec_())
+    def fixup(self, text):
+        # If text is empty or invalid, return minimum value as string
+        if not text:
+            return str(self.minimum())
+
+        # Replace comma with dot for fixup
+        modified_text = text.replace(',', '.')
+
+        # Try to convert to float
+        try:
+            value = float(modified_text)
+            # Ensure value is within range
+            value = max(min(value, self.maximum()), self.minimum())
+            return str(value)
+        except ValueError:
+            return str(self.minimum())
+
+    def valueFromText(self, text):
+        # Handle empty text
+        if not text:
+            return self.minimum()
+
+        # Replace comma with dot before converting to value
+        modified_text = text.replace(',', '.')
+
+        try:
+            return float(modified_text)
+        except ValueError:
+            return self.minimum()
+
+    def textFromValue(self, value):
+        # Use the default text representation
+        text = super().textFromValue(value)
+        # If the locale uses comma, we keep it that way
+        return text
+
+    def stepBy(self, steps):
+        # Ensure stepping works correctly
+        super().stepBy(steps)
+
+    def keyPressEvent(self, event):
+        # Handle key press events
+        super().keyPressEvent(event)
+
+
+class ConsoleStream(StringIO):
+    """Custom stream to capture print output and emit as signal"""
+
+    def __init__(self, signal):
+        super().__init__()
+        self.signal = signal
+        self._buffer = ""
+
+    def write(self, text):
+        if text:
+            self._buffer += text
+            # Only emit when we have a complete line (ends with newline)
+            if '\n' in text:
+                lines = self._buffer.split('\n')
+                # Emit all complete lines
+                for line in lines[:-1]:
+                    if line.strip():  # Only emit non-empty lines
+                        self.signal.emit(line)
+                # Keep the last incomplete line in buffer
+                self._buffer = lines[-1]
+        return super().write(text)
+
+    def flush(self):
+        # Emit any remaining buffer content when flushed
+        if self._buffer.strip():
+            self.signal.emit(self._buffer)
+            self._buffer = ""
+        super().flush()
+
+
+class POMSim_func_runner(QThread):
+    """Thread class to run functions without blocking the GUI"""
+    finished = pyqtSignal()
+    error = pyqtSignal(str)
+    console_output = pyqtSignal(str)  # Add signal for console output
+    stopped = pyqtSignal()
+
+    def __init__(self, function, config_dict):
+        """
+        Initialize the POMSim function runner thread.
+
+        Creates a new thread instance for running POM Simulator functions asynchronously
+        without blocking the GUI. Sets up a temporary stop file mechanism for graceful
+        termination of long-running operations.
+
+        Args:
+            function (callable): The function to be executed in the separate thread.
+                               This function should accept a configuration dictionary
+                               as its parameter.
+            config_dict (dict): Configuration dictionary containing parameters and
+                              settings to be passed to the function during execution.
+
+        Returns:
+            None
+        """
+        super().__init__()
+        self.function = function
+        self.config_dict = config_dict
+
+        self.is_running = False
+        self.was_stopped = False
+        self.stop_file = (tempfile.NamedTemporaryFile(delete=False))
+        self.stop_file_name = self.stop_file.name
+        self.stop_file.close()
+
+    def run(self):
+        """
+        Execute the assigned function in a separate thread with output redirection.
+
+        Runs the function specified during initialization while redirecting stdout and
+        stderr to capture console output for GUI display. Implements a file-based stop
+        mechanism and handles cleanup of resources. Emits appropriate signals for
+        thread lifecycle events and error handling.
+
+        Args:
+            None
+
+        Returns:
+            None: This method doesn't return a value but emits signals to communicate
+                  with the main thread (started, finished, error, console_output).
+        """
+        # Redirect stdout to capture prints
+        original_stdout = sys.stdout
+        original_stderr = sys.stderr
+
+        console_stream = ConsoleStream(self.console_output)
+
+        sys.stdout = console_stream
+        sys.stderr = console_stream
+
+        try:
+            self.is_running = True
+            self.was_stopped = False
+            func = self.function
+
+            # Clean up any existing stop file before starting
+            try:
+                if os.path.exists(self.stop_file_name):
+                    os.unlink(self.stop_file_name)
+                    # print(f"Cleaned up existing stop file: {self.stop_file_name}")
+            except Exception as e:
+                print(f"Warning: Could not clean up stop file: {e}")
+
+            # Add stop file path to config dict so function can check if it should stop
+            config_with_stop = self.config_dict.copy()
+            config_with_stop['_stop_file'] = self.stop_file_name
+            # print(f"Starting function: {self.function}")
+
+            # Call the function with config_dict
+            result = func(config_with_stop)
+
+            # Check if we were stopped during execution
+            if self.was_stopped or os.path.exists(self.stop_file_name):
+                print("Function was stopped by user")
+                self.stopped.emit()
+                return
+
+            if result == "Stopped":
+                print(f"Function completed. Result: {result}")
+                self.stopped.emit()
+                return
+            elif result == "Error" or result is None:
+                print("Error running function")
+                self.error.emit("Error running function")
+                return
+            else:
+                print(f"Function completed. Result: {result}")
+                self.finished.emit()
+
+        except Exception as e:
+            error_msg = f"Error running function: {str(e)}\n{traceback.format_exc()}"
+            self.error.emit(error_msg)
+            print(error_msg)
+            return
+        finally:
+            # Restore original stdout
+            sys.stdout = original_stdout
+            sys.stderr = original_stderr
+
+            self.is_running = False
+            # Clean up the stop file
+            try:
+                if os.path.exists(self.stop_file_name):
+                    os.unlink(self.stop_file_name)
+            except Exception as e:
+                print(f"Warning: Could not clean up stop file: {e}")
+
+    def stop(self):
+        """
+        Signal the running function to stop execution using a file-based approach.
+
+        Creates a stop file that the running function can check for to determine
+        if it should terminate gracefully. This provides a mechanism for stopping
+        long-running operations without forcefully terminating the thread.
+
+        Args:
+            None
+
+        Returns:
+            None: This method doesn't return a value but creates a stop file
+                  and updates the is_running flag to signal termination.
+        """
+        self.is_running = False
+        self.was_stopped = True
+        # Create the stop file to signal stopping
+        try:
+            with open(self.stop_file_name, 'w') as f:
+                f.write('stop')
+            print(f"Stop signal written to: {self.stop_file_name}")
+        except Exception as e:
+            print(f"Error writing stop file: {e}")
+
+
+def main():
+    """
+    Initialize and run the POM Simulator GUI application.
+
+    This function serves as the entry point for the POM Simulator GUI application.
+    It enables High-DPI support, creates a QApplication instance, initializes the
+    main window of the application (POMSimulatorGUI), displays it, and starts the
+    application's event loop. The function will only return when the application
+    is closed, at which point it ensures proper termination with the appropriate
+    exit code.
+
+    Parameters:
+        None
+
+    Returns:
+        None: This function doesn't return as it calls sys.exit() to terminate
+              the program with the exit code from app.exec_().
+    """
+    # Enable High-DPI support BEFORE creating QApplication
+    from dpi_utils import enable_high_dpi_support
+    enable_high_dpi_support()
+    
+    app = QApplication(sys.argv)
+
+    # Set application style for better appearance
+    app.setStyle('Fusion')
+
+    # Create and show the main window
+    window = POMSimulatorGUI()
+    window.showMaximized()
+
+    # Process events to ensure the window is displayed
+    app.processEvents()
+
+    # Start the event loop
+    sys.exit(app.exec_())
+
+
+if __name__ == "__main__":
+    main()
+    app = QApplication(sys.argv)
+
+    # Set application style for better appearance
+    app.setStyle('Fusion')
+
+    # Create and show the main window
+    window = POMSimulatorGUI()
+    window.showMaximized()
+
+    # Process events to ensure the window is displayed
+    app.processEvents()
+
+    # Start the event loop
+    sys.exit(app.exec_())
+
+
+    def fixup(self, text):
+        # If text is empty or invalid, return minimum value as string
+        if not text:
+            return str(self.minimum())
+
+        # Replace comma with dot for fixup
+        modified_text = text.replace(',', '.')
+
+        # Try to convert to float
+        try:
+            value = float(modified_text)
+            # Ensure value is within range
+            value = max(min(value, self.maximum()), self.minimum())
+            return str(value)
+        except ValueError:
+            return str(self.minimum())
+
+    def valueFromText(self, text):
+        # Handle empty text
+        if not text:
+            return self.minimum()
+
+        # Replace comma with dot before converting to value
+        modified_text = text.replace(',', '.')
+
+        try:
+            return float(modified_text)
+        except ValueError:
+            return self.minimum()
+
+    def textFromValue(self, value):
+        # Use the default text representation
+        text = super().textFromValue(value)
+        # If the locale uses comma, we keep it that way
+        return text
+
+    def stepBy(self, steps):
+        # Ensure stepping works correctly
+        super().stepBy(steps)
+
+    def keyPressEvent(self, event):
+        # Handle key press events
+        super().keyPressEvent(event)
+
+
+class ConsoleStream(StringIO):
+    """Custom stream to capture print output and emit as signal"""
+
+    def __init__(self, signal):
+        super().__init__()
+        self.signal = signal
+        self._buffer = ""
+
+    def write(self, text):
+        if text:
+            self._buffer += text
+            # Only emit when we have a complete line (ends with newline)
+            if '\n' in text:
+                lines = self._buffer.split('\n')
+                # Emit all complete lines
+                for line in lines[:-1]:
+                    if line.strip():  # Only emit non-empty lines
+                        self.signal.emit(line)
+                # Keep the last incomplete line in buffer
+                self._buffer = lines[-1]
+        return super().write(text)
+
+    def flush(self):
+        # Emit any remaining buffer content when flushed
+        if self._buffer.strip():
+            self.signal.emit(self._buffer)
+            self._buffer = ""
+        super().flush()
+
+
+class POMSim_func_runner(QThread):
+    """Thread class to run functions without blocking the GUI"""
+    finished = pyqtSignal()
+    error = pyqtSignal(str)
+    console_output = pyqtSignal(str)  # Add signal for console output
+    stopped = pyqtSignal()
+
+    def __init__(self, function, config_dict):
+        """
+        Initialize the POMSim function runner thread.
+
+        Creates a new thread instance for running POM Simulator functions asynchronously
+        without blocking the GUI. Sets up a temporary stop file mechanism for graceful
+        termination of long-running operations.
+
+        Args:
+            function (callable): The function to be executed in the separate thread.
+                               This function should accept a configuration dictionary
+                               as its parameter.
+            config_dict (dict): Configuration dictionary containing parameters and
+                              settings to be passed to the function during execution.
+
+        Returns:
+            None
+        """
+        super().__init__()
+        self.function = function
+        self.config_dict = config_dict
+
+        self.is_running = False
+        self.was_stopped = False
+        self.stop_file = (tempfile.NamedTemporaryFile(delete=False))
+        self.stop_file_name = self.stop_file.name
+        self.stop_file.close()
+
+    def run(self):
+        """
+        Execute the assigned function in a separate thread with output redirection.
+
+        Runs the function specified during initialization while redirecting stdout and
+        stderr to capture console output for GUI display. Implements a file-based stop
+        mechanism and handles cleanup of resources. Emits appropriate signals for
+        thread lifecycle events and error handling.
+
+        Args:
+            None
+
+        Returns:
+            None: This method doesn't return a value but emits signals to communicate
+                  with the main thread (started, finished, error, console_output).
+        """
+        # Redirect stdout to capture prints
+        original_stdout = sys.stdout
+        original_stderr = sys.stderr
+
+        console_stream = ConsoleStream(self.console_output)
+
+        sys.stdout = console_stream
+        sys.stderr = console_stream
+
+        try:
+            self.is_running = True
+            self.was_stopped = False
+            func = self.function
+
+            # Clean up any existing stop file before starting
+            try:
+                if os.path.exists(self.stop_file_name):
+                    os.unlink(self.stop_file_name)
+                    # print(f"Cleaned up existing stop file: {self.stop_file_name}")
+            except Exception as e:
+                print(f"Warning: Could not clean up stop file: {e}")
+
+            # Add stop file path to config dict so function can check if it should stop
+            config_with_stop = self.config_dict.copy()
+            config_with_stop['_stop_file'] = self.stop_file_name
+            # print(f"Starting function: {self.function}")
+
+            # Call the function with config_dict
+            result = func(config_with_stop)
+
+            # Check if we were stopped during execution
+            if self.was_stopped or os.path.exists(self.stop_file_name):
+                print("Function was stopped by user")
+                self.stopped.emit()
+                return
+
+            if result == "Stopped":
+                print(f"Function completed. Result: {result}")
+                self.stopped.emit()
+                return
+            elif result == "Error" or result is None:
+                print("Error running function")
+                self.error.emit("Error running function")
+                return
+            else:
+                print(f"Function completed. Result: {result}")
+                self.finished.emit()
+
+        except Exception as e:
+            error_msg = f"Error running function: {str(e)}\n{traceback.format_exc()}"
+            self.error.emit(error_msg)
+            print(error_msg)
+            return
+        finally:
+            # Restore original stdout
+            sys.stdout = original_stdout
+            sys.stderr = original_stderr
+
+            self.is_running = False
+            # Clean up the stop file
+            try:
+                if os.path.exists(self.stop_file_name):
+                    os.unlink(self.stop_file_name)
+            except Exception as e:
+                print(f"Warning: Could not clean up stop file: {e}")
+
+    def stop(self):
+        """
+        Signal the running function to stop execution using a file-based approach.
+
+        Creates a stop file that the running function can check for to determine
+        if it should terminate gracefully. This provides a mechanism for stopping
+        long-running operations without forcefully terminating the thread.
+
+        Args:
+            None
+
+        Returns:
+            None: This method doesn't return a value but creates a stop file
+                  and updates the is_running flag to signal termination.
+        """
+        self.is_running = False
+        self.was_stopped = True
+        # Create the stop file to signal stopping
+        try:
+            with open(self.stop_file_name, 'w') as f:
+                f.write('stop')
+            print(f"Stop signal written to: {self.stop_file_name}")
+        except Exception as e:
+            print(f"Error writing stop file: {e}")
+
+
+def main():
+    """
+    Initialize and run the POM Simulator GUI application.
+
+    This function serves as the entry point for the POM Simulator GUI application.
+    It enables High-DPI support, creates a QApplication instance, initializes the
+    main window of the application (POMSimulatorGUI), displays it, and starts the
+    application's event loop. The function will only return when the application
+    is closed, at which point it ensures proper termination with the appropriate
+    exit code.
+
+    Parameters:
+        None
+
+    Returns:
+        None: This function doesn't return as it calls sys.exit() to terminate
+              the program with the exit code from app.exec_().
+    """
+    # Enable High-DPI support BEFORE creating QApplication
+    from dpi_utils import enable_high_dpi_support
+    enable_high_dpi_support()
+    
+    app = QApplication(sys.argv)
+
+    # Set application style for better appearance
+    app.setStyle('Fusion')
+
+    # Create and show the main window
+    window = POMSimulatorGUI()
+    window.showMaximized()
+
+    # Process events to ensure the window is displayed
+    app.processEvents()
+
+    # Start the event loop
+    sys.exit(app.exec_())
+
+
+if __name__ == "__main__":
+    main()
+    app = QApplication(sys.argv)
+
+    # Set application style for better appearance
+    app.setStyle('Fusion')
+
+    # Create and show the main window
+    window = POMSimulatorGUI()
+    window.showMaximized()
+
+    # Process events to ensure the window is displayed
+    app.processEvents()
+
+    # Start the event loop
+    sys.exit(app.exec_())
+    def fixup(self, text):
+        # If text is empty or invalid, return minimum value as string
+        if not text:
+            return str(self.minimum())
+
+        # Replace comma with dot for fixup
+        modified_text = text.replace(',', '.')
+
+        # Try to convert to float
+        try:
+            value = float(modified_text)
+            # Ensure value is within range
+            value = max(min(value, self.maximum()), self.minimum())
+            return str(value)
+        except ValueError:
+            return str(self.minimum())
+
+    def valueFromText(self, text):
+        # Handle empty text
+        if not text:
+            return self.minimum()
+
+        # Replace comma with dot before converting to value
+        modified_text = text.replace(',', '.')
+
+        try:
+            return float(modified_text)
+        except ValueError:
+            return self.minimum()
+
+    def textFromValue(self, value):
+        # Use the default text representation
+        text = super().textFromValue(value)
+        # If the locale uses comma, we keep it that way
+        return text
+
+    def stepBy(self, steps):
+        # Ensure stepping works correctly
+        super().stepBy(steps)
+
+    def keyPressEvent(self, event):
+        # Handle key press events
+        super().keyPressEvent(event)
+
+
+class ConsoleStream(StringIO):
+    """Custom stream to capture print output and emit as signal"""
+
+    def __init__(self, signal):
+        super().__init__()
+        self.signal = signal
+        self._buffer = ""
+
+    def write(self, text):
+        if text:
+            self._buffer += text
+            # Only emit when we have a complete line (ends with newline)
+            if '\n' in text:
+                lines = self._buffer.split('\n')
+                # Emit all complete lines
+                for line in lines[:-1]:
+                    if line.strip():  # Only emit non-empty lines
+                        self.signal.emit(line)
+                # Keep the last incomplete line in buffer
+                self._buffer = lines[-1]
+        return super().write(text)
+
+    def flush(self):
+        # Emit any remaining buffer content when flushed
+        if self._buffer.strip():
+            self.signal.emit(self._buffer)
+            self._buffer = ""
+        super().flush()
+
+
+class POMSim_func_runner(QThread):
+    """Thread class to run functions without blocking the GUI"""
+    finished = pyqtSignal()
+    error = pyqtSignal(str)
+    console_output = pyqtSignal(str)  # Add signal for console output
+    stopped = pyqtSignal()
+
+    def __init__(self, function, config_dict):
+        """
+        Initialize the POMSim function runner thread.
+
+        Creates a new thread instance for running POM Simulator functions asynchronously
+        without blocking the GUI. Sets up a temporary stop file mechanism for graceful
+        termination of long-running operations.
+
+        Args:
+            function (callable): The function to be executed in the separate thread.
+                               This function should accept a configuration dictionary
+                               as its parameter.
+            config_dict (dict): Configuration dictionary containing parameters and
+                              settings to be passed to the function during execution.
+
+        Returns:
+            None
+        """
+        super().__init__()
+        self.function = function
+        self.config_dict = config_dict
+
+        self.is_running = False
+        self.was_stopped = False
+        self.stop_file = (tempfile.NamedTemporaryFile(delete=False))
+        self.stop_file_name = self.stop_file.name
+        self.stop_file.close()
+
+    def run(self):
+        """
+        Execute the assigned function in a separate thread with output redirection.
+
+        Runs the function specified during initialization while redirecting stdout and
+        stderr to capture console output for GUI display. Implements a file-based stop
+        mechanism and handles cleanup of resources. Emits appropriate signals for
+        thread lifecycle events and error handling.
+
+        Args:
+            None
+
+        Returns:
+            None: This method doesn't return a value but emits signals to communicate
+                  with the main thread (started, finished, error, console_output).
+        """
+        # Redirect stdout to capture prints
+        original_stdout = sys.stdout
+        original_stderr = sys.stderr
+
+        console_stream = ConsoleStream(self.console_output)
+
+        sys.stdout = console_stream
+        sys.stderr = console_stream
+
+        try:
+            self.is_running = True
+            self.was_stopped = False
+            func = self.function
+
+            # Clean up any existing stop file before starting
+            try:
+                if os.path.exists(self.stop_file_name):
+                    os.unlink(self.stop_file_name)
+                    # print(f"Cleaned up existing stop file: {self.stop_file_name}")
+            except Exception as e:
+                print(f"Warning: Could not clean up stop file: {e}")
+
+            # Add stop file path to config dict so function can check if it should stop
+            config_with_stop = self.config_dict.copy()
+            config_with_stop['_stop_file'] = self.stop_file_name
+            # print(f"Starting function: {self.function}")
+
+            # Call the function with config_dict
+            result = func(config_with_stop)
+
+            # Check if we were stopped during execution
+            if self.was_stopped or os.path.exists(self.stop_file_name):
+                print("Function was stopped by user")
+                self.stopped.emit()
+                return
+
+            if result == "Stopped":
+                print(f"Function completed. Result: {result}")
+                self.stopped.emit()
+                return
+            elif result == "Error" or result is None:
+                print("Error running function")
+                self.error.emit("Error running function")
+                return
+            else:
+                print(f"Function completed. Result: {result}")
+                self.finished.emit()
+
+        except Exception as e:
+            error_msg = f"Error running function: {str(e)}\n{traceback.format_exc()}"
+            self.error.emit(error_msg)
+            print(error_msg)
+            return
+        finally:
+            # Restore original stdout
+            sys.stdout = original_stdout
+            sys.stderr = original_stderr
+
+            self.is_running = False
+            # Clean up the stop file
+            try:
+                if os.path.exists(self.stop_file_name):
+                    os.unlink(self.stop_file_name)
+            except Exception as e:
+                print(f"Warning: Could not clean up stop file: {e}")
+
+    def stop(self):
+        """
+        Signal the running function to stop execution using a file-based approach.
+
+        Creates a stop file that the running function can check for to determine
+        if it should terminate gracefully. This provides a mechanism for stopping
+        long-running operations without forcefully terminating the thread.
+
+        Args:
+            None
+
+        Returns:
+            None: This method doesn't return a value but creates a stop file
+                  and updates the is_running flag to signal termination.
+        """
+        self.is_running = False
+        self.was_stopped = True
+        # Create the stop file to signal stopping
+        try:
+            with open(self.stop_file_name, 'w') as f:
+                f.write('stop')
+            print(f"Stop signal written to: {self.stop_file_name}")
+        except Exception as e:
+            print(f"Error writing stop file: {e}")
+
+
+def main():
+    """
+    Initialize and run the POM Simulator GUI application.
+
+    This function serves as the entry point for the POM Simulator GUI application.
+    It enables High-DPI support, creates a QApplication instance, initializes the
+    main window of the application (POMSimulatorGUI), displays it, and starts the
+    application's event loop. The function will only return when the application
+    is closed, at which point it ensures proper termination with the appropriate
+    exit code.
+
+    Parameters:
+        None
+
+    Returns:
+        None: This function doesn't return as it calls sys.exit() to terminate
+              the program with the exit code from app.exec_().
+    """
+    # Enable High-DPI support BEFORE creating QApplication
+    from dpi_utils import enable_high_dpi_support
+    enable_high_dpi_support()
+    
+    app = QApplication(sys.argv)
+
+    # Set application style for better appearance
+    app.setStyle('Fusion')
+
+    # Create and show the main window
+    window = POMSimulatorGUI()
+    window.showMaximized()
+
+    # Process events to ensure the window is displayed
+    app.processEvents()
+
+    # Start the event loop
+    sys.exit(app.exec_())
+
+
+if __name__ == "__main__":
+    main()
+    app = QApplication(sys.argv)
+
+    # Set application style for better appearance
+    app.setStyle('Fusion')
+
+    # Create and show the main window
+    window = POMSimulatorGUI()
+    window.showMaximized()
+
+    # Process events to ensure the window is displayed
+    app.processEvents()
+
+    # Start the event loop
+    sys.exit(app.exec_())
+
+
+    def fixup(self, text):
+        # If text is empty or invalid, return minimum value as string
+        if not text:
+            return str(self.minimum())
+
+        # Replace comma with dot for fixup
+        modified_text = text.replace(',', '.')
+
+        # Try to convert to float
+        try:
+            value = float(modified_text)
+            # Ensure value is within range
+            value = max(min(value, self.maximum()), self.minimum())
+            return str(value)
+        except ValueError:
+            return str(self.minimum())
+
+    def valueFromText(self, text):
+        # Handle empty text
+        if not text:
+            return self.minimum()
+
+        # Replace comma with dot before converting to value
+        modified_text = text.replace(',', '.')
+
+        try:
+            return float(modified_text)
+        except ValueError:
+            return self.minimum()
+
+    def textFromValue(self, value):
+        # Use the default text representation
+        text = super().textFromValue(value)
+        # If the locale uses comma, we keep it that way
+        return text
+
+    def stepBy(self, steps):
+        # Ensure stepping works correctly
+        super().stepBy(steps)
+
+    def keyPressEvent(self, event):
+        # Handle key press events
+        super().keyPressEvent(event)
+
+
+class ConsoleStream(StringIO):
+    """Custom stream to capture print output and emit as signal"""
+
+    def __init__(self, signal):
+        super().__init__()
+        self.signal = signal
+        self._buffer = ""
+
+    def write(self, text):
+        if text:
+            self._buffer += text
+            # Only emit when we have a complete line (ends with newline)
+            if '\n' in text:
+                lines = self._buffer.split('\n')
+                # Emit all complete lines
+                for line in lines[:-1]:
+                    if line.strip():  # Only emit non-empty lines
+                        self.signal.emit(line)
+                # Keep the last incomplete line in buffer
+                self._buffer = lines[-1]
+        return super().write(text)
+
+    def flush(self):
+        # Emit any remaining buffer content when flushed
+        if self._buffer.strip():
+            self.signal.emit(self._buffer)
+            self._buffer = ""
+        super().flush()
+
+
+class POMSim_func_runner(QThread):
+    """Thread class to run functions without blocking the GUI"""
+    finished = pyqtSignal()
+    error = pyqtSignal(str)
+    console_output = pyqtSignal(str)  # Add signal for console output
+    stopped = pyqtSignal()
+
+    def __init__(self, function, config_dict):
+        """
+        Initialize the POMSim function runner thread.
+
+        Creates a new thread instance for running POM Simulator functions asynchronously
+        without blocking the GUI. Sets up a temporary stop file mechanism for graceful
+        termination of long-running operations.
+
+        Args:
+            function (callable): The function to be executed in the separate thread.
+                               This function should accept a configuration dictionary
+                               as its parameter.
+            config_dict (dict): Configuration dictionary containing parameters and
+                              settings to be passed to the function during execution.
+
+        Returns:
+            None
+        """
+        super().__init__()
+        self.function = function
+        self.config_dict = config_dict
+
+        self.is_running = False
+        self.was_stopped = False
+        self.stop_file = (tempfile.NamedTemporaryFile(delete=False))
+        self.stop_file_name = self.stop_file.name
+        self.stop_file.close()
+
+    def run(self):
+        """
+        Execute the assigned function in a separate thread with output redirection.
+
+        Runs the function specified during initialization while redirecting stdout and
+        stderr to capture console output for GUI display. Implements a file-based stop
+        mechanism and handles cleanup of resources. Emits appropriate signals for
+        thread lifecycle events and error handling.
+
+        Args:
+            None
+
+        Returns:
+            None: This method doesn't return a value but emits signals to communicate
+                  with the main thread (started, finished, error, console_output).
+        """
+        # Redirect stdout to capture prints
+        original_stdout = sys.stdout
+        original_stderr = sys.stderr
+
+        console_stream = ConsoleStream(self.console_output)
+
+        sys.stdout = console_stream
+        sys.stderr = console_stream
+
+        try:
+            self.is_running = True
+            self.was_stopped = False
+            func = self.function
+
+            # Clean up any existing stop file before starting
+            try:
+                if os.path.exists(self.stop_file_name):
+                    os.unlink(self.stop_file_name)
+                    # print(f"Cleaned up existing stop file: {self.stop_file_name}")
+            except Exception as e:
+                print(f"Warning: Could not clean up stop file: {e}")
+
+            # Add stop file path to config dict so function can check if it should stop
+            config_with_stop = self.config_dict.copy()
+            config_with_stop['_stop_file'] = self.stop_file_name
+            # print(f"Starting function: {self.function}")
+
+            # Call the function with config_dict
+            result = func(config_with_stop)
+
+            # Check if we were stopped during execution
+            if self.was_stopped or os.path.exists(self.stop_file_name):
+                print("Function was stopped by user")
+                self.stopped.emit()
+                return
+
+            if result == "Stopped":
+                print(f"Function completed. Result: {result}")
+                self.stopped.emit()
+                return
+            elif result == "Error" or result is None:
+                print("Error running function")
+                self.error.emit("Error running function")
+                return
+            else:
+                print(f"Function completed. Result: {result}")
+                self.finished.emit()
+
+        except Exception as e:
+            error_msg = f"Error running function: {str(e)}\n{traceback.format_exc()}"
+            self.error.emit(error_msg)
+            print(error_msg)
+            return
+        finally:
+            # Restore original stdout
+            sys.stdout = original_stdout
+            sys.stderr = original_stderr
+
+            self.is_running = False
+            # Clean up the stop file
+            try:
+                if os.path.exists(self.stop_file_name):
+                    os.unlink(self.stop_file_name)
+            except Exception as e:
+                print(f"Warning: Could not clean up stop file: {e}")
+
+    def stop(self):
+        """
+        Signal the running function to stop execution using a file-based approach.
+
+        Creates a stop file that the running function can check for to determine
+        if it should terminate gracefully. This provides a mechanism for stopping
+        long-running operations without forcefully terminating the thread.
+
+        Args:
+            None
+
+        Returns:
+            None: This method doesn't return a value but creates a stop file
+                  and updates the is_running flag to signal termination.
+        """
+        self.is_running = False
+        self.was_stopped = True
+        # Create the stop file to signal stopping
+        try:
+            with open(self.stop_file_name, 'w') as f:
+                f.write('stop')
+            print(f"Stop signal written to: {self.stop_file_name}")
+        except Exception as e:
+            print(f"Error writing stop file: {e}")
+
+
+def main():
+    """
+    Initialize and run the POM Simulator GUI application.
+
+    This function serves as the entry point for the POM Simulator GUI application.
+    It enables High-DPI support, creates a QApplication instance, initializes the
+    main window of the application (POMSimulatorGUI), displays it, and starts the
+    application's event loop. The function will only return when the application
+    is closed, at which point it ensures proper termination with the appropriate
+    exit code.
+
+    Parameters:
+        None
+
+    Returns:
+        None: This function doesn't return as it calls sys.exit() to terminate
+              the program with the exit code from app.exec_().
+    """
+    # Enable High-DPI support BEFORE creating QApplication
+    from dpi_utils import enable_high_dpi_support
+    enable_high_dpi_support()
+    
+    app = QApplication(sys.argv)
+
+    # Set application style for better appearance
+    app.setStyle('Fusion')
+
+    # Create and show the main window
+    window = POMSimulatorGUI()
+    window.showMaximized()
+
+    # Process events to ensure the window is displayed
+    app.processEvents()
+
+    # Start the event loop
+    sys.exit(app.exec_())
+
+
+if __name__ == "__main__":
+    main()
+    app = QApplication(sys.argv)
+
+    # Set application style for better appearance
+    app.setStyle('Fusion')
+
+    # Create and show the main window
+    window = POMSimulatorGUI()
+    window.showMaximized()
+
+    # Process events to ensure the window is displayed
+    app.processEvents()
+
+    # Start the event loop
+    sys.exit(app.exec_())
+    def fixup(self, text):
+        # If text is empty or invalid, return minimum value as string
+        if not text:
+            return str(self.minimum())
+
+        # Replace comma with dot for fixup
+        modified_text = text.replace(',', '.')
+
+        # Try to convert to float
+        try:
+            value = float(modified_text)
+            # Ensure value is within range
+            value = max(min(value, self.maximum()), self.minimum())
+            return str(value)
+        except ValueError:
+            return str(self.minimum())
+
+    def valueFromText(self, text):
+        # Handle empty text
+        if not text:
+            return self.minimum()
+
+        # Replace comma with dot before converting to value
+        modified_text = text.replace(',', '.')
+
+        try:
+            return float(modified_text)
+        except ValueError:
+            return self.minimum()
+
+    def textFromValue(self, value):
+        # Use the default text representation
+        text = super().textFromValue(value)
+        # If the locale uses comma, we keep it that way
+        return text
+
+    def stepBy(self, steps):
+        # Ensure stepping works correctly
+        super().stepBy(steps)
+
+    def keyPressEvent(self, event):
+        # Handle key press events
+        super().keyPressEvent(event)
+
+
+class ConsoleStream(StringIO):
+    """Custom stream to capture print output and emit as signal"""
+
+    def __init__(self, signal):
+        super().__init__()
+        self.signal = signal
+        self._buffer = ""
+
+    def write(self, text):
+        if text:
+            self._buffer += text
+            # Only emit when we have a complete line (ends with newline)
+            if '\n' in text:
+                lines = self._buffer.split('\n')
+                # Emit all complete lines
+                for line in lines[:-1]:
+                    if line.strip():  # Only emit non-empty lines
+                        self.signal.emit(line)
+                # Keep the last incomplete line in buffer
+                self._buffer = lines[-1]
+        return super().write(text)
+
+    def flush(self):
+        # Emit any remaining buffer content when flushed
+        if self._buffer.strip():
+            self.signal.emit(self._buffer)
+            self._buffer = ""
+        super().flush()
+
+
+class POMSim_func_runner(QThread):
+    """Thread class to run functions without blocking the GUI"""
+    finished = pyqtSignal()
+    error = pyqtSignal(str)
+    console_output = pyqtSignal(str)  # Add signal for console output
+    stopped = pyqtSignal()
+
+    def __init__(self, function, config_dict):
+        """
+        Initialize the POMSim function runner thread.
+
+        Creates a new thread instance for running POM Simulator functions asynchronously
+        without blocking the GUI. Sets up a temporary stop file mechanism for graceful
+        termination of long-running operations.
+
+        Args:
+            function (callable): The function to be executed in the separate thread.
+                               This function should accept a configuration dictionary
+                               as its parameter.
+            config_dict (dict): Configuration dictionary containing parameters and
+                              settings to be passed to the function during execution.
+
+        Returns:
+            None
+        """
+        super().__init__()
+        self.function = function
+        self.config_dict = config_dict
+
+        self.is_running = False
+        self.was_stopped = False
+        self.stop_file = (tempfile.NamedTemporaryFile(delete=False))
+        self.stop_file_name = self.stop_file.name
+        self.stop_file.close()
+
+    def run(self):
+        """
+        Execute the assigned function in a separate thread with output redirection.
+
+        Runs the function specified during initialization while redirecting stdout and
+        stderr to capture console output for GUI display. Implements a file-based stop
+        mechanism and handles cleanup of resources. Emits appropriate signals for
+        thread lifecycle events and error handling.
+
+        Args:
+            None
+
+        Returns:
+            None: This method doesn't return a value but emits signals to communicate
+                  with the main thread (started, finished, error, console_output).
+        """
+        # Redirect stdout to capture prints
+        original_stdout = sys.stdout
+        original_stderr = sys.stderr
+
+        console_stream = ConsoleStream(self.console_output)
+
+        sys.stdout = console_stream
+        sys.stderr = console_stream
+
+        try:
+            self.is_running = True
+            self.was_stopped = False
+            func = self.function
+
+            # Clean up any existing stop file before starting
+            try:
+                if os.path.exists(self.stop_file_name):
+                    os.unlink(self.stop_file_name)
+                    # print(f"Cleaned up existing stop file: {self.stop_file_name}")
+            except Exception as e:
+                print(f"Warning: Could not clean up stop file: {e}")
+
+            # Add stop file path to config dict so function can check if it should stop
+            config_with_stop = self.config_dict.copy()
+            config_with_stop['_stop_file'] = self.stop_file_name
+            # print(f"Starting function: {self.function}")
+
+            # Call the function with config_dict
+            result = func(config_with_stop)
+
+            # Check if we were stopped during execution
+            if self.was_stopped or os.path.exists(self.stop_file_name):
+                print("Function was stopped by user")
+                self.stopped.emit()
+                return
+
+            if result == "Stopped":
+                print(f"Function completed. Result: {result}")
+                self.stopped.emit()
+                return
+            elif result == "Error" or result is None:
+                print("Error running function")
+                self.error.emit("Error running function")
+                return
+            else:
+                print(f"Function completed. Result: {result}")
+                self.finished.emit()
+
+        except Exception as e:
+            error_msg = f"Error running function: {str(e)}\n{traceback.format_exc()}"
+            self.error.emit(error_msg)
+            print(error_msg)
+            return
+        finally:
+            # Restore original stdout
+            sys.stdout = original_stdout
+            sys.stderr = original_stderr
+
+            self.is_running = False
+            # Clean up the stop file
+            try:
+                if os.path.exists(self.stop_file_name):
+                    os.unlink(self.stop_file_name)
+            except Exception as e:
+                print(f"Warning: Could not clean up stop file: {e}")
+
+    def stop(self):
+        """
+        Signal the running function to stop execution using a file-based approach.
+
+        Creates a stop file that the running function can check for to determine
+        if it should terminate gracefully. This provides a mechanism for stopping
+        long-running operations without forcefully terminating the thread.
+
+        Args:
+            None
+
+        Returns:
+            None: This method doesn't return a value but creates a stop file
+                  and updates the is_running flag to signal termination.
+        """
+        self.is_running = False
+        self.was_stopped = True
+        # Create the stop file to signal stopping
+        try:
+            with open(self.stop_file_name, 'w') as f:
+                f.write('stop')
+            print(f"Stop signal written to: {self.stop_file_name}")
+        except Exception as e:
+            print(f"Error writing stop file: {e}")
+
+
+def main():
+    """
+    Initialize and run the POM Simulator GUI application.
+
+    This function serves as the entry point for the POM Simulator GUI application.
+    It enables High-DPI support, creates a QApplication instance, initializes the
+    main window of the application (POMSimulatorGUI), displays it, and starts the
+    application's event loop. The function will only return when the application
+    is closed, at which point it ensures proper termination with the appropriate
+    exit code.
+
+    Parameters:
+        None
+
+    Returns:
+        None: This function doesn't return as it calls sys.exit() to terminate
+              the program with the exit code from app.exec_().
+    """
+    # Enable High-DPI support BEFORE creating QApplication
+    from dpi_utils import enable_high_dpi_support
+    enable_high_dpi_support()
+    
+    app = QApplication(sys.argv)
+
+    # Set application style for better appearance
+    app.setStyle('Fusion')
+
+    # Create and show the main window
+    window = POMSimulatorGUI()
+    window.showMaximized()
+
+    # Process events to ensure the window is displayed
+    app.processEvents()
+
+    # Start the event loop
+    sys.exit(app.exec_())
+
+
+if __name__ == "__main__":
+    main()
+    app = QApplication(sys.argv)
+
+    # Set application style for better appearance
+    app.setStyle('Fusion')
+
+    # Create and show the main window
+    window = POMSimulatorGUI()
+    window.showMaximized()
+
+    # Process events to ensure the window is displayed
+    app.processEvents()
+
+    # Start the event loop
+    sys.exit(app.exec_())
+
+
