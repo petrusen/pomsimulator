@@ -1,6 +1,6 @@
 # Standard library imports
 from configparser import ConfigParser
-import pkg_resources as pkgr
+from pathlib import Path
 
 # Local imports
 from pomsimulator.modules.text_module import Print_logo
@@ -10,14 +10,14 @@ from pomsimulator.modules.DataBase import *
 
 
 def main():
-    config_file = pkgr.resource_filename(__name__, "../inputs/config_W.pomsim")
+    config_file = str(Path(__file__).resolve().parent / "../inputs/config_W.pomsim")
     config = ConfigParser()
     config.read(config_file)
 
     system = config["Preparation"]["POM_system"]
     exp_set_name = config["Scaling"]["experimental_set"]
     ExpDict = experimental_constants[exp_set_name]
-    output_path = pkgr.resource_filename(__name__, config["Preparation"]["output_path"])
+    output_path = str(Path(__file__).resolve().parent / config["Preparation"]["output_path"])
 
     lgkf_file = output_path + "/logkf_%s.csv" % system
     scaling_params_file = output_path + "/regression_output.csv"

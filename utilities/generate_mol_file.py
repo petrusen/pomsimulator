@@ -2,21 +2,21 @@
 from os import listdir
 from os.path import isfile, join
 from configparser import ConfigParser
-import pkg_resources as pkgr
+from pathlib import Path
 # Local imports
 from pomsimulator.modules.text_module import *
 from pomsimulator.modules.DataBase import *
 
 
 def main():
-    config_file = pkgr.resource_filename(__name__, "../inputs/config_W.pomsim")
+    config_file = str(Path(__file__).resolve().parent / "../inputs/config_W.pomsim")
     config = ConfigParser()
     config.read(config_file)
 
     #### DEFINE VARIABLES ####
 
-    ADF_folder = pkgr.resource_filename(__name__, config["Preparation"]["adf_inputs_dir"])
-    mol_folder = pkgr.resource_filename(__name__, config["Preparation"]["mol_folder"])
+    ADF_folder = str(Path(__file__).resolve().parent / config["Preparation"]["adf_inputs_dir"])
+    mol_folder = str(Path(__file__).resolve().parent / config["Preparation"]["mol_folder"])
 
     # 1) Get ADF outputs
     Print_logo()

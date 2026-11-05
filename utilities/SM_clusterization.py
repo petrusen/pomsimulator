@@ -3,7 +3,7 @@ import sys
 import os
 import re
 import time
-import pkg_resources as pkgr
+from pathlib import Path
 from configparser import ConfigParser
 #Third-party imports
 import numpy as np
@@ -21,11 +21,11 @@ def main():
     Print_logo()
 
     ############## INPUT VARIABLES ######################
-    config_file = pkgr.resource_filename(__name__, "../inputs/config_PMo.pomsim")
+    config_file = str(Path(__file__).resolve().parent / "../inputs/config_PMo.pomsim")
     config = ConfigParser()
     config.read(config_file)
 
-    output_path = pkgr.resource_filename(__name__, config["Preparation"]["output_path"])
+    output_path = str(Path(__file__).resolve().parent / config["Preparation"]["output_path"])
     system = config["Preparation"]["POM_system"]
 
     path_to_npz = output_path + "/" + config["Clustering"]["npz_cluster_file"]

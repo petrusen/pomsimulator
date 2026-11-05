@@ -1,6 +1,6 @@
 # Standard library imports
 from configparser import ConfigParser
-import pkg_resources as pkgr
+from pathlib import Path
 # Third-party imports
 import numpy as np
 import matplotlib.pyplot as plt
@@ -13,10 +13,10 @@ from pomsimulator.modules.DataBase import Col_Dict_PMo
 
 def main():
     Print_logo()
-    config_file = pkgr.resource_filename(__name__, "../inputs/config_W.pomsim")
+    config_file = str(Path(__file__).resolve().parent / "../inputs/config_W.pomsim")
     config = ConfigParser()
     config.read(config_file)
-    output_path = pkgr.resource_filename(__name__, config["Preparation"]["output_path"])
+    output_path = str(Path(__file__).resolve().parent / config["Preparation"]["output_path"])
     system = config["Preparation"]["POM_system"]
     npz_file = output_path + "/" + config["Speciation"]["npz_file"]
     m_idx = int(config["Speciation"]["m_idx"])

@@ -4,7 +4,7 @@ from os import listdir
 from os.path import isfile, join
 import time
 import random
-import pkg_resources as pkgr
+from pathlib import Path
 # Local imports
 from pomsimulator.modules.text_module import *
 from pomsimulator.modules.DataBase import *
@@ -18,20 +18,20 @@ os.environ['OMP_NUM_THREADS'] = '1'
 def main():
     Print_logo()
     ######################### User parameters ##############################################
-    config_file = pkgr.resource_filename(__name__, "../inputs/config_PMo.pomsim")
+    config_file = str(Path(__file__).resolve().parent / "../inputs/config_PMo.pomsim")
     config = ConfigParser()
     config.read(config_file)
     # Input/output files
     system = config["Preparation"]["POM_system"]
-    ADF_folder = pkgr.resource_filename(__name__, config["Preparation"]["adf_inputs_dir"])
-    mol_folder = pkgr.resource_filename(__name__, config["Preparation"]["mol_folder"])
-    output_path = pkgr.resource_filename(__name__, config["Preparation"]["output_path"])
+    ADF_folder = str(Path(__file__).resolve().parent / config["Preparation"]["adf_inputs_dir"])
+    mol_folder = str(Path(__file__).resolve().parent / config["Preparation"]["mol_folder"])
+    output_path = str(Path(__file__).resolve().parent / config["Preparation"]["output_path"])
     os.makedirs(output_path,exist_ok=True)
     formation_constants_file = output_path + "/logkf_%s.csv" % system
     CRN_file = output_path + "/CRN_%s.txt" % system
     labels_file = output_path + "/labels_%s.txt" % system
     simulation_file = output_path + "/simulation_parameters_%s.txt" % system
-    isomorphism_matrix = pkgr.resource_filename(__name__, output_path + "/np_IM_%s.csv"% system)
+    isomorphism_matrix = output_path + "/np_IM_%s.csv" % system
     # Operation parameters
     cores = int(config["Simulation"]["cores"])
     batch_size = int(config["Simulation"]["batch_size"])

@@ -1,7 +1,7 @@
 # Standard library imports
 import re
 from configparser import ConfigParser
-import pkg_resources as pkgr
+from pathlib import Path
 #Third-party imports
 import numpy as np
 import matplotlib.pyplot as plt
@@ -14,11 +14,11 @@ from pomsimulator.modules.text_module import Lab_to_stoich,Lab_to_Formula,Print_
 
 def main():
     Print_logo()
-    config_file = pkgr.resource_filename(__name__, "../inputs/config_W.pomsim")
+    config_file = str(Path(__file__).resolve().parent / "../inputs/config_W.pomsim")
     config = ConfigParser()
     config.read(config_file)
     ###########################PARAMETERS############################################
-    output_path = pkgr.resource_filename(__name__, config["Preparation"]["output_path"])
+    output_path = str(Path(__file__).resolve().parent / config["Preparation"]["output_path"])
     system = config["Preparation"]["POM_system"]
     npz_info_file = output_path + "/npz_info_%s.dat" % system
     output_img = "phase_diagram_%s.png" % system

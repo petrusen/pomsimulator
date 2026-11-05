@@ -2,7 +2,7 @@
 from os import listdir,makedirs
 from os.path import isfile, join
 from configparser import ConfigParser
-import pkg_resources as pkgr
+from pathlib import Path
 #Third-party imports
 import numpy as np
 # Local imports
@@ -12,15 +12,15 @@ from pomsimulator.modules.graph_module import *
 
 def main():
 
-    config_file = pkgr.resource_filename(__name__, "../inputs/config_W.pomsim")
+    config_file = str(Path(__file__).resolve().parent / "../inputs/config_W.pomsim")
     config = ConfigParser()
     config.read(config_file)
     # 0) Define input variables #### ###################################################################################
 
     ### Paths
     system = config["Preparation"]["POM_system"]
-    mol_folder = pkgr.resource_filename(__name__, config["Preparation"]["mol_folder"])
-    output_path = pkgr.resource_filename(__name__, config["Preparation"]["output_path"])
+    mol_folder = str(Path(__file__).resolve().parent / config["Preparation"]["mol_folder"])
+    output_path = str(Path(__file__).resolve().parent / config["Preparation"]["output_path"])
     output_file =  output_path + "/np_IM_%s.csv"% system
     Cores = int(config["Isomorphism"]["cores"]) #number of cores for the subgraph isomorphism calculation (caution!)
     makedirs(output_path, exist_ok=True)
