@@ -2,7 +2,7 @@
 from os import listdir
 from os.path import isfile, join
 import time
-import pkg_resources as pkgr
+from pathlib import Path
 #Third-party imports
 import numpy as np
 from itertools import product
@@ -17,13 +17,13 @@ from configparser import ConfigParser
 def main():
     Print_logo()
     ######################### User parameters ##############################################
-    config_file = pkgr.resource_filename(__name__, "../inputs/config_PMo.pomsim")
+    config_file = str(Path(__file__).resolve().parent / "../inputs/config_PMo.pomsim")
     config = ConfigParser()
     config.read(config_file)
     # Input/output files
     system = config["Preparation"]["POM_system"]
-    ADF_folder = pkgr.resource_filename(__name__, config["Preparation"]["adf_inputs_dir"])
-    output_path = pkgr.resource_filename(__name__, config["Preparation"]["output_path"])
+    ADF_folder = str(Path(__file__).resolve().parent / config["Preparation"]["adf_inputs_dir"])
+    output_path = str(Path(__file__).resolve().parent / config["Preparation"]["output_path"])
 
     isomorphism_matrix = output_path + "/np_IM_%s.csv" % system
     # Chemical parameters

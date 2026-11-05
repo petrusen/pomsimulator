@@ -3,7 +3,7 @@ import os
 from multiprocessing import Pool, cpu_count
 import time
 from configparser import ConfigParser
-import pkg_resources as pkgr
+from pathlib import Path
 #Third-party imports
 from itertools import repeat
 import numpy as np
@@ -21,11 +21,11 @@ os.environ['OMP_NUM_THREADS'] = '1'
 
 def main():
     Print_logo()
-    config_file = pkgr.resource_filename(__name__, "../inputs/config_W.pomsim")
+    config_file = str(Path(__file__).resolve().parent / "../inputs/config_W.pomsim")
     config = ConfigParser()
     config.read(config_file)
     ######################### User parameters ##############################################
-    output_path = pkgr.resource_filename(__name__, config["Preparation"]["output_path"])
+    output_path = str(Path(__file__).resolve().parent / config["Preparation"]["output_path"])
     system = config["Preparation"]["POM_system"]
     # Labels and species
     speciation_labels = config["Speciation"]["speciation_labels"].split(",")

@@ -1,7 +1,7 @@
 #Standard library imports
 import os
 from configparser import ConfigParser
-import pkg_resources as pkgr
+from pathlib import Path
 #Third-party imports
 import numpy as np
 import pandas as pd
@@ -18,11 +18,11 @@ from pomsimulator.modules.plotting_module import plot_speciation
 
 def main():
     Print_logo()
-    config_file = pkgr.resource_filename(__name__, "../inputs/config_PMo.pomsim")
+    config_file = str(Path(__file__).resolve().parent / "../inputs/config_PMo.pomsim")
     config = ConfigParser()
     config.read(config_file)
 
-    output_path = pkgr.resource_filename(__name__, config["Preparation"]["output_path"])
+    output_path = str(Path(__file__).resolve().parent / config["Preparation"]["output_path"])
     system = config["Preparation"]["POM_system"]
     clust_dir = output_path + "/" + config["Clustering"]["cluster_dir"]
     path_to_npz = clust_dir + "/NewArr.npz"

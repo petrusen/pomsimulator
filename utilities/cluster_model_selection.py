@@ -1,6 +1,6 @@
 #Standard library imports
 from configparser import ConfigParser
-import pkg_resources as pkgr
+from pathlib import Path
 #Local imports
 from pomsimulator.modules.helper_module import load_array, get_C0
 from pomsimulator.modules.stats_module import *
@@ -9,11 +9,11 @@ from pomsimulator.modules.text_module import Print_logo
 
 def main():
     Print_logo()
-    config_file = pkgr.resource_filename(__name__, "../inputs/config_PMo.pomsim")
+    config_file = str(Path(__file__).resolve().parent / "../inputs/config_PMo.pomsim")
     config = ConfigParser()
     config.read(config_file)
 
-    output_path = pkgr.resource_filename(__name__, config["Preparation"]["output_path"])
+    output_path = str(Path(__file__).resolve().parent / config["Preparation"]["output_path"])
     system = config["Preparation"]["POM_system"]
 
     clust_dir = output_path + "/" + config["Clustering"]["cluster_dir"]
